@@ -26,7 +26,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-black text-zinc-200 font-sans selection:bg-purple-500 selection:text-white">
       <header className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
-        <div className="mx-auto flex w-full max-w-[1920px] items-center justify-between px-6 py-6 lg:px-12">
+        <div className="mx-auto flex w-full max-w-[2560px] items-center justify-between px-6 py-6 lg:px-12">
           <a href="#top" className="flex items-center gap-4 hover:opacity-70 transition-opacity">
             <img src={newLogo} alt="Void Lynx Logo" className="h-10 w-10 object-contain brightness-[2.5] contrast-[1.2]" />
             <span className="font-bold tracking-[0.3em] text-xs uppercase text-zinc-100">VOID LYNX</span>
@@ -41,7 +41,7 @@ function Index() {
         </div>
       </header>
 
-      <main id="top" className="mx-auto w-full max-w-[1920px] pt-32 pb-16 sm:pb-32">
+      <main id="top" className="mx-auto w-full max-w-[2560px] pt-32 pb-16 sm:pb-32">
         <section className="flex flex-col items-center text-center mt-24 mb-48 px-6">
           <div className="relative group cursor-pointer mb-8">
             <div className="absolute inset-0 bg-purple-600/20 blur-[100px] rounded-full scale-150 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
@@ -137,7 +137,7 @@ function Index() {
       </main>
 
       <footer className="border-t border-white/5 py-16 mt-32 bg-black">
-        <div className="mx-auto w-full max-w-[1920px] px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between text-xs font-medium tracking-[0.2em] text-zinc-600 uppercase">
+        <div className="mx-auto w-full max-w-[2560px] px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between text-xs font-medium tracking-[0.2em] text-zinc-600 uppercase">
           <div className="flex items-center gap-4 mb-6 sm:mb-0">
             <img src={newLogo} alt="Void Lynx" className="h-6 w-6 opacity-90 brightness-[2.5] contrast-[1.2]" />
             <p>Void Lynx © {new Date().getFullYear()}</p>
