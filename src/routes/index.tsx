@@ -65,9 +65,11 @@ function Index() {
                 href={s.href}
                 aria-label={s.name}
                 title={s.name}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-zinc-600 hover:text-white transition-colors"
               >
-                <span className="h-6 w-6 block">
+                <span className="h-6 w-6 block overflow-visible shrink-0">
                   {socialIcons[s.name]}
                 </span>
               </a>

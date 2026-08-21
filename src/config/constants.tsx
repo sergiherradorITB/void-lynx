@@ -5,12 +5,12 @@ import apheliosImage from "@/assets/champions/aphelios_hd.jpg";
 import rellImage from "@/assets/champions/rell_hd.jpg";
 
 export const socials = [
-  { name: "Twitch", handle: "/voidlynx", href: "#" },
-  { name: "X", handle: "@voidlynx", href: "#" },
-  { name: "Instagram", handle: "@voidlynx.gg", href: "#" },
-  { name: "YouTube", handle: "/voidlynxgg", href: "#" },
-  { name: "Discord", handle: "voidlynx", href: "#" },
-  { name: "TikTok", handle: "@voidlynx", href: "#" },
+  { name: "Twitch", handle: "/voidlynxlol", href: "https://www.twitch.tv/voidlynxlol" },
+  { name: "X", handle: "@VoidLynxLOL", href: "https://x.com/VoidLynxLOL" },
+  { name: "Instagram", handle: "@voidlynxlol", href: "https://www.instagram.com/voidlynxlol/" },
+  { name: "YouTube", handle: "@VoidLynxLOL", href: "https://www.youtube.com/@VoidLynxLOL" },
+  { name: "Discord", handle: "Void Lynx", href: "https://discord.gg/aSRxMSGskg" },
+  { name: "TikTok", handle: "@voidlynxlol", href: "https://www.tiktok.com/@voidlynxlol" },
 ];
 
 export const roster = [
@@ -100,7 +100,9 @@ export const socialIcons: Record<string, React.ReactNode> = {
   ),
   TikTok: (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.01.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 2.78-1.15 5.54-3.33 7.39-2.2 1.85-5.21 2.5-7.97 1.83-2.78-.67-5.07-2.81-5.91-5.55-.83-2.73-.24-5.83 1.54-8.08 1.77-2.23 4.59-3.37 7.39-3.23v4.06c-1.42-.04-2.9.36-3.95 1.35-1.05.99-1.46 2.48-1.22 3.88.24 1.37 1.22 2.56 2.5 3.09 1.28.53 2.82.49 3.97-.24 1.16-.73 1.81-2 1.83-3.35.03-7.23.01-14.47.01-21.7z" />
+      <g transform="scale(0.85) translate(2, 2)">
+        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.01.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 2.78-1.15 5.54-3.33 7.39-2.2 1.85-5.21 2.5-7.97 1.83-2.78-.67-5.07-2.81-5.91-5.55-.83-2.73-.24-5.83 1.54-8.08 1.77-2.23 4.59-3.37 7.39-3.23v4.06c-1.42-.04-2.9.36-3.95 1.35-1.05.99-1.46 2.48-1.22 3.88.24 1.37 1.22 2.56 2.5 3.09 1.28.53 2.82.49 3.97-.24 1.16-.73 1.81-2 1.83-3.35.03-7.23.01-14.47.01-21.7z" />
+      </g>
     </svg>
   ),
 };
