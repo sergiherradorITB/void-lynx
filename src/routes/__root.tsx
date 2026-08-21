@@ -113,14 +113,6 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <div dangerouslySetInnerHTML={{ __html: `<!-- impeccable:direction-contract 1
-THESIS: Minimalist, clean, logo-centric design without complex "AI" aesthetics.
-OWN-WORLD: Very clean dark mode, relying entirely on typography, whitespace, and the Void Lynx logo.
-STORY: An uncompromisingly simple esports hub.
-FIRST VIEWPORT: The Void Lynx logo centered above stark, legible navigation and social links.
-FORM: Pure CSS layouts, no gradients or complex borders, high contrast.
-FINISH: Crisp alignment, zero layout shift, semantic HTML.
--->` }} />
         {children}
         <Scripts />
       </body>
@@ -133,7 +125,6 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
     </QueryClientProvider>
   );

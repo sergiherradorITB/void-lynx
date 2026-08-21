@@ -42,10 +42,8 @@ function Index() {
       </header>
 
       <main id="top" className="mx-auto w-full max-w-[1920px] pt-32 pb-16 sm:pb-32">
-        {/* Hero */}
         <section className="flex flex-col items-center text-center mt-24 mb-48 px-6">
           <div className="relative group cursor-pointer mb-8">
-            {/* Extremely subtle glow behind the logo */}
             <div className="absolute inset-0 bg-purple-600/20 blur-[100px] rounded-full scale-150 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
             <img
               src={newLogo}
@@ -77,7 +75,6 @@ function Index() {
           </div>
         </section>
 
-        {/* Roster - The Typographic Monolith */}
         <section id="roster" className="mb-48 scroll-mt-32">
           <div className="px-6 lg:px-12 mb-16 flex items-baseline gap-4">
             <h2 className="text-sm font-bold tracking-[0.4em] uppercase text-zinc-500">Active Roster</h2>
@@ -90,10 +87,8 @@ function Index() {
                 key={p.role} 
                 className="group relative border-b border-white/5 py-20 lg:py-32 px-6 lg:px-12 flex flex-col lg:flex-row lg:items-center justify-between cursor-default transition-colors hover:bg-white/[0.02] overflow-hidden"
               >
-                {/* Background Champion Image - Always visible, brighter on hover */}
                 <div className="absolute inset-0 opacity-20 group-hover:opacity-60 transition-opacity duration-1000 pointer-events-none z-0 mix-blend-screen flex items-center justify-center">
                   <div className="absolute inset-0 bg-purple-950/80 group-hover:bg-purple-900/50 mix-blend-color transition-colors duration-1000 z-10" />
-                  {/* object-[center_20%] ensures we see the head/chest of the splash arts */}
                   <img src={p.champ} alt="" className={`w-full h-full object-cover object-[center_20%] grayscale scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out ${p.imageClass || "contrast-110 brightness-100"}`} />
                 </div>
 
@@ -123,8 +118,6 @@ function Index() {
           </div>
         </section>
 
-
-        {/* Staff */}
         <section id="staff" className="scroll-mt-32">
           <div className="px-6 lg:px-12 mb-16 flex items-baseline gap-4">
             <h2 className="text-sm font-bold tracking-[0.4em] uppercase text-zinc-500">Staff</h2>
