@@ -92,7 +92,7 @@ function Index() {
                 <div className="absolute inset-0 opacity-20 group-hover:opacity-60 transition-opacity duration-1000 pointer-events-none z-0 mix-blend-screen flex items-center justify-center">
                   <div className="absolute inset-0 bg-purple-950/80 group-hover:bg-purple-900/50 mix-blend-color transition-colors duration-1000 z-10" />
                   {/* object-[center_20%] ensures we see the head/chest of the splash arts */}
-                  <img src={p.champ} alt="" className="w-full h-full object-cover object-[center_20%] grayscale contrast-125 brightness-75 scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out" />
+                  <img src={p.champ} alt="" className={`w-full h-full object-cover object-[center_20%] grayscale scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out ${p.imageClass || "contrast-125 brightness-75"}`} />
                 </div>
 
                 <div className="flex items-baseline gap-6 lg:gap-12 z-10 relative">

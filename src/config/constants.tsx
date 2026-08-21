@@ -22,6 +22,7 @@ export const roster = [
     flag: "ES",
     desc: "El rey del aura y de la top.",
     champ: ornnImage,
+    imageClass: "contrast-100 brightness-110",
   },
   {
     role: "Jungla",
