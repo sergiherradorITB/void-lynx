@@ -54,8 +54,8 @@ export const roster = [
   {
     role: "Support",
     nick: "Azoth",
-    social: "Azoth",
-    href: "",
+    social: "@Eltrollex_",
+    href: "https://x.com/Eltrollex_",
     flag: "ES",
     desc: "Engagea como un toro sin pastillas",
     champ: rellImage,
