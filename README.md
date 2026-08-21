@@ -1,29 +1,28 @@
-# Welcome to your Lovable project
+# Void Lynx — Esports Team
 
-This project was built with [Lovable](https://lovable.dev).
+Sitio web oficial del equipo competitivo de League of Legends **Void Lynx**. 
 
-## Build with Lovable
+Construido con una arquitectura de diseño "Monolito Editorial", priorizando una estética oscura, minimalista y libre de distracciones UI genéricas para resaltar a los jugadores y la identidad del club.
 
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
+## Tecnologías 🚀
+- [React](https://reactjs.org/)
+- [TanStack Start](https://tanstack.com/start/latest) / [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+## Desarrollo Local 🛠️
 
-## Development
+1. Clona el repositorio:
+   ```bash
+   git clone https://github.com/sergiherradorITB/void-lynx.git
+   ```
+2. Instala las dependencias:
+   ```bash
+   npm install
+   ```
+3. Inicia el servidor de desarrollo:
+   ```bash
+   npm run dev
+   ```
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
-```
-
-## Built with
-
-- TanStack Start
-- TypeScript
-- React
-- Tailwind CSS
+## Estructura de Datos
+La información del Roster, Staff y Redes Sociales está centralizada en `src/config/constants.tsx` para facilitar su actualización sin tener que modificar la estructura de la página.
