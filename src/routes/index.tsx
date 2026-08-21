@@ -104,10 +104,16 @@ function Index() {
                 
                 <div className="flex flex-col items-start lg:items-end mt-6 lg:mt-0 opacity-70 group-hover:opacity-100 transition-opacity duration-500 z-10 relative">
                   <span className="text-xl sm:text-2xl font-bold tracking-[0.2em] uppercase text-purple-400 mb-2 drop-shadow-md">{p.role}</span>
-                  <a href={p.href} target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-widest text-zinc-200 hover:text-purple-300 transition-colors uppercase drop-shadow flex items-center gap-2">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
-                    {p.social}
-                  </a>
+                  {p.href ? (
+                    <a href={p.href} target="_blank" rel="noopener noreferrer" className="text-sm font-medium tracking-widest text-zinc-200 hover:text-purple-300 transition-colors uppercase drop-shadow flex items-center gap-2">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                      {p.social}
+                    </a>
+                  ) : (
+                    <span className="text-sm font-medium tracking-widest text-zinc-500 uppercase drop-shadow flex items-center gap-2">
+                      {p.social}
+                    </span>
+                  )}
                   <span className="text-sm text-zinc-400 max-w-xs text-left lg:text-right mt-4 leading-relaxed drop-shadow italic">"{p.desc}"</span>
                 </div>
               </div>
