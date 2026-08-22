@@ -94,9 +94,30 @@ function Index() {
 
                 <div className="flex items-baseline gap-6 lg:gap-12 z-10 relative">
                   <span className="text-xs font-medium tracking-[0.3em] uppercase text-zinc-600 w-8">{p.flag}</span>
-                  <h3 className="text-6xl sm:text-7xl lg:text-9xl font-extrabold uppercase tracking-tighter text-white/90 group-hover:text-white transition-colors drop-shadow-2xl">
-                    {p.nick}
-                  </h3>
+                  <div className="flex items-center gap-4 lg:gap-6">
+                    <h3 className="text-6xl sm:text-7xl lg:text-9xl font-extrabold uppercase tracking-tighter text-white/90 group-hover:text-white transition-colors drop-shadow-2xl">
+                      {p.opgg ? (
+                        <a href={p.opgg} target="_blank" rel="noopener noreferrer" className="hover:text-purple-300 transition-colors pointer-events-auto">
+                          {p.nick}
+                        </a>
+                      ) : (
+                        p.nick
+                      )}
+                    </h3>
+                    {p.opgg && (
+                      <a
+                        href={p.opgg}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="pointer-events-auto opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 flex items-center gap-1.5 bg-white/10 hover:bg-purple-500/30 backdrop-blur-sm border border-white/10 hover:border-purple-400/40 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-300 hover:text-white shrink-0"
+                      >
+                        <span>OP.GG</span>
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                        </svg>
+                      </a>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="flex flex-col items-start lg:items-end mt-6 lg:mt-0 opacity-70 group-hover:opacity-100 transition-opacity duration-500 z-10 relative">
