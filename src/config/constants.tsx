@@ -69,7 +69,7 @@ export const roster = [
 
 export const staff = [
   { role: "Manager", nick: "ORESITO" },
-  { role: "Coach", nick: "EGV99" },
+  { role: "Coach", nick: "egv999" },
   { role: "Content Manager", nick: "al333x23_" },
   { role: "Todoterreno", nick: "Tamudor" },
 ];
