@@ -13,7 +13,59 @@ export const socials = [
   { name: "TikTok", handle: "@voidlynxlol", href: "https://www.tiktok.com/@voidlynxlol" },
 ];
 
-export const roster = [
+export interface PlayerHighlight {
+  title: string;
+  tournament: string;
+  duration?: string;
+  youtubeUrl: string;
+}
+
+export interface Player {
+  role: string;
+  nick: string;
+  social: string;
+  href?: string;
+  opgg?: string;
+  flag: string;
+  desc: string;
+  champ: string;
+  champName?: string;
+  champTitle?: string;
+  champObjectPosition?: string;
+  imageClass?: string;
+  signatureChampions?: string[];
+  highlights?: PlayerHighlight[];
+}
+
+export function getYouTubeEmbedUrl(input?: string): string {
+  if (!input) return "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ";
+  const match = input.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/,
+  );
+  if (match && match[1]) {
+    return `https://www.youtube-nocookie.com/embed/${match[1]}`;
+  }
+  if (/^[\w-]{11}$/.test(input.trim())) {
+    return `https://www.youtube-nocookie.com/embed/${input.trim()}`;
+  }
+  return "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ";
+}
+
+export function getYouTubeThumbnail(input?: string, fallback?: string): string {
+  if (!input) return fallback || "";
+  const match = input.match(
+    /(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/,
+  );
+  if (match && match[1]) {
+    return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+  }
+  if (/^[\w-]{11}$/.test(input.trim())) {
+    return `https://img.youtube.com/vi/${input.trim()}/hqdefault.jpg`;
+  }
+  return fallback || "";
+}
+
+export const roster: Player[] = [
   {
     role: "Top",
     nick: "Kaserolo",
@@ -23,7 +75,25 @@ export const roster = [
     flag: "ES",
     desc: "El rey del aura y de la top.",
     champ: ornnImage,
+    champName: "Ornn",
+    champTitle: "El Fuego de la Forja",
+    champObjectPosition: "object-[center_25%]",
     imageClass: "contrast-100 brightness-110",
+    signatureChampions: ["Ornn", "Sion", "K'Sante"],
+    highlights: [
+      {
+        title: "Nasus Farmeando Stacks Bien Vergas en Top",
+        tournament: "Toplane Simulator • 1000 Stacks al Min 40",
+        duration: "4:31",
+        youtubeUrl: "https://www.youtube.com/watch?v=GtUVQei3nX4",
+      },
+      {
+        title: "El Rey del Aura de la Top — Gigachad Theme",
+        tournament: "Aura Legendaria • Solo Muere Si Se Cae el Router",
+        duration: "3:48",
+        youtubeUrl: "https://www.youtube.com/watch?v=QJJYpsA5tv8",
+      },
+    ],
   },
   {
     role: "Jungla",
@@ -34,6 +104,24 @@ export const roster = [
     flag: "ES",
     desc: "Es del espanyol, está forjado a hierro",
     champ: viegoImage,
+    champName: "Viego",
+    champTitle: "El Rey Arruinado",
+    champObjectPosition: "object-[center_15%]",
+    signatureChampions: ["Viego", "Jarvan IV", "Lee Sin"],
+    highlights: [
+      {
+        title: "Smash Mouth — All Star (El Shrek de la Jungla)",
+        tournament: "Robo de Barón • Smite a 45 de Daño y Pa' Casa",
+        duration: "3:57",
+        youtubeUrl: "https://www.youtube.com/watch?v=L_jWHffIx5E",
+      },
+      {
+        title: "Viego: Modo Posesión Infinito Forjado a Hierro",
+        tournament: "Espíritu RCDE • Carrileando la Partida sin Botas",
+        duration: "3:58",
+        youtubeUrl: "https://www.youtube.com/watch?v=m-IGWllnTMw",
+      },
+    ],
   },
   {
     role: "Mid",
@@ -44,6 +132,24 @@ export const roster = [
     flag: "ES",
     desc: "Te controla hasta que no quieras jugar",
     champ: seraphineImage,
+    champName: "Seraphine",
+    champTitle: "La Cantante Soñadora",
+    champObjectPosition: "object-[center_20%]",
+    signatureChampions: ["Seraphine", "Orianna", "Syndra"],
+    highlights: [
+      {
+        title: "Taylor Swift — Trouble (Versión Grito de Cabra)",
+        tournament: "Meme Histórico • Cuando el Jungla Enemigo Gankea Mid",
+        duration: "0:30",
+        youtubeUrl: "https://www.youtube.com/watch?v=-aLYvZ5sX28",
+      },
+      {
+        title: "Taylor Swift ft. Post Malone — Fortnight",
+        tournament: "Álbum TTPD • Tryhardeando Seraphine a las 4 AM",
+        duration: "4:09",
+        youtubeUrl: "https://www.youtube.com/watch?v=q3zqJs7JUCQ",
+      },
+    ],
   },
   {
     role: "ADC",
@@ -54,6 +160,24 @@ export const roster = [
     flag: "ES",
     desc: "pega tan duro como tu ex",
     champ: apheliosImage,
+    champName: "Aphelios",
+    champTitle: "El Arma de los Fieles",
+    champObjectPosition: "object-[center_20%]",
+    signatureChampions: ["Aphelios", "Jinx", "Varus"],
+    highlights: [
+      {
+        title: "Aphelios: 200 Años de Experiencia en Diseño Colectivo",
+        tournament: "Meme Riot • Pegando tan Duro como tu Ex",
+        duration: "6:14",
+        youtubeUrl: "https://www.youtube.com/watch?v=sSgyzHDuDkU",
+      },
+      {
+        title: "Darude — Sandstorm (Himno Oficial de la Botlane)",
+        tournament: "DUDUDUDU • Spameando Flechas y Habilidades al Azar",
+        duration: "3:52",
+        youtubeUrl: "https://www.youtube.com/watch?v=y6120QOlsfU",
+      },
+    ],
   },
   {
     role: "Support",
@@ -64,14 +188,61 @@ export const roster = [
     flag: "ES",
     desc: "Engagea como un toro sin pastillas",
     champ: rellImage,
+    champName: "Rell",
+    champTitle: "La Dama de Hierro",
+    champObjectPosition: "object-[center_20%]",
+    signatureChampions: ["Rell", "Nautilus", "Leona"],
+    highlights: [
+      {
+        title: "Initial D — Deja Vu (Drifteando el Caballo de Rell)",
+        tournament: "Toro Sin Pastillas • Engage 1v5 a 200 km/h por el Río",
+        duration: "4:24",
+        youtubeUrl: "https://www.youtube.com/watch?v=dv13gl0a-FA",
+      },
+      {
+        title: "Bag Raiders — Shooting Stars (Volando por el Espacio)",
+        tournament: "Meme Rell • Cuando Fallas la W y Sales de la Grieta",
+        duration: "3:55",
+        youtubeUrl: "https://www.youtube.com/watch?v=feA64wXhbjo",
+      },
+    ],
   },
 ];
 
-export const staff = [
-  { role: "Manager", nick: "ORESITO" },
-  { role: "Coach", nick: "egv999" },
-  { role: "Content Manager", nick: "al333x23_" },
-  { role: "Todoterreno", nick: "Tamudor" },
+export interface StaffSocial {
+  name: string;
+  handle: string;
+  href: string;
+}
+
+export interface StaffMember {
+  role: string;
+  nick: string;
+  socials?: StaffSocial[];
+}
+
+export const staff: StaffMember[] = [
+  {
+    role: "Manager",
+    nick: "ORESITO",
+  },
+  {
+    role: "Coach",
+    nick: "egv999",
+    socials: [
+      { name: "X", handle: "@EGV1999", href: "https://x.com/EGV1999" },
+      { name: "TikTok", handle: "@egv999", href: "https://www.tiktok.com/@egv999" },
+    ],
+  },
+  {
+    role: "Content Manager",
+    nick: "al333x23_",
+  },
+  {
+    role: "Todoterreno",
+    nick: "Tamudor",
+    socials: [{ name: "X", handle: "@sergiwrx", href: "https://x.com/sergiwrx" }],
+  },
 ];
 
 export const nav = [
