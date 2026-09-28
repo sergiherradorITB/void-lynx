@@ -79,7 +79,7 @@ export const roster: Player[] = [
     champTitle: "El Fuego de la Forja",
     champObjectPosition: "object-[center_25%]",
     imageClass: "contrast-100 brightness-110",
-    signatureChampions: ["Ornn", "Sion", "K'Sante"],
+    signatureChampions: ["Ornn", "K'Sante", "Udyr"],
     highlights: [
       {
         title: "Nasus Farmeando Stacks Bien Vergas en Top",
@@ -107,7 +107,7 @@ export const roster: Player[] = [
     champName: "Viego",
     champTitle: "El Rey Arruinado",
     champObjectPosition: "object-[center_15%]",
-    signatureChampions: ["Viego", "Jarvan IV", "Lee Sin"],
+    signatureChampions: ["Rek'Sai", "Viego", "Xin Zhao"],
     highlights: [
       {
         title: "Smash Mouth — All Star (El Shrek de la Jungla)",
@@ -135,7 +135,7 @@ export const roster: Player[] = [
     champName: "Seraphine",
     champTitle: "La Cantante Soñadora",
     champObjectPosition: "object-[center_20%]",
-    signatureChampions: ["Seraphine", "Orianna", "Syndra"],
+    signatureChampions: ["Mel", "Seraphine", "Lux"],
     highlights: [
       {
         title: "Taylor Swift — Trouble (Versión Grito de Cabra)",
@@ -163,7 +163,7 @@ export const roster: Player[] = [
     champName: "Aphelios",
     champTitle: "El Arma de los Fieles",
     champObjectPosition: "object-[center_20%]",
-    signatureChampions: ["Aphelios", "Jinx", "Varus"],
+    signatureChampions: ["Aphelios", "Smolder", "Senna"],
     highlights: [
       {
         title: "Aphelios: 200 Años de Experiencia en Diseño Colectivo",
@@ -191,7 +191,7 @@ export const roster: Player[] = [
     champName: "Rell",
     champTitle: "La Dama de Hierro",
     champObjectPosition: "object-[center_20%]",
-    signatureChampions: ["Rell", "Nautilus", "Leona"],
+    signatureChampions: ["Rell", "Rakan", "Leona"],
     highlights: [
       {
         title: "Initial D — Deja Vu (Drifteando el Caballo de Rell)",
@@ -284,3 +284,27 @@ export const socialIcons: Record<string, React.ReactNode> = {
     </svg>
   ),
 };
+
+export const newsItems = [
+  {
+    id: 1,
+    date: '29 Sep 2026',
+    tag: 'Roster',
+    title: 'Nuevos main champs confirmados para la temporada',
+    excerpt: 'Arnau, Kaserolo, Tamudor, Azoth y Upss han actualizado su pool de campeones para dominar en el próximo split.',
+  },
+  {
+    id: 2,
+    date: '25 Sep 2026',
+    tag: 'Anuncio',
+    title: 'Presentamos la nueva identidad visual de Void Lynx',
+    excerpt: 'Silencio antes del salto. Hemos renovado nuestro logo y la estética completa del equipo. Bienvenidos a la nueva era.',
+  },
+  {
+    id: 3,
+    date: '15 Sep 2026',
+    tag: 'Competición',
+    title: 'Clasificación asegurada para los playoffs',
+    excerpt: 'Tras una racha impecable, el equipo se asegura el primer puesto en la fase regular y nos preparamos para la fase final.',
+  }
+];
