@@ -16,6 +16,7 @@ export function TwitterFeed() {
     if (!document.getElementById(scriptId)) {
       const script = document.createElement('script');
       script.id = scriptId;
+      script.setAttribute('data-cfasync', 'false');
       script.src = 'https://platform.twitter.com/widgets.js';
       script.async = true;
       script.charset = 'utf-8';
