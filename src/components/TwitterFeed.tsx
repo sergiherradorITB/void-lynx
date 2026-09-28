@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function TwitterFeed() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     // Load script if not present
     const scriptId = 'twitter-wjs';
     if (!document.getElementById(scriptId)) {
@@ -27,7 +34,20 @@ export function TwitterFeed() {
     };
     
     loadTwitter();
-  }, []);
+  }, [mounted]);
+
+  if (!mounted) {
+    return (
+      <div className="w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.15)] bg-zinc-950 p-6 border border-purple-500/30">
+        <h2 className="text-2xl font-black mb-6 text-white text-center tracking-tight uppercase">
+          Última Hora
+        </h2>
+        <div className="min-h-[500px] flex justify-center items-center">
+          <span className="text-zinc-500">Iniciando feed...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.15)] bg-zinc-950 p-6 border border-purple-500/30">
