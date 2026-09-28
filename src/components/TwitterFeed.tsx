@@ -39,6 +39,7 @@ export function TwitterFeed() {
           className="twitter-timeline"
           data-height="500"
           data-theme="dark"
+          data-tweet-limit="3"
           href="https://twitter.com/VoidLynxLOL?ref_src=twsrc%5Etfw"
         >
           Cargando posts de Void Lynx...
