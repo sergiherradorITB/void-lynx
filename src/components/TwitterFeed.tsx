@@ -1,21 +1,48 @@
-import { TwitterTimelineEmbed } from 'react-twitter-embed';
+import { useEffect, useRef } from 'react';
 
 export function TwitterFeed() {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Load script if not present
+    const scriptId = 'twitter-wjs';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://platform.twitter.com/widgets.js';
+      script.async = true;
+      script.charset = 'utf-8';
+      document.body.appendChild(script);
+    }
+    
+    // Force widget reload safely
+    const loadTwitter = () => {
+      // @ts-ignore
+      if (window.twttr && window.twttr.widgets) {
+        // @ts-ignore
+        window.twttr.widgets.load(containerRef.current);
+      } else {
+        setTimeout(loadTwitter, 500);
+      }
+    };
+    
+    loadTwitter();
+  }, []);
+
   return (
     <div className="w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(168,85,247,0.15)] bg-zinc-950 p-6 border border-purple-500/30">
       <h2 className="text-2xl font-black mb-6 text-white text-center tracking-tight uppercase">
         Última Hora
       </h2>
-      <div className="min-h-[500px]">
-        <TwitterTimelineEmbed
-          sourceType="profile"
-          screenName="VoidLynxLOL"
-          options={{ height: 500, theme: 'dark' }}
-          noHeader
-          noFooter
-          noBorders
-          transparent
-        />
+      <div ref={containerRef} className="min-h-[500px] flex justify-center">
+        <a
+          className="twitter-timeline"
+          data-height="500"
+          data-theme="dark"
+          href="https://twitter.com/VoidLynxLOL?ref_src=twsrc%5Etfw"
+        >
+          Cargando posts de Void Lynx...
+        </a>
       </div>
     </div>
   );
