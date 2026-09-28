@@ -11,7 +11,7 @@ import {
   getYouTubeThumbnail,
   type PlayerHighlight,
 } from "@/config/constants";
-import { TwitterFeed } from "@/components/TwitterFeed";
+import { NewsFeed } from "@/components/NewsFeed";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -476,7 +476,7 @@ function Index() {
             ))}
           </div>
         </section>
-      <section id="social" className="w-full pb-32 px-6 lg:px-12 pt-16"><TwitterFeed /></section></main>
+      <section id="social" className="w-full pb-32 px-6 lg:px-12 pt-16"><NewsFeed /></section></main>
 
       <footer className="border-t border-white/5 py-16 mt-32 bg-black">
         <div className="mx-auto w-full max-w-[2560px] px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between text-xs font-medium tracking-[0.2em] text-zinc-600 uppercase">
