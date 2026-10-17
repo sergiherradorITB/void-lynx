@@ -8,39 +8,69 @@ export interface Champion {
   category: "Primary Carry" | "Secondary Carry" | "Enabler" | "Utility" | "Tank" | "Assassin";
 }
 
-export const DDRAGON_VERSION = "15.1.1";
+export const DDRAGON_VERSION = "16.20.1";
+
+// Mapeo exhaustivo de variaciones de nombres, mayúsculas/minúsculas y aliases al ID canónico de Riot Data Dragon
+const DDRAGON_CANONICAL_MAP: Record<string, string> = {
+  chogath: "Chogath",
+  kaisa: "Kaisa",
+  khazix: "Khazix",
+  leblanc: "Leblanc",
+  velkoz: "Velkoz",
+  wukong: "MonkeyKing",
+  monkeyking: "MonkeyKing",
+  mel: "Mel",
+  ksante: "KSante",
+  belveth: "Belveth",
+  renata: "Renata",
+  renataglasc: "Renata",
+  nunu: "Nunu",
+  nunuwillump: "Nunu",
+  drmundo: "DrMundo",
+  mundo: "DrMundo",
+  jarvan: "JarvanIV",
+  jarvaniv: "JarvanIV",
+  masteryi: "MasterYi",
+  yi: "MasterYi",
+  missfortune: "MissFortune",
+  mf: "MissFortune",
+  aurelionsol: "AurelionSol",
+  asol: "AurelionSol",
+  tahmkench: "TahmKench",
+  twistedfate: "TwistedFate",
+  tf: "TwistedFate",
+  xinzhao: "XinZhao",
+  kogmaw: "KogMaw",
+  reksai: "RekSai",
+};
+
+export function normalizeDDragonId(rawId: string): string {
+  if (!rawId) return "";
+  const clean = rawId.trim();
+  const key = clean.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (DDRAGON_CANONICAL_MAP[key]) {
+    return DDRAGON_CANONICAL_MAP[key];
+  }
+  const found = findChampion(clean);
+  if (found) {
+    const foundKey = found.id.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (DDRAGON_CANONICAL_MAP[foundKey]) {
+      return DDRAGON_CANONICAL_MAP[foundKey];
+    }
+    return found.id;
+  }
+  return clean;
+}
 
 export function getChampionAvatar(id: string): string {
   if (!id) return "";
-  const cleanId = id.trim();
-  const idMap: Record<string, string> = {
-    Chogath: "ChoGath",
-    Kaisa: "KaiSa",
-    Khazix: "KhaZix",
-    Leblanc: "LeBlanc",
-    Nunu: "Nunu",
-    Velkoz: "Velkoz",
-    Wukong: "MonkeyKing",
-    Renata: "Renata",
-    Belveth: "Belveth",
-    KSante: "KSante",
-  };
-  const finalId = idMap[cleanId] || cleanId;
+  const finalId = normalizeDDragonId(id);
   return `https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VERSION}/img/champion/${finalId}.png`;
 }
 
 export function getChampionSplash(id: string): string {
   if (!id) return "";
-  const cleanId = id.trim();
-  const idMap: Record<string, string> = {
-    Chogath: "ChoGath",
-    Kaisa: "KaiSa",
-    Khazix: "KhaZix",
-    Leblanc: "LeBlanc",
-    Nunu: "Nunu",
-    Wukong: "MonkeyKing",
-  };
-  const finalId = idMap[cleanId] || cleanId;
+  const finalId = normalizeDDragonId(id);
   return `https://ddragon.leagueoflegends.com/cdn/img/champion/splash/${finalId}_0.jpg`;
 }
 
@@ -68,7 +98,7 @@ export const CHAMPIONS_CATALOG: Champion[] = [
   { id: "Caitlyn", name: "Caitlyn", roles: ["ADC"], category: "Primary Carry" },
   { id: "Camille", name: "Camille", roles: ["TOP", "SUPP"], category: "Primary Carry" },
   { id: "Cassiopeia", name: "Cassiopeia", roles: ["MID", "TOP"], category: "Primary Carry" },
-  { id: "ChoGath", name: "Cho'Gath", roles: ["TOP", "MID"], category: "Tank" },
+  { id: "Chogath", name: "Cho'Gath", roles: ["TOP", "MID"], category: "Tank" },
   { id: "Corki", name: "Corki", roles: ["MID", "ADC"], category: "Primary Carry" },
   { id: "Darius", name: "Darius", roles: ["TOP"], category: "Primary Carry" },
   { id: "Diana", name: "Diana", roles: ["JGL", "MID"], category: "Secondary Carry" },
@@ -101,7 +131,7 @@ export const CHAMPIONS_CATALOG: Champion[] = [
   { id: "Jhin", name: "Jhin", roles: ["ADC"], category: "Secondary Carry" },
   { id: "Jinx", name: "Jinx", roles: ["ADC"], category: "Primary Carry" },
   { id: "KSante", name: "K'Sante", roles: ["TOP"], category: "Tank" },
-  { id: "KaiSa", name: "Kai'Sa", roles: ["ADC"], category: "Primary Carry" },
+  { id: "Kaisa", name: "Kai'Sa", roles: ["ADC"], category: "Primary Carry" },
   { id: "Kalista", name: "Kalista", roles: ["ADC"], category: "Primary Carry" },
   { id: "Karma", name: "Karma", roles: ["SUPP", "MID"], category: "Utility" },
   { id: "Karthus", name: "Karthus", roles: ["JGL", "ADC"], category: "Primary Carry" },
@@ -110,11 +140,11 @@ export const CHAMPIONS_CATALOG: Champion[] = [
   { id: "Kayle", name: "Kayle", roles: ["TOP", "MID"], category: "Primary Carry" },
   { id: "Kayn", name: "Kayn", roles: ["JGL"], category: "Primary Carry" },
   { id: "Kennen", name: "Kennen", roles: ["TOP"], category: "Secondary Carry" },
-  { id: "KhaZix", name: "Kha'Zix", roles: ["JGL"], category: "Assassin" },
+  { id: "Khazix", name: "Kha'Zix", roles: ["JGL"], category: "Assassin" },
   { id: "Kindred", name: "Kindred", roles: ["JGL"], category: "Primary Carry" },
   { id: "Kled", name: "Kled", roles: ["TOP", "MID"], category: "Primary Carry" },
   { id: "KogMaw", name: "Kog'Maw", roles: ["ADC"], category: "Primary Carry" },
-  { id: "LeBlanc", name: "LeBlanc", roles: ["MID"], category: "Assassin" },
+  { id: "Leblanc", name: "LeBlanc", roles: ["MID"], category: "Assassin" },
   { id: "LeeSin", name: "Lee Sin", roles: ["JGL"], category: "Enabler" },
   { id: "Leona", name: "Leona", roles: ["SUPP"], category: "Enabler" },
   { id: "Lillia", name: "Lillia", roles: ["JGL"], category: "Primary Carry" },
