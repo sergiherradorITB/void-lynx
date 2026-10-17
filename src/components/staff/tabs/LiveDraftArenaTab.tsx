@@ -19,8 +19,11 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  Radio,
+  RefreshCw,
+  Zap,
 } from "lucide-react";
-import { ActiveTab, DraftSlot, DraftSequenceStep, LaneConfig } from "../types";
+import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
 
 interface LiveDraftArenaTabProps {
@@ -78,6 +81,12 @@ interface LiveDraftArenaTabProps {
   draftNotes: string;
   setDraftNotes: (notes: string) => void;
   setActiveTab: (tab: ActiveTab) => void;
+  isDrafterAutoSync: boolean;
+  setIsDrafterAutoSync: (val: boolean) => void;
+  drafterSyncStatus: DrafterSyncStatus;
+  lastDrafterSyncTime: Date | null;
+  drafterLiveTime: number;
+  fetchAndApplyDrafterLiveState: (roomId?: string) => Promise<boolean>;
 }
 
 export function LiveDraftArenaTab({
@@ -129,6 +138,12 @@ export function LiveDraftArenaTab({
   draftNotes,
   setDraftNotes,
   setActiveTab,
+  isDrafterAutoSync,
+  setIsDrafterAutoSync,
+  drafterSyncStatus,
+  lastDrafterSyncTime,
+  drafterLiveTime,
+  fetchAndApplyDrafterLiveState,
 }: LiveDraftArenaTabProps) {
   const VERTICAL_BOARD_ROLES = verticalBoardRoles;
 
@@ -213,7 +228,7 @@ export function LiveDraftArenaTab({
               <Globe className="h-3.5 w-3.5 text-purple-400 shrink-0" />
               <input
                 type="text"
-                placeholder="URL Drafter.lol (ej: drafter.lol/draft/Vdg8...)"
+                placeholder="URL o ID Drafter.lol (ej: fotCSLKi)..."
                 value={drafterInputUrl || drafterRoomUrl}
                 onChange={(e) => setDrafterInputUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -223,6 +238,15 @@ export function LiveDraftArenaTab({
                 }}
                 className="flex-1 bg-transparent text-white font-mono text-xs outline-none placeholder-zinc-500 min-w-0"
               />
+              {drafterInputUrl && drafterInputUrl.trim() !== drafterRoomUrl && (
+                <button
+                  type="button"
+                  onClick={() => handleSetDrafterRoomUrl(drafterInputUrl)}
+                  className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-mono font-bold shrink-0 transition-colors"
+                >
+                  Conectar
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleOpenDrafterPopout}
@@ -318,6 +342,76 @@ export function LiveDraftArenaTab({
                 <option value="VICTORIA">VICTORIA</option>
                 <option value="DERROTA">DERROTA</option>
               </select>
+            </div>
+          </div>
+
+          {/* Barra de Telemetría y Sincronización en Tiempo Real Drafter.lol */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 rounded-xl bg-purple-950/20 border border-purple-900/40 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5">
+                <Radio className={`h-3.5 w-3.5 ${drafterSyncStatus === "connected" ? "text-emerald-400 animate-pulse" : "text-zinc-500"}`} />
+                <span className="font-mono text-[10px] text-zinc-400 uppercase font-bold">Drafter.lol Bridge:</span>
+                {drafterSyncStatus === "connected" ? (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/60 text-emerald-300 text-[10px] font-mono font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+                    EN VIVO
+                  </span>
+                ) : drafterSyncStatus === "syncing" ? (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500/60 text-amber-300 text-[10px] font-mono font-bold">
+                    <RefreshCw className="h-2.5 w-2.5 animate-spin" />
+                    CONECTANDO...
+                  </span>
+                ) : drafterSyncStatus === "error" ? (
+                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-950 border border-rose-500/60 text-rose-300 text-[10px] font-mono font-bold">
+                    ERROR AL CONECTAR
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-mono font-bold">
+                    SIN SALA VINCULADA
+                  </span>
+                )}
+              </div>
+
+              {drafterRoomUrl && (
+                <span className="text-zinc-400 font-mono text-[11px] flex items-center gap-1">
+                  • Sala: <strong className="text-purple-300 font-semibold">{drafterRoomUrl.replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "").split("?")[0]}</strong>
+                </span>
+              )}
+
+              {lastDrafterSyncTime && (
+                <span className="text-zinc-500 font-mono text-[10px] hidden sm:inline">
+                  • Sincronizado: {lastDrafterSyncTime.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Botón Auto-Sync ON / OFF */}
+              <button
+                type="button"
+                onClick={() => setIsDrafterAutoSync(!isDrafterAutoSync)}
+                title="Activar/Desactivar sincronización continua en tiempo real (cada 2 segundos)"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold transition-all ${
+                  isDrafterAutoSync
+                    ? "bg-emerald-950/80 border-emerald-500/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:bg-emerald-900/80"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${isDrafterAutoSync ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"}`} />
+                <span>{isDrafterAutoSync ? "Auto-Sync: ACTIVO (2s)" : "Auto-Sync: PAUSADO"}</span>
+              </button>
+
+              {/* Botón Forzar Actualización Inmediata */}
+              <button
+                type="button"
+                onClick={() => fetchAndApplyDrafterLiveState()}
+                disabled={drafterSyncStatus === "syncing"}
+                title="Sincronizar picks y bans inmediatamente desde Drafter.lol"
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/70 hover:bg-purple-900 border border-purple-500/50 hover:border-purple-400 text-purple-200 text-[10px] font-mono font-bold transition-all hover:scale-105"
+              >
+                <RefreshCw className={`h-3 w-3 text-purple-300 ${drafterSyncStatus === "syncing" ? "animate-spin" : ""}`} />
+                <span>Sincronizar Ahora</span>
+              </button>
             </div>
           </div>
         </div>
@@ -556,6 +650,23 @@ export function LiveDraftArenaTab({
                     <span className="text-xs font-mono text-emerald-400 font-bold">
                       ✓ DRAFT COMPLETADO
                     </span>
+                  )}
+
+                  {/* Temporizador Drafter.lol en Directo */}
+                  {drafterSyncStatus === "connected" && typeof drafterLiveTime === "number" && (
+                    <div
+                      title="Tiempo oficial restante del turno en Drafter.lol"
+                      className={`px-2.5 py-1 rounded-xl border font-mono font-black text-xs flex items-center gap-1.5 shrink-0 transition-all ${
+                        drafterLiveTime <= 10
+                          ? "bg-rose-950 border-rose-500 text-rose-300 animate-pulse shadow-[0_0_12px_rgba(244,63,94,0.6)]"
+                          : drafterLiveTime <= 20
+                          ? "bg-amber-950 border-amber-500 text-amber-300"
+                          : "bg-purple-950 border-purple-500 text-purple-200"
+                      }`}
+                    >
+                      <Radio className="h-3 w-3 animate-pulse" />
+                      <span>{drafterLiveTime}s</span>
+                    </div>
                   )}
 
                   {/* Indicador Slot Activo */}

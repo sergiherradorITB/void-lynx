@@ -27,7 +27,7 @@ import {
   SavedDraft,
 } from "@/lib/staff-storage";
 import { RoleType } from "@/components/RoleBadge";
-import { ActiveTab, DraftSlot, DraftSequenceStep } from "./types";
+import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus } from "./types";
 
 export function useStaffState() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("drafter");
@@ -506,13 +506,93 @@ export function useStaffState() {
   });
   const [drafterInputUrl, setDrafterInputUrl] = useState<string>("");
   const [drafterArenaMode, setDrafterArenaMode] = useState<"builtin" | "drafter_lol" | "split">("builtin");
+  const [isDrafterAutoSync, setIsDrafterAutoSync] = useState<boolean>(true);
+  const [drafterSyncStatus, setDrafterSyncStatus] = useState<DrafterSyncStatus>("idle");
+  const [lastDrafterSyncTime, setLastDrafterSyncTime] = useState<Date | null>(null);
+  const [drafterLiveTime, setDrafterLiveTime] = useState<number>(30);
+
+  const fetchAndApplyDrafterLiveState = async (roomIdToUse?: string) => {
+    const targetRoom = (roomIdToUse || drafterRoomUrl || drafterInputUrl).trim();
+    if (!targetRoom) return false;
+
+    const cleanId = (targetRoom
+      .replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "")
+      .split("?")[0] ?? "")
+      .split("/")[0]
+      ?.trim() ?? "";
+
+    if (!cleanId) return false;
+
+    try {
+      setDrafterSyncStatus("syncing");
+      const res = await fetch(`/api/drafter-sync?roomId=${cleanId}`);
+      if (!res.ok) {
+        setDrafterSyncStatus("error");
+        return false;
+      }
+      const data = await res.json();
+      if (!data.success) {
+        setDrafterSyncStatus("error");
+        return false;
+      }
+
+      // Sincronizar Picks y Bans si cambiaron
+      if (Array.isArray(data.bluePicks)) setBluePicks(data.bluePicks);
+      if (Array.isArray(data.blueBans)) setBlueBans(data.blueBans);
+      if (Array.isArray(data.redPicks)) setRedPicks(data.redPicks);
+      if (Array.isArray(data.redBans)) setRedBans(data.redBans);
+
+      // Sincronizar rivalName si viene en drafter
+      if (ourSide === "BLUE" && data.redName && data.redName.trim()) {
+        setRivalName(data.redName.trim());
+      } else if (ourSide === "RED" && data.blueName && data.blueName.trim()) {
+        setRivalName(data.blueName.trim());
+      }
+
+      // Sincronizar tiempo restante
+      if (typeof data.currentTime === "number") {
+        setDrafterLiveTime(data.currentTime);
+      }
+
+      // Sincronizar turno / slot activo
+      if (data.step) {
+        const stepMatch = data.step.match(/^(blue|red)(Pick|Ban)(\d)$/i);
+        if (stepMatch) {
+          const side = stepMatch[1].toLowerCase() as "blue" | "red";
+          const type = stepMatch[2].toLowerCase() as "pick" | "ban";
+          const index = Math.max(0, parseInt(stepMatch[3], 10) - 1);
+          setActiveSlot({ side, type, index });
+        }
+      }
+
+      setDrafterSyncStatus("connected");
+      setLastDrafterSyncTime(new Date());
+      return true;
+    } catch {
+      setDrafterSyncStatus("error");
+      return false;
+    }
+  };
 
   const handleSetDrafterRoomUrl = (url: string) => {
     setDrafterRoomUrl(url);
     if (typeof window !== "undefined") {
       localStorage.setItem("vl_drafter_room_url", url);
     }
+    fetchAndApplyDrafterLiveState(url);
   };
+
+  // Polling automático en tiempo real cuando está en pestaña 'live'
+  useEffect(() => {
+    if (!isDrafterAutoSync || !drafterRoomUrl.trim() || activeTab !== "live") return;
+
+    fetchAndApplyDrafterLiveState();
+    const interval = setInterval(() => {
+      fetchAndApplyDrafterLiveState();
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isDrafterAutoSync, drafterRoomUrl, activeTab, ourSide]);
 
   const cleanDrafterIframeUrl = useMemo(() => {
     if (!drafterRoomUrl.trim()) return "";
@@ -1014,6 +1094,12 @@ export function useStaffState() {
     drafterArenaMode,
     setDrafterArenaMode,
     cleanDrafterIframeUrl,
+    isDrafterAutoSync,
+    setIsDrafterAutoSync,
+    drafterSyncStatus,
+    lastDrafterSyncTime,
+    drafterLiveTime,
+    fetchAndApplyDrafterLiveState,
     DRAFT_SEQUENCE,
     currentTurnStep,
     allUsedChampions,

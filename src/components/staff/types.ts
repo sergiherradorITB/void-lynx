@@ -35,3 +35,6 @@ export interface CompDraftAnalysis {
   safeFirstPicks: PlayerChampionEntry[];
   coveredRolesCount: number;
 }
+
+export type DrafterSyncStatus = "idle" | "syncing" | "connected" | "error";
+

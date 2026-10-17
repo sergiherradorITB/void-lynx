@@ -163,6 +163,12 @@ function StaffPage() {
             draftNotes={staff.draftNotes}
             setDraftNotes={staff.setDraftNotes}
             setActiveTab={staff.setActiveTab}
+            isDrafterAutoSync={staff.isDrafterAutoSync}
+            setIsDrafterAutoSync={staff.setIsDrafterAutoSync}
+            drafterSyncStatus={staff.drafterSyncStatus}
+            lastDrafterSyncTime={staff.lastDrafterSyncTime}
+            drafterLiveTime={staff.drafterLiveTime}
+            fetchAndApplyDrafterLiveState={staff.fetchAndApplyDrafterLiveState}
           />
         )}
 
