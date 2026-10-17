@@ -1,8 +1,3 @@
--- =============================================
--- Void Lynx Drafter — Seed Data (from Excel)
--- =============================================
-
--- ========== COMPOSICIONES ==========
 INSERT INTO composiciones (
   nombre, prioridad, descripcion, counters_descripcion, counters_campeones,
   enfoque, first_pick_safe, no_first_pick_reasons, bans_recomendados, role_priorities
@@ -96,7 +91,6 @@ INSERT INTO composiciones (
     '{"TOP":"Media","JGL":"Media","MID":"Alta","ADC":"Alta","SUPP":"Alta"}'
   );
 
--- ========== KASEROLO — TOP ==========
 INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('Kaserolo', 'KSante', 'S', '["Bloque 3"]'),
   ('Kaserolo', 'Ornn', 'S', '["Bloque 2","Los Dosh"]'),
@@ -126,28 +120,24 @@ INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('Kaserolo', 'Shen', 'C', '[]'),
   ('Kaserolo', 'Sejuani', 'A', '["Los Dosh"]');
 
--- ========== TAMUDOR — JGL ==========
 INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('Tamudor', 'RekSai', 'S', '["SIEGE 5","SIEGE 4","DIVER","TEAMFIGHT","Soul Drake","Bloque 2","Los Dosh","Bloque 3"]'),
   ('Tamudor', 'Viego', 'S', '["SIEGE 4","SIEGE 5"]'),
   ('Tamudor', 'XinZhao', 'S', '["Bloque 3","SIEGE 4","SIEGE 5","TEAMFIGHT"]'),
   ('Tamudor', 'Pantheon', 'S', '["Bloque 3","SIEGE 4","SIEGE 5","DIVER","TEAMFIGHT"]');
 
--- ========== UPSS — MID ==========
 INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('Upss', 'Mel', 'S', '["Los Dosh"]'),
   ('Upss', 'Lux', 'S', '["Los Dosh"]'),
   ('Upss', 'Seraphine', 'S', '["Los Dosh"]'),
   ('Upss', 'Ahri', 'A', '["Los Dosh"]');
 
--- ========== ARNOOP88 — ADC ==========
 INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('arnoop88', 'Aphelios', 'S', '["SIEGE 5","SIEGE 4","TEAMFIGHT","Soul Drake","Bloque 2","Bloque 3"]'),
   ('arnoop88', 'Senna', 'A', '["SIEGE 5","SIEGE 4","TEAMFIGHT","Soul Drake","Bloque 2","Bloque 3"]'),
   ('arnoop88', 'Smolder', 'A', '["TEAMFIGHT","SIEGE 5","SIEGE 4","DIVER","Soul Drake","Bloque 3","Bloque 2"]'),
   ('arnoop88', 'Kaisa', 'S', '["TEAMFIGHT","DIVER","Bloque 2","Bloque 3"]');
 
--- ========== LIBER — SUPPORT ==========
 INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp) VALUES
   ('Liber', 'Alistar', 'B', '[]'),
   ('Liber', 'Annie', 'B', '[]'),

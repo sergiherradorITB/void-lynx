@@ -1,8 +1,3 @@
--- =============================================
--- Void Lynx Drafter — Cloudflare D1 Schema
--- =============================================
-
--- Tipos de composición táctica del equipo
 CREATE TABLE IF NOT EXISTS composiciones (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   nombre TEXT NOT NULL UNIQUE,
@@ -18,7 +13,6 @@ CREATE TABLE IF NOT EXISTS composiciones (
   notas_staff TEXT NOT NULL DEFAULT ''
 );
 
--- Pool de campeones de cada jugador con tier y composiciones
 CREATE TABLE IF NOT EXISTS jugador_campeones (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   jugador TEXT NOT NULL,
@@ -31,7 +25,6 @@ CREATE TABLE IF NOT EXISTS jugador_campeones (
   UNIQUE(jugador, campeon_id)
 );
 
--- Historial y registro de drafts jugados (scrims y partidos oficiales)
 CREATE TABLE IF NOT EXISTS drafts (
   id TEXT PRIMARY KEY,
   rival TEXT NOT NULL DEFAULT '',
@@ -46,11 +39,9 @@ CREATE TABLE IF NOT EXISTS drafts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices para consultas frecuentes
 CREATE INDEX IF NOT EXISTS idx_jugador ON jugador_campeones(jugador);
 CREATE INDEX IF NOT EXISTS idx_campeon ON jugador_campeones(campeon_id);
 CREATE INDEX IF NOT EXISTS idx_tier ON jugador_campeones(tier);
 CREATE INDEX IF NOT EXISTS idx_pick_tag ON jugador_campeones(pick_tag);
 CREATE INDEX IF NOT EXISTS idx_draft_rival ON drafts(rival);
 CREATE INDEX IF NOT EXISTS idx_draft_resultado ON drafts(resultado);
-
