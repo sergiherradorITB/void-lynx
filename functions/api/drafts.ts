@@ -1,8 +1,18 @@
 // Cloudflare Pages Function: /api/drafts
-// Maneja GET (listar historial) y POST (guardar draft de partida) en Cloudflare D1
+// Maneja GET (listar historial), POST (guardar/actualizar) y DELETE (eliminar) en Cloudflare D1
 
 interface Env {
   DB?: any;
+}
+
+function safeJsonParse(raw: any, fallback: any) {
+  if (!raw) return fallback;
+  if (typeof raw === "object") return raw;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
 }
 
 export const onRequestGet = async (context: { env: Env }) => {
@@ -16,9 +26,18 @@ export const onRequestGet = async (context: { env: Env }) => {
 
   try {
     const { results } = await db
-      .prepare("SELECT * FROM drafts ORDER BY created_at DESC LIMIT 50")
+      .prepare("SELECT * FROM drafts ORDER BY created_at DESC LIMIT 100")
       .all();
-    return new Response(JSON.stringify(results), {
+
+    const formatted = (results || []).map((row: any) => ({
+      ...row,
+      blue_picks: safeJsonParse(row.blue_picks, []),
+      blue_bans: safeJsonParse(row.blue_bans, []),
+      red_picks: safeJsonParse(row.red_picks, []),
+      red_bans: safeJsonParse(row.red_bans, []),
+    }));
+
+    return new Response(JSON.stringify(formatted), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -72,6 +91,39 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       .run();
 
     return new Response(JSON.stringify({ success: true, id: draft.id }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err: any) {
+    return new Response(JSON.stringify({ error: err.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+};
+
+export const onRequestDelete = async (context: { request: Request; env: Env }) => {
+  const db = context.env.DB;
+  if (!db) {
+    return new Response(JSON.stringify({ message: "Mock deleted in dev (no DB binding)" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  try {
+    const url = new URL(context.request.url);
+    const id = url.searchParams.get("id");
+    if (!id) {
+      return new Response(JSON.stringify({ error: "Parámetro 'id' no proporcionado" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    await db.prepare("DELETE FROM drafts WHERE id = ?1").bind(id).run();
+
+    return new Response(JSON.stringify({ success: true, id }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });

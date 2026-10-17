@@ -213,3 +213,65 @@ export async function syncDraftWithApi(draft: SavedDraft): Promise<boolean> {
     return false;
   }
 }
+
+function safeParseArray(raw: any): string[] {
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
+}
+
+export async function fetchRemoteDrafts(): Promise<SavedDraft[] | null> {
+  try {
+    const res = await fetch("/api/drafts");
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && !data[0]?.error) {
+      const parsedDrafts: SavedDraft[] = data.map((d: any) => ({
+        id: String(d.id),
+        rival: d.rival || "Rival Desconocido",
+        nuestro_lado: d.nuestro_lado === "RED" ? "RED" : "BLUE",
+        composicion_id: d.composicion_id || "",
+        resultado: d.resultado === "VICTORIA" || d.resultado === "DERROTA" ? d.resultado : "PENDING",
+        blue_picks: safeParseArray(d.blue_picks),
+        blue_bans: safeParseArray(d.blue_bans),
+        red_picks: safeParseArray(d.red_picks),
+        red_bans: safeParseArray(d.red_bans),
+        notas: d.notas || "",
+        created_at: d.created_at || new Date().toISOString(),
+      }));
+
+      // Fusionar inteligentemente con local para no perder drafts recientes
+      const local = loadDraftHistory();
+      const remoteIds = new Set(parsedDrafts.map((d) => d.id));
+      const localOnly = local.filter((d) => !remoteIds.has(d.id));
+      const merged = [...parsedDrafts, ...localOnly].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem(DRAFTS_HISTORY_STORAGE_KEY, JSON.stringify(merged));
+      }
+      return merged;
+    }
+  } catch {
+    // Fallback silencioso en entorno local o sin D1
+  }
+  return null;
+}
+
+export async function deleteDraftApi(id: string): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/drafts?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
