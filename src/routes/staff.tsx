@@ -1256,9 +1256,9 @@ function StaffPage() {
             {drafterViewMode === "vertical" && (
               <div className="space-y-6">
                 {/* ========================================================= */}
-                {/* 1. INFORMACIÓN GENERAL ARRIBA (PANEL TÁCTICO DE LA COMPO) */}
+                {/* 1. INFORMACIÓN GENERAL ARRIBA (5 BLOQUES DE LA MATRIZ)     */}
                 {/* ========================================================= */}
-                <div className="bg-zinc-950 border-2 border-purple-900/40 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
                   {/* Fila de Título y Fases */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
                     <div className="flex items-center gap-2.5">
@@ -1286,10 +1286,10 @@ function StaffPage() {
                     </div>
                   </div>
 
-                  {/* Los 4 Grandes Bloques Informativos de la Matriz en Horizontal */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3.5 items-stretch">
-                    {/* BLOQUE 1: COMPOSICIÓN TÁCTICA & PRIORIDAD DRAFT (lg:col-span-3) */}
-                    <div className="lg:col-span-3 flex flex-col justify-between p-4 rounded-xl bg-gradient-to-br from-purple-950/40 via-zinc-900/60 to-black/80 border border-purple-800/40 shadow-inner">
+                  {/* Los 5 Bloques Informativos de la Matriz (1 fila panorámica) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 items-stretch">
+                    {/* BLOQUE 1: COMPOSICIÓN TÁCTICA */}
+                    <div className="flex flex-col justify-between p-4 rounded-xl bg-zinc-900/60 border border-purple-800/40 shadow-inner">
                       <div>
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400">
@@ -1304,7 +1304,7 @@ function StaffPage() {
                             <Edit3 className="h-3.5 w-3.5" />
                           </button>
                         </div>
-                        <h2 className="text-2xl font-display font-black text-white tracking-wide uppercase">
+                        <h2 className="text-xl font-display font-black text-white tracking-wide uppercase">
                           {currentComp.nombre}
                         </h2>
                         <span className="inline-block mt-0.5 text-xs font-mono font-semibold text-zinc-400">
@@ -1312,8 +1312,15 @@ function StaffPage() {
                         </span>
                       </div>
 
-                      <div className="mt-4 pt-3 border-t border-zinc-800/80">
-                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">
+                      <div className="mt-3 pt-2.5 border-t border-zinc-800/80 text-[10px] text-zinc-500 font-mono">
+                        Void Lynx Draft System
+                      </div>
+                    </div>
+
+                    {/* BLOQUE 2: PRIORIDAD DRAFT */}
+                    <div className="flex flex-col justify-between p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 shadow-inner">
+                      <div>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 block mb-2">
                           PRIORIDAD DRAFT
                         </span>
                         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rose-500/60 bg-rose-950/50 text-rose-300 font-bold text-xs shadow-md shadow-rose-950/40">
@@ -1321,24 +1328,15 @@ function StaffPage() {
                           <span>{currentComp.prioridad || "Alta Prioridad"}</span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* BLOQUE 2: CONCEPTO / OBJETIVO CLAVE (lg:col-span-3) */}
-                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 shadow-inner">
-                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-purple-400" /> CONCEPTO / OBJETIVO CLAVE
-                      </span>
-                      <p className="text-xs text-zinc-300 font-normal leading-relaxed flex-1">
-                        {currentComp.descripcion || "Sin descripción táctica registrada."}
-                      </p>
                       {currentComp.first_pick_safe && currentComp.first_pick_safe.length > 0 && (
-                        <div className="mt-3 pt-2.5 border-t border-zinc-800/80">
+                        <div className="mt-3 pt-2 border-t border-zinc-800/80">
                           <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase block mb-1">
-                            First Picks Seguros:
+                            FP Seguros:
                           </span>
-                          <div className="flex items-center gap-1.5 flex-wrap">
+                          <div className="flex items-center gap-1 flex-wrap">
                             {currentComp.first_pick_safe.map((c) => (
-                              <span key={c} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+                              <span key={c} className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
                                 {c}
                               </span>
                             ))}
@@ -1347,22 +1345,32 @@ function StaffPage() {
                       )}
                     </div>
 
-                    {/* BLOQUE 3: COUNTERS DIRECTOS (lg:col-span-3) */}
-                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 shadow-inner">
+                    {/* BLOQUE 3: CONCEPTO / OBJETIVO CLAVE */}
+                    <div className="flex flex-col p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 shadow-inner">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-purple-400" /> CONCEPTO / OBJETIVO CLAVE
+                      </span>
+                      <p className="text-xs text-zinc-300 font-normal leading-relaxed overflow-y-auto max-h-[140px] pr-1">
+                        {currentComp.descripcion || "Sin descripción táctica registrada."}
+                      </p>
+                    </div>
+
+                    {/* BLOQUE 4: COUNTERS DIRECTOS */}
+                    <div className="flex flex-col p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 shadow-inner">
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-1.5">
                         <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" /> COUNTERS DIRECTOS
                       </span>
-                      <p className="text-xs text-zinc-300 font-normal leading-relaxed flex-1">
+                      <p className="text-xs text-zinc-300 font-normal leading-relaxed overflow-y-auto max-h-[90px] pr-1">
                         {currentComp.counters_descripcion || "Amenazas de iniciación frontal directa o asedio split."}
                       </p>
                       {currentComp.bans_recomendados && currentComp.bans_recomendados.length > 0 && (
-                        <div className="mt-3 pt-2.5 border-t border-rose-900/40">
-                          <span className="text-[10px] font-mono font-bold text-rose-300 uppercase block mb-1">
-                            Bans Recomendados:
+                        <div className="mt-2.5 pt-2 border-t border-rose-900/40">
+                          <span className="text-[9px] font-mono font-bold text-rose-300 uppercase block mb-1">
+                            Bans Sugeridos:
                           </span>
                           <div className="flex items-center gap-1 flex-wrap">
                             {currentComp.bans_recomendados.map((b) => (
-                              <span key={b} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-600/50 text-rose-200">
+                              <span key={b} className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-rose-950/90 border border-rose-600/50 text-rose-200">
                                 {b}
                               </span>
                             ))}
@@ -1371,8 +1379,8 @@ function StaffPage() {
                       )}
                     </div>
 
-                    {/* BLOQUE 4: COUNTERS (CAMPEONES) CON RETRATOS ROJOS (lg:col-span-3) */}
-                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-zinc-900/70 border border-rose-900/40 shadow-inner">
+                    {/* BLOQUE 5: COUNTERS (CAMPEONES) */}
+                    <div className="flex flex-col p-4 rounded-xl bg-zinc-900/60 border border-rose-900/40 shadow-inner">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                           <Shield className="h-3.5 w-3.5 text-rose-400" /> COUNTERS (CAMPEONES)
@@ -1385,22 +1393,22 @@ function StaffPage() {
                       <div className="flex-1 overflow-y-auto max-h-[140px] pr-1">
                         {(currentComp.counters_campeones || []).length === 0 ? (
                           <div className="text-xs text-zinc-500 italic py-3 text-center">
-                            No hay campeones counter asignados.
+                            Sin campeones counter
                           </div>
                         ) : (
-                          <div className="grid grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 gap-1.5">
                             {currentComp.counters_campeones.map((cId) => (
                               <div
                                 key={cId}
-                                className="group relative flex flex-col items-center bg-black/70 border border-rose-500/60 rounded-xl p-1.5 shadow-md hover:border-rose-400 transition-all"
+                                className="group relative flex flex-col items-center bg-black/60 border border-rose-500/50 rounded-lg p-1 shadow hover:border-rose-400 transition-all"
                                 title={`Counter: ${cId}`}
                               >
                                 <img
                                   src={getChampionAvatar(cId)}
                                   alt={cId}
-                                  className="h-10 w-10 rounded-lg object-cover border border-rose-500/50 group-hover:scale-105 transition-transform"
+                                  className="h-9 w-9 rounded object-cover border border-rose-500/40 group-hover:scale-105 transition-transform"
                                 />
-                                <span className="text-[10px] font-bold text-rose-200 mt-1 truncate max-w-[54px] text-center leading-tight">
+                                <span className="text-[9px] font-bold text-rose-200 mt-0.5 truncate max-w-[50px] text-center leading-tight">
                                   {cId}
                                 </span>
                               </div>
@@ -1412,187 +1420,16 @@ function StaffPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenEditComp(currentComp)}
-                        className="mt-2.5 w-full py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 hover:border-rose-400 text-rose-300 text-[10px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
+                        className="mt-2 w-full py-1 rounded bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 hover:border-rose-400 text-rose-300 text-[9px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
                       >
-                        <Plus className="h-3 w-3" /> Añadir / Modificar Counters
+                        <Plus className="h-3 w-3" /> Modificar Counters
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* ========================================================= */}
-                {/* ========================================================= */}
-                {/* 2. GUÍA EN DIRECTO: QUÉ HAY QUE PICKEAR Y EN QUÉ ORDEN     */}
-                {/* ========================================================= */}
-                <div className="bg-gradient-to-r from-zinc-950 via-purple-950/30 to-zinc-950 border-2 border-purple-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-                          <Sparkles className="h-4 w-4 text-emerald-400" /> PLAN DE PICKS EN DRAFT DEL COACH
-                        </span>
-                        <span className="bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
-                          ORDEN RECOMENDADO
-                        </span>
-                      </div>
-                      <p className="text-xs text-zinc-300 font-medium">
-                        Sigue el código de colores para saber exactamente qué pickear en cada rotación sin regalar counterpicks.
-                      </p>
-                    </div>
-
-                    {/* Selector de Iluminación Rápida de Picks */}
-                    <div className="flex items-center gap-1 bg-black/60 border border-zinc-800 p-1 rounded-xl shrink-0 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => setDrafterPickHighlight("ALL")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-                          drafterPickHighlight === "ALL"
-                            ? "bg-zinc-800 text-white shadow"
-                            : "text-zinc-400 hover:text-white"
-                        }`}
-                      >
-                        Ver Todos
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDrafterPickHighlight("FP")}
-                        title="Iluminar solo picks obligatorios de primera rotación"
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-                          drafterPickHighlight === "FP"
-                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-emerald-400"
-                            : "text-emerald-400 hover:bg-emerald-950/50"
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                        <span>🟢 1º Abrir (Fase 1)</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDrafterPickHighlight("LP")}
-                        title="Iluminar solo picks reservados para last pick"
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-                          drafterPickHighlight === "LP"
-                            ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-purple-400"
-                            : "text-purple-400 hover:bg-purple-950/50"
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-purple-400"></span>
-                        <span>🟣 Guardar a R5</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDrafterPickHighlight("RISKY")}
-                        title="Iluminar picks de alto riesgo"
-                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
-                          drafterPickHighlight === "RISKY"
-                            ? "bg-rose-600 text-white shadow-lg shadow-rose-950/50 ring-1 ring-rose-400"
-                            : "text-rose-400 hover:bg-rose-950/50"
-                        }`}
-                      >
-                        <span className="h-2 w-2 rounded-full bg-rose-400"></span>
-                        <span>🔴 Riesgos</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Las 3 Fases Tácticas de Selección */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-                    {/* FASE 1: VERDE - QUÉ ABRIR PRIMERO */}
-                    <div className="rounded-xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-emerald-950/20 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-2">
-                          <span className="text-[11px] font-mono font-black text-emerald-400 uppercase flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                            1. FASE 1: ABRIR EN B1 / R1-R2
-                          </span>
-                          <span className="text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/50 px-2 py-0.5 rounded">
-                            ALTA PRIORIDAD
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
-                          <strong>Roles a lockear ya:</strong>{" "}
-                          <span className="text-emerald-300 font-black">
-                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Alta").map(r => r.role).join(", ") || "Según bans"}
-                          </span>
-                          . Picks prioritarios con poco riesgo de counter que marcan el plan de juego del equipo.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-emerald-900/40">
-                        <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase">Picks Clave:</span>
-                        {currentComp.first_pick_safe && currentComp.first_pick_safe.length > 0 ? (
-                          currentComp.first_pick_safe.slice(0, 4).map((cId) => (
-                            <div key={cId} className="flex items-center gap-1 bg-emerald-950/90 border border-emerald-500/50 rounded-lg px-2 py-0.5 shadow-sm">
-                              <img src={getChampionAvatar(cId)} alt={cId} className="h-4 w-4 rounded object-cover" />
-                              <span className="text-[10px] font-bold text-emerald-200">{cId}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-[10px] text-zinc-500 italic">Ver picks marcados en verde abajo</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* FASE 2: AMARILLO/ÁMBAR - PICKS FLEXIBLES */}
-                    <div className="rounded-xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-amber-950/20 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-2">
-                          <span className="text-[11px] font-mono font-black text-amber-400 uppercase flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
-                            2. FASE 2: CONSOLIDAR (B2-B3 / R2-R3)
-                          </span>
-                          <span className="text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded">
-                            FLEXIBLE
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
-                          <strong>Roles de 2ª rotación:</strong>{" "}
-                          <span className="text-amber-300 font-black">
-                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Media").map(r => r.role).join(", ") || "Flex"}
-                          </span>
-                          . Asegurar frontline o iniciación adaptándose a los bans enemigos y campeones ya revelados.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-amber-900/40 text-[10px] text-zinc-400 font-mono">
-                        <span className="font-bold text-amber-300 uppercase">Cuidado vs:</span>
-                        <span className="text-amber-200 truncate max-w-full">
-                          {(currentComp.counters_campeones || []).slice(0, 3).join(", ") || "Counters directos"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* FASE 3: PÚRPURA - GUARDAR PARA LAST PICK */}
-                    <div className="rounded-xl border-2 border-purple-500/70 bg-gradient-to-b from-purple-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-purple-950/20 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-center justify-between gap-1 mb-2">
-                          <span className="text-[11px] font-mono font-black text-purple-300 uppercase flex items-center gap-1.5">
-                            <span className="h-2.5 w-2.5 rounded-full bg-purple-400"></span>
-                            3. FASE 3: LAST PICK (R4-R5)
-                          </span>
-                          <span className="text-[9px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded">
-                            COUNTERPICK
-                          </span>
-                        </div>
-                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
-                          <strong>Línea a proteger:</strong>{" "}
-                          <span className="text-purple-300 font-black">
-                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Baja").map(r => r.role).join(", ") || "Línea de aislamiento"}
-                          </span>
-                          . ¡PROHIBIDO abrir a ciegas! Guardar el pick hasta ver el matchup rival para castigarlo en fase de líneas.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-purple-900/40 text-[10px] text-zinc-400 font-mono">
-                        <span className="text-purple-300 font-bold uppercase">Objetivo:</span>
-                        <span>Aislar o stompear la línea en 1v1</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ========================================================= */}
-                {/* 3. PICKS ABAJO: 5 COLUMNAS VERTICALES GRANDES             */}
+                {/* 2. PICKS ABAJO: 5 COLUMNAS VERTICALES GRANDES             */}
                 {/* TOP - JNGL - MID - ADC - SUPP                             */}
                 {/* ========================================================= */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 xl:gap-4 items-stretch">
@@ -1615,230 +1452,177 @@ function StaffPage() {
                       return champ && champ.roles.includes(laneConfig.role);
                     });
 
-                    // Has safe first pick?
-                    const hasSafeFp = [...roleData.S, ...roleData.A].some((entry) => {
-                      return entry.pick_tag === "FP" || (!entry.pick_tag && entry.is_first_pickable !== false);
-                    });
-
                     // Role display name: JNGL for JGL
                     const displayRoleName = laneConfig.role === "JGL" ? "JNGL" : laneConfig.role;
 
-                    // Role styling based on priority
                     const isAlta = prio === "Alta";
                     const isMedia = prio === "Media";
                     const isBaja = prio === "Baja";
 
-                    const roleContainerBorder = isAlta
-                      ? "border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.25)]"
-                      : isMedia
-                      ? "border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
-                      : "border-purple-500/80 shadow-[0_0_25px_rgba(168,85,247,0.25)]";
-
                     return (
                       <div
                         key={laneConfig.role}
-                        className={`rounded-2xl border-2 ${roleContainerBorder} bg-zinc-950/95 flex flex-col justify-between overflow-hidden transition-all hover:scale-[1.005]`}
+                        className="rounded-2xl border border-zinc-800 bg-zinc-950/90 flex flex-col justify-between overflow-hidden shadow-xl transition-all hover:border-zinc-700"
                       >
                         {/* CONTENIDO SUPERIOR Y TIERS */}
                         <div className="flex-1 flex flex-col">
                           {/* CABECERA DE LA COLUMNA DE ROL */}
-                          <div className={`p-3.5 bg-gradient-to-b ${laneConfig.headerGradient} border-b border-zinc-800/80`}>
-                            <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="p-3.5 bg-zinc-900/60 border-b border-zinc-800">
+                            <div className="flex items-center justify-between gap-1 mb-2">
                               <div className="flex items-center gap-2">
-                                <div className="p-1.5 rounded-lg bg-black/60 border border-zinc-700/60 shadow shrink-0">
+                                <div className="p-1.5 rounded-lg bg-black/70 border border-zinc-700/60 shadow-sm">
                                   <RoleIconOnly role={laneConfig.role} size="sm" />
                                 </div>
-                                <span className={`px-2 py-0.5 rounded-md text-xs font-mono font-black uppercase tracking-wider ${laneConfig.badgeBg}`}>
+                                <span className={`px-2 py-0.5 rounded text-xs font-mono font-black uppercase tracking-wider ${laneConfig.badgeBg}`}>
                                   {displayRoleName}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
-                                Titular
-                              </span>
-                            </div>
-
-                            <div className="flex items-baseline justify-between gap-1">
-                              <h3 className="font-display font-black text-lg text-white tracking-wide truncate">
+                              <span className="font-display font-black text-sm text-white tracking-wide truncate">
                                 {laneConfig.player}
-                              </h3>
-                              <span className="text-[10px] text-zinc-400 font-mono truncate">
-                                {laneConfig.laneTitle.split(" ")[0]}
                               </span>
                             </div>
 
-                            {/* BOTÓN PRIO DRAFT CON COLORES TOTALMENTE EXPLICATIVOS */}
-                            <div className="mt-3 pt-2.5 border-t border-zinc-800/60">
-                              <div className="flex items-center justify-between gap-1 mb-1.5">
-                                <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase">
-                                  DIRECTIVA DRAFT:
-                                </span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleCycleRolePriority(currentComp.id, laneConfig.role)}
-                                  title="Haz clic para alternar: Alta (Verde Fase 1) → Media (Amarillo Fase 2) → Baja (Púrpura Last Pick)"
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black uppercase tracking-wider border transition-all cursor-pointer shadow ${
-                                    isAlta
-                                      ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-emerald-950/60 hover:bg-emerald-900"
-                                      : isMedia
-                                      ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-amber-950/60 hover:bg-amber-900"
-                                      : "bg-purple-950/80 border-purple-500 text-purple-200 shadow-purple-950/60 hover:bg-purple-900"
-                                  }`}
-                                >
-                                  {isAlta ? "🟢 ALTA" : isMedia ? "🟡 MEDIA" : "🟣 BAJA"} ↻
-                                </button>
-                              </div>
-                              <div className={`p-1.5 rounded-lg border text-[10px] font-mono font-bold text-center leading-tight ${
-                                isAlta
-                                  ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
-                                  : isMedia
-                                  ? "bg-amber-950/60 border-amber-500/50 text-amber-300"
-                                  : "bg-purple-950/60 border-purple-500/50 text-purple-300"
-                              }`}>
-                                {isAlta
-                                  ? "⚡ FASE 1: PICKEAR 1º (B1 / R1-R2)"
-                                  : isMedia
-                                  ? "⚖ FASE 2: ROTACIÓN 2 (FLEXIBLE)"
-                                  : "🛡 FASE 3: GUARDAR A LAST PICK (R4-R5)"}
-                              </div>
+                            {/* BOTÓN PRIO LIMPIO ESTILO MATRIZ OFICIAL */}
+                            <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-zinc-800/60">
+                              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
+                                PRIO:
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleCycleRolePriority(currentComp.id, laneConfig.role)}
+                                title="Haz clic para alternar: Baja (Verde) → Media (Amarillo) → Alta (Rojo)"
+                                className={`px-3 py-1 rounded-md text-xs font-mono font-black uppercase tracking-wider border transition-all cursor-pointer shadow-sm ${
+                                  isAlta
+                                    ? "bg-rose-950/40 border-rose-500/80 text-rose-300 hover:bg-rose-900/60"
+                                    : isMedia
+                                    ? "bg-amber-950/40 border-amber-500/80 text-amber-300 hover:bg-amber-900/60"
+                                    : "bg-emerald-950/40 border-emerald-500/80 text-emerald-300 hover:bg-emerald-900/60"
+                                }`}
+                              >
+                                {prio.toUpperCase()}
+                              </button>
                             </div>
                           </div>
 
                           {/* TIERS DE PICKS (S, A, B) */}
-                          <div className="p-3 space-y-4 flex-1">
-                            {/* HELPER PARA RENDERIZAR CADA CAMPEÓN CON SUS COLORES Y ESTADO DE PICKS */}
+                          <div className="p-3 space-y-3.5 flex-1">
                             {[
-                              { tierName: "TIER S", list: roleData.S, badgeStyle: "bg-amber-500/20 text-amber-400 border-amber-500/40", label: "Core Pick" },
-                              { tierName: "TIER A", list: roleData.A, badgeStyle: "bg-purple-500/20 text-purple-300 border-purple-500/40", label: "Alternativa" },
-                              { tierName: "TIER B", list: roleData.B, badgeStyle: "bg-sky-500/20 text-sky-300 border-sky-500/40", label: "Situacional" },
-                            ].map(({ tierName, list, badgeStyle, label }, tIdx) => (
+                              { tierName: "TIER S", list: roleData.S, badgeStyle: "bg-amber-500/20 text-amber-400 border-amber-500/40" },
+                              { tierName: "TIER A", list: roleData.A, badgeStyle: "bg-purple-500/20 text-purple-300 border-purple-500/40" },
+                              { tierName: "TIER B", list: roleData.B, badgeStyle: "bg-sky-500/20 text-sky-300 border-sky-500/40" },
+                            ].map(({ tierName, list, badgeStyle }, tIdx) => (
                               <div key={tierName} className={`space-y-1.5 ${tIdx > 0 ? "pt-2.5 border-t border-zinc-800/60" : ""}`}>
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded border shadow-sm ${badgeStyle}`}>
-                                      {tierName}
-                                    </span>
-                                    <span className="text-[10px] text-zinc-500 font-mono">
-                                      ({list.length})
-                                    </span>
-                                  </div>
-                                  <span className="text-[9px] font-mono text-zinc-400 font-bold">
-                                    {label}
+                                  <span className={`text-[11px] font-black px-2 py-0.5 rounded border shadow-sm ${badgeStyle}`}>
+                                    {tierName}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    ({list.length})
                                   </span>
                                 </div>
 
                                 {list.length === 0 ? (
-                                  <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
-                                    Sin picks {tierName.split(" ")[1]}
+                                  <div className="text-[10px] text-zinc-600 italic py-2 text-center bg-zinc-900/20 rounded-lg border border-dashed border-zinc-800">
+                                    -
                                   </div>
                                 ) : (
                                   <div className="grid grid-cols-2 gap-2">
                                     {list.map((entry) => {
-                                      const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
-
-                                      // Dimmed when a filter is active
-                                      const isDimmed =
-                                        (drafterPickHighlight === "FP" && tag !== "FP") ||
-                                        (drafterPickHighlight === "LP" && tag !== "LP") ||
-                                        (drafterPickHighlight === "RISKY" && tag !== "Risky");
-
-                                      // Tag properties
+                                      const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : undefined);
                                       const isFP = tag === "FP";
                                       const isLP = tag === "LP";
                                       const isRisky = tag === "Risky";
 
-                                      const cardTheme = isFP
-                                        ? "border-2 border-emerald-500/80 bg-gradient-to-b from-emerald-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
-                                        : isLP
-                                        ? "border-2 border-purple-500/80 bg-gradient-to-b from-purple-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
-                                        : isRisky
-                                        ? "border-2 border-rose-500/90 bg-gradient-to-b from-rose-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(244,63,94,0.3)]"
-                                        : "border border-zinc-700/80 bg-zinc-900/90 hover:border-amber-500/60";
-
-                                      const avatarBorder = isFP
-                                        ? "border-2 border-emerald-400"
-                                        : isLP
-                                        ? "border-2 border-purple-400"
-                                        : isRisky
-                                        ? "border-2 border-rose-500"
-                                        : "border border-zinc-700";
-
                                       return (
                                         <div
                                           key={entry.id}
-                                          className={`group relative flex flex-col items-center p-2 rounded-xl transition-all ${cardTheme} ${
-                                            isDimmed ? "opacity-25 grayscale hover:opacity-100 hover:grayscale-0" : ""
-                                          }`}
+                                          className="group relative flex flex-col items-center p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-900 border border-zinc-800/90 hover:border-purple-500/50 transition-all cursor-pointer shadow-sm"
                                         >
-                                          {/* Badge Superior Interactivo con Estado Explícito */}
-                                          <button
-                                            type="button"
-                                            onClick={() => handleCyclePickTag(entry.id)}
-                                            title="Clic para cambiar: FP (Verde 1º) → LP (Púrpura R5) → Risky (Rojo) → Flex (Amarillo)"
-                                            className={`w-full mb-1.5 py-0.5 px-1 rounded text-[8px] font-mono font-black uppercase tracking-wider text-center cursor-pointer transition-all border shadow ${
-                                              isFP
-                                                ? "bg-emerald-500 text-black border-emerald-400 hover:bg-emerald-400"
-                                                : isLP
-                                                ? "bg-purple-600 text-white border-purple-400 hover:bg-purple-500"
-                                                : isRisky
-                                                ? "bg-rose-600 text-white border-rose-400 hover:bg-rose-500"
-                                                : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
-                                            }`}
-                                          >
-                                            {isFP ? "🟢 ABRIR (FP)" : isLP ? "🟣 LAST PICK" : isRisky ? "🔴 RIESGOSO" : "🟡 FLEXIBLE"}
-                                          </button>
+                                          {/* Avatar con Tag en la esquina superior derecha */}
+                                          <div className="relative">
+                                            <img
+                                              src={getChampionAvatar(entry.campeon_id)}
+                                              alt={entry.campeon_id}
+                                              className="h-11 w-11 sm:h-12 sm:w-12 rounded-lg object-cover border border-zinc-700/80 group-hover:border-purple-400 transition-colors shadow"
+                                            />
 
-                                          <img
-                                            src={getChampionAvatar(entry.campeon_id)}
-                                            alt={entry.campeon_id}
-                                            className={`h-12 w-12 rounded-lg object-cover shadow-md group-hover:scale-105 transition-transform ${avatarBorder}`}
-                                          />
+                                            {/* Badge FP / LP / Risky en la esquina superior derecha */}
+                                            {isFP && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleCyclePickTag(entry.id); }}
+                                                title="First Pick Seguro (Clic para cambiar)"
+                                                className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded bg-emerald-500 text-black text-[9px] font-mono font-black shadow border border-emerald-300 leading-none cursor-pointer hover:scale-110 transition-transform"
+                                              >
+                                                FP
+                                              </button>
+                                            )}
+                                            {isLP && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleCyclePickTag(entry.id); }}
+                                                title="Last Pick R4/R5 (Clic para cambiar)"
+                                                className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded bg-purple-600 text-white text-[9px] font-mono font-black shadow border border-purple-400 leading-none cursor-pointer hover:scale-110 transition-transform"
+                                              >
+                                                LP
+                                              </button>
+                                            )}
+                                            {isRisky && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleCyclePickTag(entry.id); }}
+                                                title="Pick de Riesgo (Clic para cambiar)"
+                                                className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded bg-amber-500 text-black text-[9px] font-mono font-black shadow border border-amber-300 leading-none cursor-pointer hover:scale-110 transition-transform"
+                                              >
+                                                Risky
+                                              </button>
+                                            )}
+                                            {!tag && (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => { e.stopPropagation(); handleCyclePickTag(entry.id); }}
+                                                title="Asignar tag (FP / LP / Risky)"
+                                                className="absolute -top-1.5 -right-1.5 px-1 py-0.2 rounded bg-zinc-800 text-zinc-500 text-[8px] font-mono opacity-0 group-hover:opacity-100 hover:text-white transition-opacity"
+                                              >
+                                                +tag
+                                              </button>
+                                            )}
+                                          </div>
 
-                                          <span className="text-xs font-black text-white mt-1 truncate max-w-full text-center leading-tight">
+                                          {/* Nombre del Campeón */}
+                                          <span className="text-xs font-bold text-zinc-200 mt-1.5 truncate max-w-full text-center leading-tight group-hover:text-white">
                                             {entry.campeon_id}
                                           </span>
 
-                                          {/* Subtexto descriptivo del pick */}
-                                          <span className={`text-[9px] font-mono font-semibold block text-center truncate max-w-full mt-0.5 ${
-                                            isFP
-                                              ? "text-emerald-300"
-                                              : isLP
-                                              ? "text-purple-300"
-                                              : isRisky
-                                              ? "text-rose-400"
-                                              : "text-zinc-400"
-                                          }`}>
-                                            {isFP ? "Seguro a ciegas" : isLP ? "Guardar counter" : isRisky ? "Cuidado vs counters" : "2ª Rotación"}
-                                          </span>
-
-                                          {/* Micro-acciones: Promover/Degradar Tier o Eliminar */}
-                                          <div className="absolute inset-0 bg-black/90 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
+                                          {/* Micro-acciones en Hover */}
+                                          <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
                                             {tierName !== "TIER S" && (
                                               <button
                                                 type="button"
-                                                onClick={() => handleShiftTier(entry.id, "up")}
+                                                onClick={(e) => { e.stopPropagation(); handleShiftTier(entry.id, "up"); }}
                                                 title="Subir de Tier"
-                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
                                               >
-                                                <ChevronUp className="h-3 w-3" />
+                                                <ChevronUp className="h-3.5 w-3.5" />
                                               </button>
                                             )}
                                             {tierName !== "TIER B" && (
                                               <button
                                                 type="button"
-                                                onClick={() => handleShiftTier(entry.id, "down")}
+                                                onClick={(e) => { e.stopPropagation(); handleShiftTier(entry.id, "down"); }}
                                                 title="Bajar de Tier"
-                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 transition-colors"
                                               >
-                                                <ChevronDown className="h-3 w-3" />
+                                                <ChevronDown className="h-3.5 w-3.5" />
                                               </button>
                                             )}
                                             <button
                                               type="button"
-                                              onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
+                                              onClick={(e) => { e.stopPropagation(); handleRemoveChampFromComp(entry.id, currentComp.nombre); }}
                                               title="Quitar de esta compo"
-                                              className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
+                                              className="p-1 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-500/40 text-rose-300 transition-colors"
                                             >
-                                              <X className="h-3 w-3" />
+                                              <X className="h-3.5 w-3.5" />
                                             </button>
                                           </div>
                                         </div>
@@ -1861,27 +1645,27 @@ function StaffPage() {
                               setQuickAddTier("S");
                               setQuickAddTag("FP");
                             }}
-                            className="w-full py-2 px-2.5 rounded-xl border border-dashed border-zinc-700 hover:border-purple-400 bg-zinc-900/60 hover:bg-purple-950/40 text-zinc-300 hover:text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                            className="w-full py-1.5 px-2 rounded-xl border border-dashed border-zinc-700 hover:border-purple-400 bg-zinc-900/50 hover:bg-purple-950/30 text-zinc-400 hover:text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                           >
                             <Plus className="h-3.5 w-3.5 text-purple-400" />
                             <span>+ Añadir Pick ({displayRoleName})</span>
                           </button>
 
                           {(roleWarnings.length > 0 || roleCounters.length > 0) && (
-                            <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-500/40 text-[10px] space-y-1 shadow">
-                              <span className="font-bold text-rose-400 flex items-center gap-1 uppercase font-mono">
+                            <div className="p-2 rounded-xl bg-rose-950/20 border border-rose-500/30 text-[10px] space-y-1">
+                              <span className="font-bold text-rose-400 flex items-center gap-1 uppercase font-mono text-[9px]">
                                 <AlertTriangle className="h-3 w-3" /> Intel de Línea
                               </span>
-                              {roleWarnings.slice(0, 2).map((w, idx) => (
-                                <p key={idx} className="text-zinc-200 leading-tight">
+                              {roleWarnings.slice(0, 1).map((w, idx) => (
+                                <p key={idx} className="text-zinc-300 leading-tight">
                                   <strong className="text-rose-300">{w.champ}:</strong> {w.reason}
                                 </p>
                               ))}
                               {roleCounters.length > 0 && (
-                                <div className="flex items-center gap-1 pt-1 border-t border-rose-900/40 flex-wrap">
-                                  <span className="text-zinc-400 text-[9px] font-mono">Counters:</span>
+                                <div className="flex items-center gap-1 pt-1 border-t border-rose-900/30 flex-wrap">
+                                  <span className="text-zinc-500 text-[9px] font-mono">Counters:</span>
                                   {roleCounters.slice(0, 3).map((cId) => (
-                                    <span key={cId} className="text-[9px] font-bold text-rose-200 bg-black/70 px-1 py-0.2 rounded border border-rose-500/50">
+                                    <span key={cId} className="text-[9px] font-bold text-rose-300 bg-black/60 px-1 rounded border border-rose-500/40">
                                       {cId}
                                     </span>
                                   ))}
@@ -1894,11 +1678,9 @@ function StaffPage() {
                     );
                   })}
                 </div>
-
               </div>
             )}
 
-            {/* ========================================================= */}
             {/* MATRIZ EXCEL TÁCTICA DE 5 COLUMNAS (ESTILO HOJA DE CÁLCULO) */}
             {/* ========================================================= */}
             {drafterViewMode === "matrix" && (
