@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS jugador_campeones (
 CREATE TABLE IF NOT EXISTS drafts (
   id TEXT PRIMARY KEY,
   rival TEXT NOT NULL DEFAULT '',
-  nuestro_lado TEXT NOT NULL DEFAULT 'BLUE', -- 'BLUE' | 'RED'
+  nuestro_lado TEXT NOT NULL DEFAULT 'BLUE',
   composicion_id TEXT NOT NULL DEFAULT '',
-  resultado TEXT NOT NULL DEFAULT 'PENDING', -- 'VICTORIA' | 'DERROTA' | 'PENDING'
+  resultado TEXT NOT NULL DEFAULT 'PENDING',
   blue_picks TEXT NOT NULL DEFAULT '[]',
   blue_bans TEXT NOT NULL DEFAULT '[]',
   red_picks TEXT NOT NULL DEFAULT '[]',
