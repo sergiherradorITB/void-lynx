@@ -156,6 +156,9 @@ function StaffPage() {
   const [drafterViewMode, setDrafterViewMode] = useState<"vertical" | "matrix" | "cards">("vertical");
   const [matrixShowAll, setMatrixShowAll] = useState<boolean>(true);
 
+  // Filtro de ayuda visual para saber qué pickear en el drafter ("ALL", "FP" -> qué abrir 1º, "LP" -> qué guardar para R5, "RISKY" -> riesgos y advertencias)
+  const [drafterPickHighlight, setDrafterPickHighlight] = useState<"ALL" | "FP" | "LP" | "RISKY">("ALL");
+
   // Modal para añadir campeón rápido a un rol en la pizarra vertical
   const [quickAddRole, setQuickAddRole] = useState<RoleType | null>(null);
   const [quickAddSearch, setQuickAddSearch] = useState<string>("");
@@ -1319,7 +1322,178 @@ function StaffPage() {
                 </div>
 
                 {/* ========================================================= */}
-                {/* 2. PICKS ABAJO: 5 COLUMNAS VERTICALES GRANDES             */}
+                {/* ========================================================= */}
+                {/* 2. GUÍA EN DIRECTO: QUÉ HAY QUE PICKEAR Y EN QUÉ ORDEN     */}
+                {/* ========================================================= */}
+                <div className="bg-gradient-to-r from-zinc-950 via-purple-950/30 to-zinc-950 border-2 border-purple-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-mono font-black uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
+                          <Sparkles className="h-4 w-4 text-emerald-400" /> PLAN DE PICKS EN DRAFT DEL COACH
+                        </span>
+                        <span className="bg-emerald-950/90 text-emerald-300 border border-emerald-500/50 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                          ORDEN RECOMENDADO
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-300 font-medium">
+                        Sigue el código de colores para saber exactamente qué pickear en cada rotación sin regalar counterpicks.
+                      </p>
+                    </div>
+
+                    {/* Selector de Iluminación Rápida de Picks */}
+                    <div className="flex items-center gap-1 bg-black/60 border border-zinc-800 p-1 rounded-xl shrink-0 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setDrafterPickHighlight("ALL")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                          drafterPickHighlight === "ALL"
+                            ? "bg-zinc-800 text-white shadow"
+                            : "text-zinc-400 hover:text-white"
+                        }`}
+                      >
+                        Ver Todos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrafterPickHighlight("FP")}
+                        title="Iluminar solo picks obligatorios de primera rotación"
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                          drafterPickHighlight === "FP"
+                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/50 ring-1 ring-emerald-400"
+                            : "text-emerald-400 hover:bg-emerald-950/50"
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>🟢 1º Abrir (Fase 1)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrafterPickHighlight("LP")}
+                        title="Iluminar solo picks reservados para last pick"
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                          drafterPickHighlight === "LP"
+                            ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-purple-400"
+                            : "text-purple-400 hover:bg-purple-950/50"
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-purple-400"></span>
+                        <span>🟣 Guardar a R5</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrafterPickHighlight("RISKY")}
+                        title="Iluminar picks de alto riesgo"
+                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all ${
+                          drafterPickHighlight === "RISKY"
+                            ? "bg-rose-600 text-white shadow-lg shadow-rose-950/50 ring-1 ring-rose-400"
+                            : "text-rose-400 hover:bg-rose-950/50"
+                        }`}
+                      >
+                        <span className="h-2 w-2 rounded-full bg-rose-400"></span>
+                        <span>🔴 Riesgos</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Las 3 Fases Tácticas de Selección */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                    {/* FASE 1: VERDE - QUÉ ABRIR PRIMERO */}
+                    <div className="rounded-xl border-2 border-emerald-500/70 bg-gradient-to-b from-emerald-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-emerald-950/20 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <span className="text-[11px] font-mono font-black text-emerald-400 uppercase flex items-center gap-1.5">
+                            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            1. FASE 1: ABRIR EN B1 / R1-R2
+                          </span>
+                          <span className="text-[9px] font-mono font-bold bg-emerald-950 text-emerald-300 border border-emerald-500/50 px-2 py-0.5 rounded">
+                            ALTA PRIORIDAD
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
+                          <strong>Roles a lockear ya:</strong>{" "}
+                          <span className="text-emerald-300 font-black">
+                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Alta").map(r => r.role).join(", ") || "Según bans"}
+                          </span>
+                          . Picks prioritarios con poco riesgo de counter que marcan el plan de juego del equipo.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-emerald-900/40">
+                        <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase">Picks Clave:</span>
+                        {currentComp.first_pick_safe && currentComp.first_pick_safe.length > 0 ? (
+                          currentComp.first_pick_safe.slice(0, 4).map((cId) => (
+                            <div key={cId} className="flex items-center gap-1 bg-emerald-950/90 border border-emerald-500/50 rounded-lg px-2 py-0.5 shadow-sm">
+                              <img src={getChampionAvatar(cId)} alt={cId} className="h-4 w-4 rounded object-cover" />
+                              <span className="text-[10px] font-bold text-emerald-200">{cId}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-[10px] text-zinc-500 italic">Ver picks marcados en verde abajo</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* FASE 2: AMARILLO/ÁMBAR - PICKS FLEXIBLES */}
+                    <div className="rounded-xl border-2 border-amber-500/70 bg-gradient-to-b from-amber-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-amber-950/20 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <span className="text-[11px] font-mono font-black text-amber-400 uppercase flex items-center gap-1.5">
+                            <span className="h-2.5 w-2.5 rounded-full bg-amber-400"></span>
+                            2. FASE 2: CONSOLIDAR (B2-B3 / R2-R3)
+                          </span>
+                          <span className="text-[9px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded">
+                            FLEXIBLE
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
+                          <strong>Roles de 2ª rotación:</strong>{" "}
+                          <span className="text-amber-300 font-black">
+                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Media").map(r => r.role).join(", ") || "Flex"}
+                          </span>
+                          . Asegurar frontline o iniciación adaptándose a los bans enemigos y campeones ya revelados.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-amber-900/40 text-[10px] text-zinc-400 font-mono">
+                        <span className="font-bold text-amber-300 uppercase">Cuidado vs:</span>
+                        <span className="text-amber-200 truncate max-w-full">
+                          {(currentComp.counters_campeones || []).slice(0, 3).join(", ") || "Counters directos"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* FASE 3: PÚRPURA - GUARDAR PARA LAST PICK */}
+                    <div className="rounded-xl border-2 border-purple-500/70 bg-gradient-to-b from-purple-950/40 via-zinc-950 to-zinc-950 p-3.5 shadow-lg shadow-purple-950/20 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-1 mb-2">
+                          <span className="text-[11px] font-mono font-black text-purple-300 uppercase flex items-center gap-1.5">
+                            <span className="h-2.5 w-2.5 rounded-full bg-purple-400"></span>
+                            3. FASE 3: LAST PICK (R4-R5)
+                          </span>
+                          <span className="text-[9px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-500/50 px-2 py-0.5 rounded">
+                            COUNTERPICK
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-300 mb-2 leading-relaxed">
+                          <strong>Línea a proteger:</strong>{" "}
+                          <span className="text-purple-300 font-black">
+                            {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Baja").map(r => r.role).join(", ") || "Línea de aislamiento"}
+                          </span>
+                          . ¡PROHIBIDO abrir a ciegas! Guardar el pick hasta ver el matchup rival para castigarlo en fase de líneas.
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2.5 border-t border-purple-900/40 text-[10px] text-zinc-400 font-mono">
+                        <span className="text-purple-300 font-bold uppercase">Objetivo:</span>
+                        <span>Aislar o stompear la línea en 1v1</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ========================================================= */}
+                {/* 3. PICKS ABAJO: 5 COLUMNAS VERTICALES GRANDES             */}
                 {/* TOP - JNGL - MID - ADC - SUPP                             */}
                 {/* ========================================================= */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 xl:gap-4 items-stretch">
@@ -1350,10 +1524,21 @@ function StaffPage() {
                     // Role display name: JNGL for JGL
                     const displayRoleName = laneConfig.role === "JGL" ? "JNGL" : laneConfig.role;
 
+                    // Role styling based on priority
+                    const isAlta = prio === "Alta";
+                    const isMedia = prio === "Media";
+                    const isBaja = prio === "Baja";
+
+                    const roleContainerBorder = isAlta
+                      ? "border-emerald-500/80 shadow-[0_0_25px_rgba(16,185,129,0.25)]"
+                      : isMedia
+                      ? "border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                      : "border-purple-500/80 shadow-[0_0_25px_rgba(168,85,247,0.25)]";
+
                     return (
                       <div
                         key={laneConfig.role}
-                        className={`rounded-2xl border-2 ${laneConfig.borderAccent} bg-zinc-950/95 shadow-2xl flex flex-col justify-between overflow-hidden transition-all hover:shadow-purple-950/20`}
+                        className={`rounded-2xl border-2 ${roleContainerBorder} bg-zinc-950/95 flex flex-col justify-between overflow-hidden transition-all hover:scale-[1.005]`}
                       >
                         {/* CONTENIDO SUPERIOR Y TIERS */}
                         <div className="flex-1 flex flex-col">
@@ -1382,288 +1567,188 @@ function StaffPage() {
                               </span>
                             </div>
 
-                            {/* BOTÓN PRIO DRAFT (IGUAL A LA MATRIZ: BAJA / MEDIA / ALTA) */}
+                            {/* BOTÓN PRIO DRAFT CON COLORES TOTALMENTE EXPLICATIVOS */}
                             <div className="mt-3 pt-2.5 border-t border-zinc-800/60">
-                              <div className="flex items-center justify-between gap-1 mb-1">
-                                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
-                                  PRIO DRAFT:
+                              <div className="flex items-center justify-between gap-1 mb-1.5">
+                                <span className="text-[9px] font-mono font-bold text-zinc-400 uppercase">
+                                  DIRECTIVA DRAFT:
                                 </span>
                                 <button
                                   type="button"
                                   onClick={() => handleCycleRolePriority(currentComp.id, laneConfig.role)}
-                                  title="Haz clic para alternar prioridad (Baja → Media → Alta)"
-                                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black uppercase tracking-wider border transition-all cursor-pointer shadow-sm ${
-                                    prio === "Alta"
-                                      ? "bg-rose-950/70 border-rose-500/80 text-rose-300 hover:bg-rose-900/80 shadow-rose-950/40"
-                                      : prio === "Media"
-                                      ? "bg-amber-950/70 border-amber-500/80 text-amber-300 hover:bg-amber-900/80 shadow-amber-950/40"
-                                      : "bg-emerald-950/70 border-emerald-500/80 text-emerald-300 hover:bg-emerald-900/80 shadow-emerald-950/40"
+                                  title="Haz clic para alternar: Alta (Verde Fase 1) → Media (Amarillo Fase 2) → Baja (Púrpura Last Pick)"
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black uppercase tracking-wider border transition-all cursor-pointer shadow ${
+                                    isAlta
+                                      ? "bg-emerald-950/80 border-emerald-500 text-emerald-200 shadow-emerald-950/60 hover:bg-emerald-900"
+                                      : isMedia
+                                      ? "bg-amber-950/80 border-amber-500 text-amber-200 shadow-amber-950/60 hover:bg-amber-900"
+                                      : "bg-purple-950/80 border-purple-500 text-purple-200 shadow-purple-950/60 hover:bg-purple-900"
                                   }`}
                                 >
-                                  {prio} ↻
+                                  {isAlta ? "🟢 ALTA" : isMedia ? "🟡 MEDIA" : "🟣 BAJA"} ↻
                                 </button>
                               </div>
-                              <span className="text-[9px] font-mono block text-right text-zinc-500">
-                                {prio === "Alta"
-                                  ? "⚡ Fase 1 (B1 / R1-R2)"
-                                  : prio === "Media"
-                                  ? "⚖ Flex (R2-R3)"
-                                  : "🛡 Guardar a R4-R5"}
-                              </span>
+                              <div className={`p-1.5 rounded-lg border text-[10px] font-mono font-bold text-center leading-tight ${
+                                isAlta
+                                  ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
+                                  : isMedia
+                                  ? "bg-amber-950/60 border-amber-500/50 text-amber-300"
+                                  : "bg-purple-950/60 border-purple-500/50 text-purple-300"
+                              }`}>
+                                {isAlta
+                                  ? "⚡ FASE 1: PICKEAR 1º (B1 / R1-R2)"
+                                  : isMedia
+                                  ? "⚖ FASE 2: ROTACIÓN 2 (FLEXIBLE)"
+                                  : "🛡 FASE 3: GUARDAR A LAST PICK (R4-R5)"}
+                              </div>
                             </div>
                           </div>
 
                           {/* TIERS DE PICKS (S, A, B) */}
                           <div className="p-3 space-y-4 flex-1">
-                            {/* TIER S */}
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
-                                    TIER S
-                                  </span>
-                                  <span className="text-[10px] text-zinc-500 font-mono">
-                                    ({roleData.S.length})
+                            {/* HELPER PARA RENDERIZAR CADA CAMPEÓN CON SUS COLORES Y ESTADO DE PICKS */}
+                            {[
+                              { tierName: "TIER S", list: roleData.S, badgeStyle: "bg-amber-500/20 text-amber-400 border-amber-500/40", label: "Core Pick" },
+                              { tierName: "TIER A", list: roleData.A, badgeStyle: "bg-purple-500/20 text-purple-300 border-purple-500/40", label: "Alternativa" },
+                              { tierName: "TIER B", list: roleData.B, badgeStyle: "bg-sky-500/20 text-sky-300 border-sky-500/40", label: "Situacional" },
+                            ].map(({ tierName, list, badgeStyle, label }, tIdx) => (
+                              <div key={tierName} className={`space-y-1.5 ${tIdx > 0 ? "pt-2.5 border-t border-zinc-800/60" : ""}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded border shadow-sm ${badgeStyle}`}>
+                                      {tierName}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-500 font-mono">
+                                      ({list.length})
+                                    </span>
+                                  </div>
+                                  <span className="text-[9px] font-mono text-zinc-400 font-bold">
+                                    {label}
                                   </span>
                                 </div>
-                                <span className="text-[9px] font-mono text-amber-400/80 font-bold">
-                                  Core Pick
-                                </span>
-                              </div>
 
-                              {roleData.S.length === 0 ? (
-                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
-                                  Sin picks S
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {roleData.S.map((entry) => {
-                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
-                                    return (
-                                      <div
-                                        key={entry.id}
-                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-amber-500/50 transition-all shadow-sm"
-                                      >
-                                        {/* Tag Badge interactivo (FP / LP / Risky) */}
-                                        <button
-                                          type="button"
-                                          onClick={() => handleCyclePickTag(entry.id)}
-                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
-                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
-                                            tag === "FP"
-                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
-                                              : tag === "LP"
-                                              ? "bg-purple-600 text-white hover:bg-purple-500"
-                                              : tag === "Risky"
-                                              ? "bg-amber-500 text-black hover:bg-amber-400"
-                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                {list.length === 0 ? (
+                                  <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
+                                    Sin picks {tierName.split(" ")[1]}
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {list.map((entry) => {
+                                      const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
+
+                                      // Dimmed when a filter is active
+                                      const isDimmed =
+                                        (drafterPickHighlight === "FP" && tag !== "FP") ||
+                                        (drafterPickHighlight === "LP" && tag !== "LP") ||
+                                        (drafterPickHighlight === "RISKY" && tag !== "Risky");
+
+                                      // Tag properties
+                                      const isFP = tag === "FP";
+                                      const isLP = tag === "LP";
+                                      const isRisky = tag === "Risky";
+
+                                      const cardTheme = isFP
+                                        ? "border-2 border-emerald-500/80 bg-gradient-to-b from-emerald-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(16,185,129,0.25)]"
+                                        : isLP
+                                        ? "border-2 border-purple-500/80 bg-gradient-to-b from-purple-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(168,85,247,0.25)]"
+                                        : isRisky
+                                        ? "border-2 border-rose-500/90 bg-gradient-to-b from-rose-950/50 via-zinc-900/90 to-black/95 shadow-[0_0_12px_rgba(244,63,94,0.3)]"
+                                        : "border border-zinc-700/80 bg-zinc-900/90 hover:border-amber-500/60";
+
+                                      const avatarBorder = isFP
+                                        ? "border-2 border-emerald-400"
+                                        : isLP
+                                        ? "border-2 border-purple-400"
+                                        : isRisky
+                                        ? "border-2 border-rose-500"
+                                        : "border border-zinc-700";
+
+                                      return (
+                                        <div
+                                          key={entry.id}
+                                          className={`group relative flex flex-col items-center p-2 rounded-xl transition-all ${cardTheme} ${
+                                            isDimmed ? "opacity-25 grayscale hover:opacity-100 hover:grayscale-0" : ""
                                           }`}
                                         >
-                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
-                                        </button>
-
-                                        <img
-                                          src={getChampionAvatar(entry.campeon_id)}
-                                          alt={entry.campeon_id}
-                                          className="h-11 w-11 rounded-lg object-cover border border-amber-500/40 group-hover:scale-105 transition-transform"
-                                        />
-                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
-                                          {entry.campeon_id}
-                                        </span>
-
-                                        {/* Micro-acciones: Bajar a Tier A o Eliminar */}
-                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
+                                          {/* Badge Superior Interactivo con Estado Explícito */}
                                           <button
                                             type="button"
-                                            onClick={() => handleShiftTier(entry.id, "down")}
-                                            title="Bajar a Tier A"
-                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                            onClick={() => handleCyclePickTag(entry.id)}
+                                            title="Clic para cambiar: FP (Verde 1º) → LP (Púrpura R5) → Risky (Rojo) → Flex (Amarillo)"
+                                            className={`w-full mb-1.5 py-0.5 px-1 rounded text-[8px] font-mono font-black uppercase tracking-wider text-center cursor-pointer transition-all border shadow ${
+                                              isFP
+                                                ? "bg-emerald-500 text-black border-emerald-400 hover:bg-emerald-400"
+                                                : isLP
+                                                ? "bg-purple-600 text-white border-purple-400 hover:bg-purple-500"
+                                                : isRisky
+                                                ? "bg-rose-600 text-white border-rose-400 hover:bg-rose-500"
+                                                : "bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700"
+                                            }`}
                                           >
-                                            <ChevronDown className="h-3 w-3" />
+                                            {isFP ? "🟢 ABRIR (FP)" : isLP ? "🟣 LAST PICK" : isRisky ? "🔴 RIESGOSO" : "🟡 FLEXIBLE"}
                                           </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta compo"
-                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </button>
+
+                                          <img
+                                            src={getChampionAvatar(entry.campeon_id)}
+                                            alt={entry.campeon_id}
+                                            className={`h-12 w-12 rounded-lg object-cover shadow-md group-hover:scale-105 transition-transform ${avatarBorder}`}
+                                          />
+
+                                          <span className="text-xs font-black text-white mt-1 truncate max-w-full text-center leading-tight">
+                                            {entry.campeon_id}
+                                          </span>
+
+                                          {/* Subtexto descriptivo del pick */}
+                                          <span className={`text-[9px] font-mono font-semibold block text-center truncate max-w-full mt-0.5 ${
+                                            isFP
+                                              ? "text-emerald-300"
+                                              : isLP
+                                              ? "text-purple-300"
+                                              : isRisky
+                                              ? "text-rose-400"
+                                              : "text-zinc-400"
+                                          }`}>
+                                            {isFP ? "Seguro a ciegas" : isLP ? "Guardar counter" : isRisky ? "Cuidado vs counters" : "2ª Rotación"}
+                                          </span>
+
+                                          {/* Micro-acciones: Promover/Degradar Tier o Eliminar */}
+                                          <div className="absolute inset-0 bg-black/90 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
+                                            {tierName !== "TIER S" && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleShiftTier(entry.id, "up")}
+                                                title="Subir de Tier"
+                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                              >
+                                                <ChevronUp className="h-3 w-3" />
+                                              </button>
+                                            )}
+                                            {tierName !== "TIER B" && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleShiftTier(entry.id, "down")}
+                                                title="Bajar de Tier"
+                                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                                              >
+                                                <ChevronDown className="h-3 w-3" />
+                                              </button>
+                                            )}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
+                                              title="Quitar de esta compo"
+                                              className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </div>
                                         </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* TIER A */}
-                            <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
-                                    TIER A
-                                  </span>
-                                  <span className="text-[10px] text-zinc-500 font-mono">
-                                    ({roleData.A.length})
-                                  </span>
-                                </div>
-                                <span className="text-[9px] font-mono text-purple-400/80 font-bold">
-                                  Alternativa
-                                </span>
+                                      );
+                                    })}
+                                  </div>
+                                )}
                               </div>
-
-                              {roleData.A.length === 0 ? (
-                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
-                                  Sin picks A
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {roleData.A.map((entry) => {
-                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
-                                    return (
-                                      <div
-                                        key={entry.id}
-                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-purple-500/50 transition-all shadow-sm"
-                                      >
-                                        <button
-                                          type="button"
-                                          onClick={() => handleCyclePickTag(entry.id)}
-                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
-                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
-                                            tag === "FP"
-                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
-                                              : tag === "LP"
-                                              ? "bg-purple-600 text-white hover:bg-purple-500"
-                                              : tag === "Risky"
-                                              ? "bg-amber-500 text-black hover:bg-amber-400"
-                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                                          }`}
-                                        >
-                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
-                                        </button>
-
-                                        <img
-                                          src={getChampionAvatar(entry.campeon_id)}
-                                          alt={entry.campeon_id}
-                                          className="h-11 w-11 rounded-lg object-cover border border-purple-500/40 group-hover:scale-105 transition-transform"
-                                        />
-                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
-                                          {entry.campeon_id}
-                                        </span>
-
-                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleShiftTier(entry.id, "up")}
-                                            title="Subir a Tier S"
-                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-                                          >
-                                            <ChevronUp className="h-3 w-3" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleShiftTier(entry.id, "down")}
-                                            title="Bajar a Tier B"
-                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-                                          >
-                                            <ChevronDown className="h-3 w-3" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta compo"
-                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* TIER B */}
-                            <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
-                                    TIER B
-                                  </span>
-                                  <span className="text-[10px] text-zinc-500 font-mono">
-                                    ({roleData.B.length})
-                                  </span>
-                                </div>
-                                <span className="text-[9px] font-mono text-sky-400/80 font-bold">
-                                  Situacional
-                                </span>
-                              </div>
-
-                              {roleData.B.length === 0 ? (
-                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
-                                  Sin picks B
-                                </div>
-                              ) : (
-                                <div className="grid grid-cols-2 gap-1.5">
-                                  {roleData.B.map((entry) => {
-                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
-                                    return (
-                                      <div
-                                        key={entry.id}
-                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-sky-500/50 transition-all shadow-sm"
-                                      >
-                                        <button
-                                          type="button"
-                                          onClick={() => handleCyclePickTag(entry.id)}
-                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
-                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
-                                            tag === "FP"
-                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
-                                              : tag === "LP"
-                                              ? "bg-purple-600 text-white hover:bg-purple-500"
-                                              : tag === "Risky"
-                                              ? "bg-amber-500 text-black hover:bg-amber-400"
-                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
-                                          }`}
-                                        >
-                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
-                                        </button>
-
-                                        <img
-                                          src={getChampionAvatar(entry.campeon_id)}
-                                          alt={entry.campeon_id}
-                                          className="h-11 w-11 rounded-lg object-cover border border-sky-500/40 group-hover:scale-105 transition-transform"
-                                        />
-                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
-                                          {entry.campeon_id}
-                                        </span>
-
-                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleShiftTier(entry.id, "up")}
-                                            title="Subir a Tier A"
-                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
-                                          >
-                                            <ChevronUp className="h-3 w-3" />
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta compo"
-                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
-                                          >
-                                            <X className="h-3 w-3" />
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
+                            ))}
                           </div>
                         </div>
 
@@ -1684,20 +1769,20 @@ function StaffPage() {
                           </button>
 
                           {(roleWarnings.length > 0 || roleCounters.length > 0) && (
-                            <div className="p-2 rounded-xl bg-rose-950/25 border border-rose-500/30 text-[10px] space-y-1">
+                            <div className="p-2 rounded-xl bg-rose-950/30 border border-rose-500/40 text-[10px] space-y-1 shadow">
                               <span className="font-bold text-rose-400 flex items-center gap-1 uppercase font-mono">
                                 <AlertTriangle className="h-3 w-3" /> Intel de Línea
                               </span>
                               {roleWarnings.slice(0, 2).map((w, idx) => (
-                                <p key={idx} className="text-zinc-300 leading-tight">
+                                <p key={idx} className="text-zinc-200 leading-tight">
                                   <strong className="text-rose-300">{w.champ}:</strong> {w.reason}
                                 </p>
                               ))}
                               {roleCounters.length > 0 && (
                                 <div className="flex items-center gap-1 pt-1 border-t border-rose-900/40 flex-wrap">
-                                  <span className="text-zinc-400 text-[9px]">Counters:</span>
+                                  <span className="text-zinc-400 text-[9px] font-mono">Counters:</span>
                                   {roleCounters.slice(0, 3).map((cId) => (
-                                    <span key={cId} className="text-[9px] font-bold text-rose-200 bg-black/60 px-1 py-0.2 rounded border border-rose-500/40">
+                                    <span key={cId} className="text-[9px] font-bold text-rose-200 bg-black/70 px-1 py-0.2 rounded border border-rose-500/50">
                                       {cId}
                                     </span>
                                   ))}
@@ -1710,6 +1795,7 @@ function StaffPage() {
                     );
                   })}
                 </div>
+
               </div>
             )}
 
