@@ -62,6 +62,7 @@ import {
   Edit3,
   Table,
   SlidersHorizontal,
+  Check,
 } from "lucide-react";
 
 export const Route = createFileRoute("/staff")({
@@ -782,49 +783,149 @@ function StaffPage() {
                 </div>
               </div>
 
-              {/* Botones de Selección Rápida de Composición */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+              {/* Botones de Selección Rápida de Composición — Más Grandes, Fáciles y Sin Efecto de Bola */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
                 {compositions.map((comp) => {
                   const isSelected = comp.id === currentComp.id;
+                  const isHigh = comp.prioridad.includes("Alta");
+                  const isMed = comp.prioridad.includes("Media");
+
                   return (
                     <button
                       key={comp.id}
                       onClick={() => setSelectedCompId(comp.id)}
-                      className={`p-3 rounded-lg border text-left transition-all relative ${
+                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[96px] cursor-pointer ${
                         isSelected
-                          ? "bg-purple-900/40 border-purple-400 text-white shadow-md shadow-purple-950/60 ring-1 ring-purple-400"
-                          : "bg-zinc-900/60 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-800/50"
+                          ? "bg-gradient-to-br from-purple-900/70 via-purple-950/90 to-zinc-950 border-purple-400 text-white shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-2 ring-purple-400/80 scale-[1.02]"
+                          : "bg-zinc-950/80 border-zinc-800/90 text-zinc-300 hover:border-purple-500/60 hover:bg-zinc-900/90 hover:scale-[1.01]"
                       }`}
                     >
-                      <div className="font-display font-bold text-xs uppercase tracking-wide truncate">
-                        {comp.nombre}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="font-display font-black text-base sm:text-lg uppercase tracking-wide text-white leading-tight">
+                          {comp.nombre}
+                        </div>
+                        {isSelected && (
+                          <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-purple-300 bg-purple-950/90 border border-purple-500/50 px-2 py-0.5 rounded-full shrink-0">
+                            <Check className="h-3 w-3 text-purple-400" /> ACTIVA
+                          </span>
+                        )}
                       </div>
-                      <div className="text-[10px] text-zinc-400 truncate mt-0.5">
-                        {comp.prioridad.replace(" Prioridad", "")}
+
+                      <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
+                        <span className="text-[11px] font-mono text-zinc-400 font-medium truncate">
+                          {comp.enfoque}
+                        </span>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                            isHigh
+                              ? "bg-rose-950/90 text-rose-300 border border-rose-500/50"
+                              : isMed
+                              ? "bg-amber-950/90 text-amber-300 border border-amber-500/50"
+                              : "bg-zinc-800 text-zinc-300 border border-zinc-700"
+                          }`}
+                        >
+                          {comp.prioridad.replace(" Prioridad", "")}
+                        </span>
                       </div>
-                      {isSelected && (
-                        <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-purple-400 animate-ping" />
-                      )}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Ficha Resumen de la Composición Seleccionada */}
-              <div className="mt-4 pt-4 border-t border-zinc-800/80 flex flex-col md:flex-row gap-4 items-start justify-between text-xs">
-                <div className="flex-1">
-                  <span className="text-purple-300 font-semibold uppercase tracking-wider">Concepto Táctico:</span>
-                  <p className="text-zinc-300 mt-1 leading-relaxed">{currentComp.descripcion}</p>
+              {/* Ficha Resumen de la Composición Seleccionada con Counters Destacados */}
+              <div className="mt-6 pt-5 border-t border-purple-900/40 space-y-4">
+                {/* Fila 1: Concepto, Enfoque y Prioridad */}
+                <div className="flex flex-col lg:flex-row gap-4 items-start justify-between bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5">
+                  <div className="flex-1">
+                    <span className="text-xs font-mono font-bold text-purple-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                      <Crosshair className="h-4 w-4 text-purple-400" />
+                      CONCEPTO TÁCTICO & WIN CONDITION:
+                    </span>
+                    <p className="text-sm sm:text-base text-zinc-100 leading-relaxed font-sans font-medium">
+                      {currentComp.descripcion}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 text-xs font-mono shrink-0">
+                    <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">ENFOQUE:</span>
+                      <span className="text-white font-bold text-xs sm:text-sm">{currentComp.enfoque}</span>
+                    </div>
+                    <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
+                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">PRIORIDAD DRAFT:</span>
+                      <span className="text-amber-400 font-bold text-xs sm:text-sm">{currentComp.prioridad}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-4 text-xs font-mono shrink-0">
-                  <div className="bg-zinc-900 px-3 py-1.5 rounded border border-zinc-800">
-                    <span className="text-zinc-500 block text-[10px]">ENFOQUE:</span>
-                    <span className="text-white font-bold">{currentComp.enfoque}</span>
+
+                {/* Fila 2: MÓDULO DESTACADO DE COUNTERS (AMENAZAS Y CAMPEONES A EVITAR) */}
+                <div className="rounded-2xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-950/40 via-zinc-950 to-zinc-950 p-5 sm:p-6 shadow-2xl">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-rose-900/40">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="text-sm sm:text-base font-display font-extrabold text-rose-200 uppercase tracking-wider block">
+                          COUNTERS DIRECTOS & AMENAZAS PARA "{currentComp.nombre}"
+                        </span>
+                        <span className="text-xs text-rose-300/70 font-mono">
+                          Peligros clave que desmontan la estrategia o castigan la composición
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bans sugeridos rápidos */}
+                    {currentComp.bans_recomendados?.length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-zinc-400 uppercase font-bold">Bans recomendados:</span>
+                        <div className="flex items-center gap-1.5">
+                          {currentComp.bans_recomendados.map((b) => (
+                            <span
+                              key={b}
+                              className="bg-rose-950 text-rose-200 border border-rose-500/60 font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow"
+                            >
+                              {b}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-zinc-900 px-3 py-1.5 rounded border border-zinc-800">
-                    <span className="text-zinc-500 block text-[10px]">PRIORIDAD DRAFT:</span>
-                    <span className="text-amber-400 font-bold">{currentComp.prioridad}</span>
+
+                  <div className="bg-black/50 border border-rose-900/40 rounded-xl p-3.5 mb-4">
+                    <p className="text-xs sm:text-sm text-rose-100 font-medium leading-relaxed">
+                      {currentComp.counters_descripcion || "No se han definido counters directos para esta composición."}
+                    </p>
                   </div>
+
+                  {/* Campeones Counter con retratos grandes y legibles */}
+                  {currentComp.counters_campeones.length > 0 && (
+                    <div>
+                      <span className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-2.5">
+                        Campeones rivales peligrosos a denegar o banear ({currentComp.counters_campeones.length}):
+                      </span>
+                      <div className="flex flex-wrap gap-3">
+                        {currentComp.counters_campeones.map((cId) => (
+                          <div
+                            key={cId}
+                            className="group flex items-center gap-3 bg-zinc-900/90 hover:bg-rose-950/60 border border-rose-500/40 hover:border-rose-400 rounded-xl p-2 pr-4 transition-all shadow-lg hover:scale-105"
+                          >
+                            <img
+                              src={getChampionAvatar(cId)}
+                              alt={cId}
+                              className="h-12 w-12 rounded-lg object-cover border-2 border-rose-500/50 group-hover:border-rose-400 shadow shrink-0"
+                            />
+                            <div>
+                              <span className="font-bold text-sm text-white block leading-tight">{cId}</span>
+                              <span className="text-[10px] font-mono font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                <AlertTriangle className="h-3 w-3 shrink-0" /> Counter
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -901,16 +1002,16 @@ function StaffPage() {
             {/* ========================================================= */}
             {drafterViewMode === "matrix" && (
               <div className="space-y-4">
-                {/* Tabla Horizontal Estilo Excel */}
+                {/* Tabla Horizontal Estilo Excel con Counters Grandes y Legibles */}
                 <div className="overflow-x-auto rounded-2xl border border-purple-900/30 bg-zinc-950 shadow-2xl">
-                  <table className="w-full border-collapse text-left text-xs min-w-[1250px]">
+                  <table className="w-full border-collapse text-left text-xs min-w-[1550px]">
                     <thead>
                       <tr className="bg-zinc-900/90 border-b border-zinc-800 text-[11px] font-mono uppercase tracking-wider text-zinc-300">
-                        <th className="p-3 w-40 border-r border-zinc-800">COMPOSICIÓN TÁCTICA</th>
-                        <th className="p-3 w-28 border-r border-zinc-800">PRIORIDAD DRAFT</th>
-                        <th className="p-3 w-56 border-r border-zinc-800">CONCEPTO / OBJETIVO CLAVE</th>
-                        <th className="p-3 w-52 border-r border-zinc-800">COUNTERS DIRECTOS</th>
-                        <th className="p-3 w-44 border-r border-zinc-800">COUNTERS (CAMPEONES)</th>
+                        <th className="p-3.5 w-48 border-r border-zinc-800">COMPOSICIÓN TÁCTICA</th>
+                        <th className="p-3.5 w-28 border-r border-zinc-800 text-center">PRIORIDAD DRAFT</th>
+                        <th className="p-3.5 w-56 border-r border-zinc-800">CONCEPTO / OBJETIVO CLAVE</th>
+                        <th className="p-3.5 w-72 border-r border-zinc-800 text-rose-400">COUNTERS DIRECTOS</th>
+                        <th className="p-3.5 w-80 border-r border-zinc-800 text-rose-400">COUNTERS (CAMPEONES)</th>
                         <th className="p-2 w-16 border-r border-zinc-800 text-center font-bold text-zinc-400">
                           TIER (★ FP)
                         </th>
@@ -967,7 +1068,7 @@ function StaffPage() {
                             {/* FILA 1: PRIO */}
                             <tr className={`border-t-2 border-purple-900/50 ${compIdx % 2 === 0 ? "bg-black/40" : "bg-zinc-950"}`}>
                               {/* COL 1: Composición */}
-                              <td rowSpan={4} className="p-3.5 align-top border-r border-zinc-800 bg-zinc-950/70">
+                              <td rowSpan={4} className="p-4 align-top border-r border-zinc-800 bg-zinc-950/70">
                                 <div className="space-y-2">
                                   <div className="flex items-center justify-between">
                                     <span className="font-display font-extrabold text-sm text-white tracking-wide uppercase">
@@ -998,7 +1099,7 @@ function StaffPage() {
                               </td>
 
                               {/* COL 2: Prioridad */}
-                              <td rowSpan={4} className="p-3 align-top border-r border-zinc-800 bg-zinc-950/50">
+                              <td rowSpan={4} className="p-3 align-top border-r border-zinc-800 bg-zinc-950/50 text-center">
                                 <span
                                   className={`inline-block text-[10px] font-mono px-2 py-0.5 rounded font-bold ${
                                     comp.prioridad.includes("Alta")
@@ -1013,34 +1114,42 @@ function StaffPage() {
                               </td>
 
                               {/* COL 3: Concepto */}
-                              <td rowSpan={4} className="p-3 align-top border-r border-zinc-800 text-[11px] text-zinc-300 leading-relaxed bg-zinc-950/40">
+                              <td rowSpan={4} className="p-3.5 align-top border-r border-zinc-800 text-xs text-zinc-300 leading-relaxed bg-zinc-950/40">
                                 {comp.descripcion}
                               </td>
 
-                              {/* COL 4: Counters Directos (Texto) */}
-                              <td rowSpan={4} className="p-3 align-top border-r border-zinc-800 text-[11px] text-zinc-400 leading-relaxed bg-zinc-950/40">
-                                {comp.counters_descripcion}
+                              {/* COL 4: Counters Directos (Texto Destacado en Rojo) */}
+                              <td rowSpan={4} className="p-4 align-top border-r border-zinc-800 bg-rose-950/25 text-rose-200">
+                                <div className="flex items-start gap-2.5">
+                                  <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                                  <p className="text-xs text-rose-100 font-medium leading-relaxed">
+                                    {comp.counters_descripcion}
+                                  </p>
+                                </div>
                               </td>
 
-                              {/* COL 5: Counters (Campeones) */}
-                              <td rowSpan={4} className="p-2.5 align-top border-r border-zinc-800 bg-zinc-950/40">
-                                <div className="grid grid-cols-4 gap-1.5">
+                              {/* COL 5: Counters (Campeones) — Retratos Grandes y Legibles */}
+                              <td rowSpan={4} className="p-4 align-top border-r border-zinc-800 bg-rose-950/15">
+                                <div className="flex flex-wrap gap-2.5">
                                   {comp.counters_campeones.map((cId) => (
                                     <div
                                       key={cId}
                                       title={`Counter: ${cId}`}
-                                      className="relative group aspect-square rounded overflow-hidden border border-rose-900/60 bg-zinc-900"
+                                      className="group flex flex-col items-center bg-zinc-900 border-2 border-rose-500/50 hover:border-rose-400 rounded-xl p-2 transition-all shadow-md hover:scale-105"
                                     >
                                       <img
                                         src={getChampionAvatar(cId)}
                                         alt={cId}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                        className="h-12 w-12 rounded-lg object-cover shadow border border-rose-500/40"
                                       />
-                                      <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7px] text-zinc-300 font-mono truncate text-center">
+                                      <span className="text-[11px] font-mono font-bold text-rose-200 mt-1 max-w-[56px] truncate text-center">
                                         {cId}
                                       </span>
                                     </div>
                                   ))}
+                                  {comp.counters_campeones.length === 0 && (
+                                    <span className="text-xs text-zinc-500 italic">Sin campeones asignados</span>
+                                  )}
                                 </div>
                               </td>
 
@@ -1391,62 +1500,76 @@ function StaffPage() {
             </div>
 
             {/* COUNTERS DIRECTOS DE LA COMPOSICIÓN & BANS RECOMENDADOS */}
-            <div className="bg-zinc-950 border border-purple-900/30 rounded-xl p-5 shadow-xl">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-                <div>
-                  <h3 className="font-display font-bold text-base uppercase tracking-wider text-amber-300 flex items-center gap-2">
-                    <AlertTriangle className="h-5 w-5 text-amber-400" />
-                    <span>Counters Directos & Campeones Peligrosos</span>
-                  </h3>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    {currentComp.counters_descripcion}
-                  </p>
+            <div className="bg-gradient-to-br from-rose-950/30 via-zinc-950 to-zinc-950 border-2 border-rose-500/40 rounded-2xl p-6 shadow-2xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 pb-4 border-b border-rose-900/40">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-black text-base sm:text-lg uppercase tracking-wider text-rose-200">
+                      Counters Directos & Campeones Peligrosos para "{currentComp.nombre}"
+                    </h3>
+                    <p className="text-xs sm:text-sm text-rose-200/80 mt-0.5">
+                      {currentComp.counters_descripcion}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Bans recomendados */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono text-zinc-400 uppercase">Bans sugeridos:</span>
-                  <div className="flex items-center gap-1.5">
-                    {currentComp.bans_recomendados.map((b) => (
-                      <span
-                        key={b}
-                        className="bg-rose-950/80 border border-rose-600/50 text-rose-300 text-xs px-2 py-0.5 rounded font-mono font-bold"
-                      >
-                        {b}
-                      </span>
-                    ))}
+                {currentComp.bans_recomendados?.length > 0 && (
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    <span className="text-xs font-mono text-zinc-400 uppercase font-bold">Bans recomendados:</span>
+                    <div className="flex items-center gap-2">
+                      {currentComp.bans_recomendados.map((b) => (
+                        <span
+                          key={b}
+                          className="bg-rose-950 border-2 border-rose-500 text-rose-200 text-xs sm:text-sm px-3.5 py-1 rounded-xl font-mono font-black shadow-lg"
+                        >
+                          {b}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
-              {/* Grid de Campeones Counter */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3 pt-2">
+              {/* Grid de Campeones Counter — Retratos Grandes y Claros */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 pt-2">
                 {currentComp.counters_campeones.map((counterId) => {
                   const champ = findChampion(counterId);
                   return (
                     <div
                       key={counterId}
-                      className="group flex flex-col items-center bg-zinc-900/90 border border-zinc-800 hover:border-rose-500/60 rounded-lg p-2.5 transition-all text-center"
+                      className="group flex flex-col items-center bg-zinc-900/90 border-2 border-zinc-800 hover:border-rose-500/70 rounded-2xl p-3.5 transition-all text-center hover:scale-105 shadow-xl"
                     >
                       <div className="relative mb-2">
                         <img
                           src={getChampionAvatar(counterId)}
                           alt={counterId}
-                          className="h-12 w-12 rounded-lg border border-rose-500/30 group-hover:border-rose-400 object-cover shadow-md"
+                          className="h-16 w-16 rounded-xl border-2 border-rose-500/50 group-hover:border-rose-400 object-cover shadow-md"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = "none";
                           }}
                         />
-                        <span className="absolute -top-1 -right-1 bg-rose-600 text-[9px] font-bold text-white px-1 rounded">
+                        <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-[10px] font-mono font-black text-white px-1.5 py-0.5 rounded shadow">
                           COUNTER
                         </span>
                       </div>
-                      <span className="font-bold text-xs text-white truncate w-full">
+                      <span className="font-bold text-sm text-white truncate w-full">
                         {champ ? champ.name : counterId}
+                      </span>
+                      <span className="text-[10px] font-mono text-rose-400 font-semibold mt-0.5">
+                        Amenaza Draft
                       </span>
                     </div>
                   );
                 })}
+                {currentComp.counters_campeones.length === 0 && (
+                  <div className="col-span-full text-center py-6 text-zinc-500 text-sm italic">
+                    No se han registrado campeones counters específicos para esta composición.
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1621,18 +1744,18 @@ function StaffPage() {
                           Counters Directos (Amenazas):
                         </span>
                         <p className="text-xs text-zinc-400 mb-2">{comp.counters_descripcion}</p>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-2">
                           {comp.counters_campeones.map((cId) => (
                             <span
                               key={cId}
-                              className="inline-flex items-center gap-1 bg-zinc-900 border border-rose-900/40 text-rose-200 text-xs px-2 py-0.5 rounded"
+                              className="inline-flex items-center gap-2 bg-zinc-900 border border-rose-500/40 text-rose-200 text-xs px-2.5 py-1 rounded-lg shadow"
                             >
                               <img
                                 src={getChampionAvatar(cId)}
                                 alt={cId}
-                                className="h-4 w-4 rounded-full object-cover"
+                                className="h-7 w-7 rounded-md object-cover border border-rose-500/40"
                               />
-                              <span>{cId}</span>
+                              <span className="font-bold">{cId}</span>
                               <button
                                 onClick={() => {
                                   const updated = compositions.map((c) =>
@@ -1647,7 +1770,7 @@ function StaffPage() {
                                   );
                                   handlePersist(updated, playerChampions);
                                 }}
-                                className="text-zinc-500 hover:text-rose-400 ml-0.5"
+                                className="text-zinc-500 hover:text-rose-400 font-bold ml-1 text-sm leading-none"
                               >
                                 ×
                               </button>
@@ -1656,7 +1779,7 @@ function StaffPage() {
 
                           <button
                             onClick={() => handleOpenEditComp(comp)}
-                            className="text-xs text-purple-400 hover:text-purple-300 border border-dashed border-purple-500/40 px-2 py-0.5 rounded flex items-center gap-1"
+                            className="text-xs text-purple-300 hover:text-white bg-purple-950/60 border border-purple-500/40 hover:border-purple-400 px-3 py-1 rounded-lg flex items-center gap-1.5 transition-colors font-semibold"
                           >
                             + Gestionar Counters
                           </button>
@@ -1667,18 +1790,18 @@ function StaffPage() {
                         <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider block mb-1">
                           First Picks Seguros:
                         </span>
-                        <div className="flex flex-wrap gap-1.5">
+                        <div className="flex flex-wrap gap-2">
                           {comp.first_pick_safe.map((sId) => (
                             <span
                               key={sId}
-                              className="inline-flex items-center gap-1 bg-zinc-900 border border-emerald-900/40 text-emerald-200 text-xs px-2 py-0.5 rounded"
+                              className="inline-flex items-center gap-2 bg-zinc-900 border border-emerald-500/40 text-emerald-200 text-xs px-2.5 py-1 rounded-lg shadow"
                             >
                               <img
                                 src={getChampionAvatar(sId)}
                                 alt={sId}
-                                className="h-4 w-4 rounded-full object-cover"
+                                className="h-7 w-7 rounded-md object-cover border border-emerald-500/40"
                               />
-                              <span>{sId}</span>
+                              <span className="font-bold">{sId}</span>
                             </span>
                           ))}
                         </div>
@@ -1852,10 +1975,6 @@ function StaffPage() {
                         </div>
                         <span className="text-zinc-400 font-semibold">{playerChamps.length} picks</span>
                       </div>
-
-                      {isSelected && (
-                        <div className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
-                      )}
                     </button>
                   );
                 })}
@@ -2609,9 +2728,6 @@ function StaffPage() {
                               BAN {idx + 1}
                             </span>
                           )}
-                          {isActive && (
-                            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-blue-400 animate-ping" />
-                          )}
                         </button>
                       );
                     })}
@@ -2773,9 +2889,6 @@ function StaffPage() {
                             <span className="text-[10px] font-mono text-zinc-600 font-bold">
                               BAN {idx + 1}
                             </span>
-                          )}
-                          {isActive && (
-                            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-rose-400 animate-ping" />
                           )}
                         </button>
                       );
@@ -3360,14 +3473,14 @@ function StaffPage() {
                         editingComp.counters_campeones.map((cId) => (
                           <span
                             key={cId}
-                            className="inline-flex items-center gap-1.5 bg-rose-950/60 border border-rose-800/60 text-rose-200 text-xs px-2 py-1 rounded-md"
+                            className="inline-flex items-center gap-2 bg-rose-950/70 border border-rose-500/50 text-rose-200 text-xs px-2.5 py-1.5 rounded-lg shadow-sm"
                           >
                             <img
                               src={getChampionAvatar(cId)}
                               alt={cId}
-                              className="h-4 w-4 rounded-full object-cover"
+                              className="h-7 w-7 rounded-md object-cover border border-rose-500/40"
                             />
-                            <span className="font-semibold">{cId}</span>
+                            <span className="font-bold">{cId}</span>
                             <button
                               type="button"
                               onClick={() => {
@@ -3376,7 +3489,7 @@ function StaffPage() {
                                   counters_campeones: editingComp.counters_campeones.filter((c) => c !== cId),
                                 });
                               }}
-                              className="text-rose-400 hover:text-white font-bold ml-0.5"
+                              className="text-rose-400 hover:text-white font-bold ml-1 text-sm leading-none"
                             >
                               ×
                             </button>
@@ -3451,14 +3564,14 @@ function StaffPage() {
                       {editingComp.first_pick_safe.map((sId) => (
                         <span
                           key={sId}
-                          className="inline-flex items-center gap-1.5 bg-emerald-950/60 border border-emerald-800/60 text-emerald-200 text-xs px-2 py-0.5 rounded-md"
+                          className="inline-flex items-center gap-2 bg-emerald-950/70 border border-emerald-500/50 text-emerald-200 text-xs px-2.5 py-1.5 rounded-lg shadow-sm"
                         >
                           <img
                             src={getChampionAvatar(sId)}
                             alt={sId}
-                            className="h-4 w-4 rounded-full object-cover"
+                            className="h-7 w-7 rounded-md object-cover border border-emerald-500/40"
                           />
-                          <span className="font-semibold">{sId}</span>
+                          <span className="font-bold">{sId}</span>
                           <button
                             type="button"
                             onClick={() => {
@@ -3467,7 +3580,7 @@ function StaffPage() {
                                 first_pick_safe: editingComp.first_pick_safe.filter((c) => c !== sId),
                               });
                             }}
-                            className="text-emerald-400 hover:text-white font-bold ml-0.5"
+                            className="text-emerald-400 hover:text-white font-bold ml-1 text-sm leading-none"
                           >
                             ×
                           </button>
