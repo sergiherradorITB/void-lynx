@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { CHAMPIONS_CATALOG, findChampion } from "@/data/champions";
 import {
   CompositionData,
+  INITIAL_COMPOSITIONS,
   PlayerChampionEntry,
   PlayerProfile,
   PLAYERS_LIST,
@@ -36,12 +37,13 @@ export function useStaffState() {
   const [selectedPlayerName, setSelectedPlayerName] = useState<string>("Kaserolo");
   const [saveStatus, setSaveStatus] = useState<"synced" | "saving" | "unsaved">("synced");
   const [playerViewMode, setPlayerViewMode] = useState<"tierlist" | "grid">("tierlist");
+  const [draftsHistory, setDraftsHistory] = useState<SavedDraft[]>(loadDraftHistory);
 
   // Jugador actual seleccionado
-  const selectedPlayer = PLAYERS_LIST.find((p) => p.name === selectedPlayerName) || PLAYERS_LIST[0];
+  const selectedPlayer: PlayerProfile = PLAYERS_LIST.find((p) => p.name === selectedPlayerName) || PLAYERS_LIST[0]!;
 
   // Composición actual seleccionada en el drafter
-  const currentComp = compositions.find((c) => c.id === selectedCompId) || compositions[0];
+  const currentComp: CompositionData = compositions.find((c) => c.id === selectedCompId) || compositions[0] || INITIAL_COMPOSITIONS[0]!;
 
   // Helper para guardar cambios
   const handlePersist = (newComps: CompositionData[], newChamps: PlayerChampionEntry[]) => {
@@ -189,7 +191,7 @@ export function useStaffState() {
       const updated = compositions.filter((c) => c.id !== id);
       handlePersist(updated, playerChampions);
       if (selectedCompId === id) {
-        setSelectedCompId(updated[0].id);
+        setSelectedCompId(updated[0]?.id || "siege-4");
       }
       setEditingComp(null);
     }
@@ -396,8 +398,9 @@ export function useStaffState() {
     const currentIdx = order.indexOf(entry.tier as any);
     if (currentIdx === -1) return;
     const targetIdx = direction === "up" ? Math.min(order.length - 1, currentIdx + 1) : Math.max(0, currentIdx - 1);
-    if (targetIdx !== currentIdx) {
-      handleUpdateTier(id, order[targetIdx]);
+    const nextTier = order[targetIdx];
+    if (nextTier && targetIdx !== currentIdx) {
+      handleUpdateTier(id, nextTier);
     }
   };
 
@@ -444,13 +447,13 @@ export function useStaffState() {
     relevantChamps.forEach((entry) => {
       const profile = PLAYERS_LIST.find((p) => p.name === entry.jugador);
       if (profile && byRole[profile.role]) {
-        byRole[profile.role].champs.push(entry);
+        byRole[profile.role]!.champs.push(entry);
       }
     });
 
     const tierWeight: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 };
     Object.keys(byRole).forEach((role) => {
-      byRole[role].champs.sort((a, b) => (tierWeight[b.tier] || 0) - (tierWeight[a.tier] || 0));
+      byRole[role]?.champs.sort((a, b) => (tierWeight[b.tier] || 0) - (tierWeight[a.tier] || 0));
     });
 
     const safeFirstPicks = relevantChamps.filter((pc) => {
@@ -464,7 +467,7 @@ export function useStaffState() {
 
     let coveredRolesCount = 0;
     Object.keys(byRole).forEach((role) => {
-      const hasHighTier = byRole[role].champs.some((c) => c.tier === "S" || c.tier === "A");
+      const hasHighTier = byRole[role]?.champs.some((c) => c.tier === "S" || c.tier === "A");
       if (hasHighTier) coveredRolesCount++;
     });
 
@@ -478,7 +481,6 @@ export function useStaffState() {
   // ==========================================
   // SALA DE DRAFT & HISTORIAL
   // ==========================================
-  const [draftsHistory, setDraftsHistory] = useState<SavedDraft[]>(loadDraftHistory);
   const [ourSide, setOurSide] = useState<"BLUE" | "RED">("BLUE");
   const [rivalName, setRivalName] = useState<string>("Rival Scrim");
   const [matchResult, setMatchResult] = useState<"VICTORIA" | "DERROTA" | "PENDING">("PENDING");
@@ -651,7 +653,9 @@ export function useStaffState() {
     );
     if (currentSeqIdx !== -1 && currentSeqIdx < DRAFT_SEQUENCE.length - 1) {
       const next = DRAFT_SEQUENCE[currentSeqIdx + 1];
-      setActiveSlot({ side: next.side, type: next.type, index: next.index });
+      if (next) {
+        setActiveSlot({ side: next.side, type: next.type, index: next.index });
+      }
     }
   };
 
@@ -661,7 +665,9 @@ export function useStaffState() {
     );
     if (currentSeqIdx > 0) {
       const prev = DRAFT_SEQUENCE[currentSeqIdx - 1];
-      setActiveSlot({ side: prev.side, type: prev.type, index: prev.index });
+      if (prev) {
+        setActiveSlot({ side: prev.side, type: prev.type, index: prev.index });
+      }
     }
   };
 

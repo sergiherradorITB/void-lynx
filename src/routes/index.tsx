@@ -218,7 +218,7 @@ function Index() {
                           onClick={(e) => e.stopPropagation()}
                           className="text-sm font-medium tracking-widest text-zinc-200 hover:text-purple-300 transition-colors uppercase drop-shadow flex items-center gap-2 pointer-events-auto"
                         >
-                          <span className="h-3 w-3 shrink-0">{socialIcons.X}</span>
+                          <span className="h-3 w-3 shrink-0">{socialIcons["X"]}</span>
                           {p.social}
                         </a>
                       ) : (
@@ -272,7 +272,7 @@ function Index() {
                                   className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/40 text-xs font-medium text-zinc-200 hover:text-white transition-all shadow-sm group/soc"
                                 >
                                   <span className="h-3.5 w-3.5 text-zinc-400 group-hover/soc:text-purple-300 transition-colors">
-                                    {socialIcons.X}
+                                    {socialIcons["X"]}
                                   </span>
                                   <span>{p.social}</span>
                                 </a>

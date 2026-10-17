@@ -1,6 +1,6 @@
 import React from "react";
 import { CompositionData, PlayerChampionEntry, PlayerProfile, PLAYERS_LIST } from "@/data/staff-initial-data";
-import { Champion, getChampionAvatar, getChampionSplash } from "@/data/champions";
+import { Champion, findChampion, getChampionAvatar, getChampionSplash } from "@/data/champions";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
   Users,
@@ -14,6 +14,9 @@ import {
   LayoutGrid,
   ChevronUp,
   ChevronDown,
+  Sparkles,
+  Layers,
+  Shield,
 } from "lucide-react";
 
 interface PlayerPoolsTabProps {

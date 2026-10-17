@@ -94,7 +94,7 @@ export function EditCompositionModal({
               </label>
               <select
                 value={editingComp.prioridad}
-                onChange={(e) => setEditingComp({ ...editingComp, prioridad: e.target.value })}
+                onChange={(e) => setEditingComp({ ...editingComp, prioridad: e.target.value as any })}
                 className="w-full bg-zinc-900 border border-zinc-700 rounded-lg p-2.5 text-white font-mono text-xs focus:outline-none focus:border-purple-500"
               >
                 <option value="Alta Prioridad">Alta Prioridad</option>

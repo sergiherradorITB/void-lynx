@@ -1,5 +1,5 @@
 import React from "react";
-import { CompositionData, PlayerChampionEntry, PriorityLevel } from "@/data/staff-initial-data";
+import { CompositionData, PlayerChampionEntry, PlayerProfile, PLAYERS_LIST, PriorityLevel } from "@/data/staff-initial-data";
 import { Champion, CHAMPIONS_CATALOG, findChampion, getChampionAvatar } from "@/data/champions";
 import { RoleBadge, RoleIconOnly, RoleType } from "@/components/RoleBadge";
 import {
@@ -13,9 +13,14 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  ChevronUp,
   Table,
   CheckCircle2,
   Crown,
+  Layers,
+  Edit3,
+  X,
+  XCircle,
 } from "lucide-react";
 import { ActiveTab, CompDraftAnalysis, LaneConfig } from "../types";
 
@@ -36,6 +41,10 @@ interface TacticalAssistantTabProps {
   setQuickAddRole: (role: RoleType | null) => void;
   handleCycleRolePriority: (compId: string, role: RoleType) => void;
   handleCyclePickTag: (id: string) => void;
+  handleShiftTier: (id: string, direction: "up" | "down") => void;
+  setQuickAddSearch: (s: string) => void;
+  setQuickAddTier: (t: "S" | "A" | "B") => void;
+  setQuickAddTag: (tag: "FP" | "LP" | "Risky" | "Normal") => void;
   getRoleChampsForComp: (compName: string, role: RoleType, playerName?: string) => {
     player: any;
     S: PlayerChampionEntry[];
@@ -65,6 +74,10 @@ export function TacticalAssistantTab({
   setQuickAddRole,
   handleCycleRolePriority,
   handleCyclePickTag,
+  handleShiftTier,
+  setQuickAddSearch,
+  setQuickAddTier,
+  setQuickAddTag,
   getRoleChampsForComp,
   handleRemoveChampFromComp,
   verticalBoardRoles,
@@ -1136,7 +1149,7 @@ export function TacticalAssistantTab({
                     {compDraftAnalysis.safeFirstPicks.length > 0 ? (
                       compDraftAnalysis.safeFirstPicks.map((entry) => {
                         const champ = findChampion(entry.campeon_id);
-                        const player = PLAYERS_LIST.find((p) => p.name === entry.jugador);
+                        const player = PLAYERS_LIST.find((p: PlayerProfile) => p.name === entry.jugador);
                         return (
                           <div
                             key={entry.id}
@@ -1281,6 +1294,7 @@ export function TacticalAssistantTab({
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   {(["TOP", "JGL", "MID", "ADC", "SUPP"] as const).map((role) => {
                     const roleData = compDraftAnalysis.byRole[role];
+                    if (!roleData) return null;
                     return (
                       <div
                         key={role}

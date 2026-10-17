@@ -56,6 +56,10 @@ function StaffPage() {
             setQuickAddRole={staff.setQuickAddRole}
             handleCycleRolePriority={staff.handleCycleRolePriority}
             handleCyclePickTag={staff.handleCyclePickTag}
+            handleShiftTier={staff.handleShiftTier}
+            setQuickAddSearch={staff.setQuickAddSearch}
+            setQuickAddTier={staff.setQuickAddTier}
+            setQuickAddTag={staff.setQuickAddTag}
             getRoleChampsForComp={staff.getRoleChampsForComp}
             handleRemoveChampFromComp={staff.handleRemoveChampFromComp}
             verticalBoardRoles={VERTICAL_BOARD_ROLES}
