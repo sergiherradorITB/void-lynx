@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "void-lynx",
+  "compatibility_date": "2025-06-01",
+  "pages_build_output_dir": ".output/public",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "void-lynx-db",
+      "database_id": "a07eb96d-9fe8-49d4-b6d3-1d33bfa4259d"
+    }
+  ]
+}
