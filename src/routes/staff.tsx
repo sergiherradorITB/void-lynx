@@ -969,102 +969,104 @@ function StaffPage() {
                 })}
               </div>
 
-              {/* Ficha Resumen de la Composición Seleccionada con Counters Destacados */}
-              <div className="mt-6 pt-5 border-t border-purple-900/40 space-y-4">
-                {/* Fila 1: Concepto, Enfoque y Prioridad */}
-                <div className="flex flex-col lg:flex-row gap-4 items-start justify-between bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5">
-                  <div className="flex-1">
-                    <span className="text-xs font-mono font-bold text-purple-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
-                      <Crosshair className="h-4 w-4 text-purple-400" />
-                      CONCEPTO TÁCTICO & WIN CONDITION:
-                    </span>
-                    <p className="text-sm sm:text-base text-zinc-100 leading-relaxed font-sans font-medium">
-                      {currentComp.descripcion}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-3 text-xs font-mono shrink-0">
-                    <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">ENFOQUE:</span>
-                      <span className="text-white font-bold text-xs sm:text-sm">{currentComp.enfoque}</span>
+              {/* Ficha Resumen de la Composición Seleccionada con Counters Destacados (Solo fuera de Pizarra Vertical) */}
+              {drafterViewMode !== "vertical" && (
+                <div className="mt-6 pt-5 border-t border-purple-900/40 space-y-4">
+                  {/* Fila 1: Concepto, Enfoque y Prioridad */}
+                  <div className="flex flex-col lg:flex-row gap-4 items-start justify-between bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5">
+                    <div className="flex-1">
+                      <span className="text-xs font-mono font-bold text-purple-300 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                        <Crosshair className="h-4 w-4 text-purple-400" />
+                        CONCEPTO TÁCTICO & WIN CONDITION:
+                      </span>
+                      <p className="text-sm sm:text-base text-zinc-100 leading-relaxed font-sans font-medium">
+                        {currentComp.descripcion}
+                      </p>
                     </div>
-                    <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
-                      <span className="text-zinc-500 block text-[10px] uppercase font-bold">PRIORIDAD DRAFT:</span>
-                      <span className="text-amber-400 font-bold text-xs sm:text-sm">{currentComp.prioridad}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Fila 2: MÓDULO DESTACADO DE COUNTERS (AMENAZAS Y CAMPEONES A EVITAR) */}
-                <div className="rounded-2xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-950/40 via-zinc-950 to-zinc-950 p-5 sm:p-6 shadow-2xl">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-rose-900/40">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-400">
-                        <AlertTriangle className="h-5 w-5" />
+                    <div className="flex flex-wrap gap-3 text-xs font-mono shrink-0">
+                      <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
+                        <span className="text-zinc-500 block text-[10px] uppercase font-bold">ENFOQUE:</span>
+                        <span className="text-white font-bold text-xs sm:text-sm">{currentComp.enfoque}</span>
                       </div>
+                      <div className="bg-zinc-950 px-4 py-2.5 rounded-xl border border-zinc-800 shadow">
+                        <span className="text-zinc-500 block text-[10px] uppercase font-bold">PRIORIDAD DRAFT:</span>
+                        <span className="text-amber-400 font-bold text-xs sm:text-sm">{currentComp.prioridad}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fila 2: MÓDULO DESTACADO DE COUNTERS (AMENAZAS Y CAMPEONES A EVITAR) */}
+                  <div className="rounded-2xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-950/40 via-zinc-950 to-zinc-950 p-5 sm:p-6 shadow-2xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 pb-3 border-b border-rose-900/40">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                          <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <span className="text-sm sm:text-base font-display font-extrabold text-rose-200 uppercase tracking-wider block">
+                            COUNTERS DIRECTOS & AMENAZAS PARA "{currentComp.nombre}"
+                          </span>
+                          <span className="text-xs text-rose-300/70 font-mono">
+                            Peligros clave que desmontan la estrategia o castigan la composición
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Bans sugeridos rápidos */}
+                      {currentComp.bans_recomendados?.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono text-zinc-400 uppercase font-bold">Bans recomendados:</span>
+                          <div className="flex items-center gap-1.5">
+                            {currentComp.bans_recomendados.map((b) => (
+                              <span
+                                key={b}
+                                className="bg-rose-950 text-rose-200 border border-rose-500/60 font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow"
+                              >
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="bg-black/50 border border-rose-900/40 rounded-xl p-3.5 mb-4">
+                      <p className="text-xs sm:text-sm text-rose-100 font-medium leading-relaxed">
+                        {currentComp.counters_descripcion || "No se han definido counters directos para esta composición."}
+                      </p>
+                    </div>
+
+                    {/* Campeones Counter con retratos grandes y legibles */}
+                    {currentComp.counters_campeones.length > 0 && (
                       <div>
-                        <span className="text-sm sm:text-base font-display font-extrabold text-rose-200 uppercase tracking-wider block">
-                          COUNTERS DIRECTOS & AMENAZAS PARA "{currentComp.nombre}"
+                        <span className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-2.5">
+                          Campeones rivales peligrosos a denegar o banear ({currentComp.counters_campeones.length}):
                         </span>
-                        <span className="text-xs text-rose-300/70 font-mono">
-                          Peligros clave que desmontan la estrategia o castigan la composición
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bans sugeridos rápidos */}
-                    {currentComp.bans_recomendados?.length > 0 && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono text-zinc-400 uppercase font-bold">Bans recomendados:</span>
-                        <div className="flex items-center gap-1.5">
-                          {currentComp.bans_recomendados.map((b) => (
-                            <span
-                              key={b}
-                              className="bg-rose-950 text-rose-200 border border-rose-500/60 font-mono font-bold text-xs px-2.5 py-1 rounded-lg shadow"
+                        <div className="flex flex-wrap gap-3">
+                          {currentComp.counters_campeones.map((cId) => (
+                            <div
+                              key={cId}
+                              className="group flex items-center gap-3 bg-zinc-900/90 hover:bg-rose-950/60 border border-rose-500/40 hover:border-rose-400 rounded-xl p-2 pr-4 transition-all shadow-lg hover:scale-105"
                             >
-                              {b}
-                            </span>
+                              <img
+                                src={getChampionAvatar(cId)}
+                                alt={cId}
+                                className="h-12 w-12 rounded-lg object-cover border-2 border-rose-500/50 group-hover:border-rose-400 shadow shrink-0"
+                              />
+                              <div>
+                                <span className="font-bold text-sm text-white block leading-tight">{cId}</span>
+                                <span className="text-[10px] font-mono font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                  <AlertTriangle className="h-3 w-3 shrink-0" /> Counter
+                                </span>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
-
-                  <div className="bg-black/50 border border-rose-900/40 rounded-xl p-3.5 mb-4">
-                    <p className="text-xs sm:text-sm text-rose-100 font-medium leading-relaxed">
-                      {currentComp.counters_descripcion || "No se han definido counters directos para esta composición."}
-                    </p>
-                  </div>
-
-                  {/* Campeones Counter con retratos grandes y legibles */}
-                  {currentComp.counters_campeones.length > 0 && (
-                    <div>
-                      <span className="text-[11px] font-mono font-bold text-zinc-400 uppercase tracking-wider block mb-2.5">
-                        Campeones rivales peligrosos a denegar o banear ({currentComp.counters_campeones.length}):
-                      </span>
-                      <div className="flex flex-wrap gap-3">
-                        {currentComp.counters_campeones.map((cId) => (
-                          <div
-                            key={cId}
-                            className="group flex items-center gap-3 bg-zinc-900/90 hover:bg-rose-950/60 border border-rose-500/40 hover:border-rose-400 rounded-xl p-2 pr-4 transition-all shadow-lg hover:scale-105"
-                          >
-                            <img
-                              src={getChampionAvatar(cId)}
-                              alt={cId}
-                              className="h-12 w-12 rounded-lg object-cover border-2 border-rose-500/50 group-hover:border-rose-400 shadow shrink-0"
-                            />
-                            <div>
-                              <span className="font-bold text-sm text-white block leading-tight">{cId}</span>
-                              <span className="text-[10px] font-mono font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1 mt-0.5">
-                                <AlertTriangle className="h-3 w-3 shrink-0" /> Counter
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
 
             {/* BARRA DE HERRAMIENTAS Y VISTAS: PIZARRA VERTICAL vs MATRIZ EXCEL 8 COMPOS vs CARDS */}
@@ -1151,40 +1153,176 @@ function StaffPage() {
             {/* ========================================================= */}
             {drafterViewMode === "vertical" && (
               <div className="space-y-6">
-                {/* Cabecera Estratégica del Coach para la Compo Activa */}
-                <div className="bg-gradient-to-r from-purple-950/60 via-zinc-950 to-zinc-950 border-2 border-purple-500/50 rounded-2xl p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
+                {/* ========================================================= */}
+                {/* 1. INFORMACIÓN GENERAL ARRIBA (PANEL TÁCTICO DE LA COMPO) */}
+                {/* ========================================================= */}
+                <div className="bg-zinc-950 border-2 border-purple-900/40 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                  {/* Fila de Título y Fases */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
+                    <div className="flex items-center gap-2.5">
                       <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
-                        <Crosshair className="h-4 w-4" /> GUÍA DE FASES DE SELECCIÓN EN DIRECTO
+                        <Crosshair className="h-4 w-4" /> GUÍA ESTRATÉGICA DE COMPOSICIÓN & DRAFT
                       </span>
-                      <span className="bg-purple-900/60 border border-purple-400/40 text-purple-200 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                      <span className="bg-purple-900/60 border border-purple-400/40 text-purple-200 text-xs font-mono font-black px-2.5 py-0.5 rounded-full">
                         {currentComp.nombre}
                       </span>
                     </div>
-                    <p className="text-xs sm:text-sm text-zinc-300 font-medium">
-                      Revisa línea por línea (TOP a SUPP) qué rol debe abrir a ciegas en <strong>Fase 1 (B1/R1-R2)</strong> y qué líneas guardar para <strong>Fase 2 / Last Pick (R4-R5)</strong> para evitar counterpicks.
-                    </p>
+
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+                      <div className="bg-black/60 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                        <span className="text-zinc-500 text-[10px] uppercase font-bold">FASE 1 (B1 / R1-R2):</span>
+                        <span className="text-emerald-400 font-black">
+                          {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Alta").map(r => r.role).join(", ") || "Según bans"}
+                        </span>
+                      </div>
+                      <div className="bg-black/60 border border-zinc-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
+                        <span className="text-zinc-500 text-[10px] uppercase font-bold">GUARDAR R4-R5:</span>
+                        <span className="text-rose-400 font-black">
+                          {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Baja").map(r => r.role).join(", ") || "Counterpick"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5 text-xs font-mono shrink-0">
-                    <div className="bg-black/60 border border-zinc-800 px-3 py-2 rounded-xl">
-                      <span className="text-zinc-500 text-[10px] uppercase block font-bold">FASE 1 (B1/R1-R2):</span>
-                      <span className="text-emerald-400 font-bold">
-                        {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Alta").map(r => r.role).join(", ") || "Según bans"}
-                      </span>
+                  {/* Los 4 Grandes Bloques Informativos de la Matriz en Horizontal */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-3.5 items-stretch">
+                    {/* BLOQUE 1: COMPOSICIÓN TÁCTICA & PRIORIDAD DRAFT (lg:col-span-3) */}
+                    <div className="lg:col-span-3 flex flex-col justify-between p-4 rounded-xl bg-gradient-to-br from-purple-950/40 via-zinc-900/60 to-black/80 border border-purple-800/40 shadow-inner">
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-purple-400">
+                            COMPOSICIÓN TÁCTICA
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditComp(currentComp)}
+                            title="Editar detalles de esta composición"
+                            className="p-1 rounded text-zinc-400 hover:text-purple-300 hover:bg-purple-950/60 transition-colors"
+                          >
+                            <Edit3 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                        <h2 className="text-2xl font-display font-black text-white tracking-wide uppercase">
+                          {currentComp.nombre}
+                        </h2>
+                        <span className="inline-block mt-0.5 text-xs font-mono font-semibold text-zinc-400">
+                          {currentComp.enfoque || "Mid / Late Game"}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 pt-3 border-t border-zinc-800/80">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-500 block mb-1.5">
+                          PRIORIDAD DRAFT
+                        </span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rose-500/60 bg-rose-950/50 text-rose-300 font-bold text-xs shadow-md shadow-rose-950/40">
+                          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+                          <span>{currentComp.prioridad || "Alta Prioridad"}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="bg-black/60 border border-zinc-800 px-3 py-2 rounded-xl">
-                      <span className="text-zinc-500 text-[10px] uppercase block font-bold">GUARDAR A R4-R5:</span>
-                      <span className="text-rose-400 font-bold">
-                        {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Baja").map(r => r.role).join(", ") || "Counterpick"}
+
+                    {/* BLOQUE 2: CONCEPTO / OBJETIVO CLAVE (lg:col-span-3) */}
+                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-zinc-900/70 border border-zinc-800 shadow-inner">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-zinc-400 mb-2 flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-purple-400" /> CONCEPTO / OBJETIVO CLAVE
                       </span>
+                      <p className="text-xs text-zinc-300 font-normal leading-relaxed flex-1">
+                        {currentComp.descripcion || "Sin descripción táctica registrada."}
+                      </p>
+                      {currentComp.first_pick_safe && currentComp.first_pick_safe.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-zinc-800/80">
+                          <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase block mb-1">
+                            First Picks Seguros:
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {currentComp.first_pick_safe.map((c) => (
+                              <span key={c} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-300">
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* BLOQUE 3: COUNTERS DIRECTOS (lg:col-span-3) */}
+                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-rose-950/20 border border-rose-900/40 shadow-inner">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 mb-2 flex items-center gap-1.5">
+                        <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" /> COUNTERS DIRECTOS
+                      </span>
+                      <p className="text-xs text-zinc-300 font-normal leading-relaxed flex-1">
+                        {currentComp.counters_descripcion || "Amenazas de iniciación frontal directa o asedio split."}
+                      </p>
+                      {currentComp.bans_recomendados && currentComp.bans_recomendados.length > 0 && (
+                        <div className="mt-3 pt-2.5 border-t border-rose-900/40">
+                          <span className="text-[10px] font-mono font-bold text-rose-300 uppercase block mb-1">
+                            Bans Recomendados:
+                          </span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {currentComp.bans_recomendados.map((b) => (
+                              <span key={b} className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-950/90 border border-rose-600/50 text-rose-200">
+                                {b}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* BLOQUE 4: COUNTERS (CAMPEONES) CON RETRATOS ROJOS (lg:col-span-3) */}
+                    <div className="lg:col-span-3 flex flex-col p-4 rounded-xl bg-zinc-900/70 border border-rose-900/40 shadow-inner">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                          <Shield className="h-3.5 w-3.5 text-rose-400" /> COUNTERS (CAMPEONES)
+                        </span>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-950 border border-rose-500/40 text-rose-300">
+                          {(currentComp.counters_campeones || []).length}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 overflow-y-auto max-h-[140px] pr-1">
+                        {(currentComp.counters_campeones || []).length === 0 ? (
+                          <div className="text-xs text-zinc-500 italic py-3 text-center">
+                            No hay campeones counter asignados.
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-2">
+                            {currentComp.counters_campeones.map((cId) => (
+                              <div
+                                key={cId}
+                                className="group relative flex flex-col items-center bg-black/70 border border-rose-500/60 rounded-xl p-1.5 shadow-md hover:border-rose-400 transition-all"
+                                title={`Counter: ${cId}`}
+                              >
+                                <img
+                                  src={getChampionAvatar(cId)}
+                                  alt={cId}
+                                  className="h-10 w-10 rounded-lg object-cover border border-rose-500/50 group-hover:scale-105 transition-transform"
+                                />
+                                <span className="text-[10px] font-bold text-rose-200 mt-1 truncate max-w-[54px] text-center leading-tight">
+                                  {cId}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditComp(currentComp)}
+                        className="mt-2.5 w-full py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-500/30 hover:border-rose-400 text-rose-300 text-[10px] font-mono font-bold flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Plus className="h-3 w-3" /> Añadir / Modificar Counters
+                      </button>
                     </div>
                   </div>
                 </div>
 
-                {/* LAS 5 LÍNEAS TÁCTICAS EN VERTICAL (TOP, JGL, MID, ADC, SUPP) */}
-                <div className="space-y-5">
+                {/* ========================================================= */}
+                {/* 2. PICKS ABAJO: 5 COLUMNAS VERTICALES GRANDES             */}
+                {/* TOP - JNGL - MID - ADC - SUPP                             */}
+                {/* ========================================================= */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 xl:gap-4 items-stretch">
                   {VERTICAL_BOARD_ROLES.map((laneConfig) => {
                     const roleData = getRoleChampsForComp(currentComp.nombre, laneConfig.role, laneConfig.player);
                     const prio = currentComp.role_priorities?.[laneConfig.role] || "Media";
@@ -1204,525 +1342,365 @@ function StaffPage() {
                       return champ && champ.roles.includes(laneConfig.role);
                     });
 
-                    // Check blind pick safety
+                    // Has safe first pick?
                     const hasSafeFp = [...roleData.S, ...roleData.A].some((entry) => {
                       return entry.pick_tag === "FP" || (!entry.pick_tag && entry.is_first_pickable !== false);
                     });
 
+                    // Role display name: JNGL for JGL
+                    const displayRoleName = laneConfig.role === "JGL" ? "JNGL" : laneConfig.role;
+
                     return (
                       <div
                         key={laneConfig.role}
-                        className={`rounded-2xl border-2 ${laneConfig.borderAccent} bg-zinc-950 shadow-2xl transition-all overflow-hidden`}
+                        className={`rounded-2xl border-2 ${laneConfig.borderAccent} bg-zinc-950/95 shadow-2xl flex flex-col justify-between overflow-hidden transition-all hover:shadow-purple-950/20`}
                       >
-                        {/* CABECERA DE LA LÍNEA */}
-                        <div className={`p-4 sm:p-5 bg-gradient-to-r ${laneConfig.headerGradient} border-b border-zinc-800/80 flex flex-col lg:flex-row lg:items-center justify-between gap-4`}>
-                          <div className="flex items-center gap-3.5">
-                            <div className="p-2.5 rounded-xl bg-black/60 border border-zinc-700/60 shadow shrink-0">
-                              <RoleIconOnly role={laneConfig.role} size="md" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                <span className={`px-2.5 py-0.5 rounded-md text-xs font-mono font-black uppercase tracking-wider ${laneConfig.badgeBg}`}>
-                                  {laneConfig.role}
-                                </span>
-                                <span className="font-display font-black text-lg sm:text-xl text-white tracking-wide">
-                                  {laneConfig.player}
-                                </span>
-                                <span className="text-xs text-zinc-400 font-mono">
-                                  ({laneConfig.laneTitle})
+                        {/* CONTENIDO SUPERIOR Y TIERS */}
+                        <div className="flex-1 flex flex-col">
+                          {/* CABECERA DE LA COLUMNA DE ROL */}
+                          <div className={`p-3.5 bg-gradient-to-b ${laneConfig.headerGradient} border-b border-zinc-800/80`}>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 rounded-lg bg-black/60 border border-zinc-700/60 shadow shrink-0">
+                                  <RoleIconOnly role={laneConfig.role} size="sm" />
+                                </div>
+                                <span className={`px-2 py-0.5 rounded-md text-xs font-mono font-black uppercase tracking-wider ${laneConfig.badgeBg}`}>
+                                  {displayRoleName}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-zinc-400 mt-0.5">
-                                {laneConfig.tagline}
-                              </p>
+                              <span className="text-[10px] font-mono font-bold text-zinc-500 uppercase">
+                                Titular
+                              </span>
+                            </div>
+
+                            <div className="flex items-baseline justify-between gap-1">
+                              <h3 className="font-display font-black text-lg text-white tracking-wide truncate">
+                                {laneConfig.player}
+                              </h3>
+                              <span className="text-[10px] text-zinc-400 font-mono truncate">
+                                {laneConfig.laneTitle.split(" ")[0]}
+                              </span>
+                            </div>
+
+                            {/* BOTÓN PRIO DRAFT (IGUAL A LA MATRIZ: BAJA / MEDIA / ALTA) */}
+                            <div className="mt-3 pt-2.5 border-t border-zinc-800/60">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="text-[10px] font-mono font-bold text-zinc-400 uppercase">
+                                  PRIO DRAFT:
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCycleRolePriority(currentComp.id, laneConfig.role)}
+                                  title="Haz clic para alternar prioridad (Baja → Media → Alta)"
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-black uppercase tracking-wider border transition-all cursor-pointer shadow-sm ${
+                                    prio === "Alta"
+                                      ? "bg-rose-950/70 border-rose-500/80 text-rose-300 hover:bg-rose-900/80 shadow-rose-950/40"
+                                      : prio === "Media"
+                                      ? "bg-amber-950/70 border-amber-500/80 text-amber-300 hover:bg-amber-900/80 shadow-amber-950/40"
+                                      : "bg-emerald-950/70 border-emerald-500/80 text-emerald-300 hover:bg-emerald-900/80 shadow-emerald-950/40"
+                                  }`}
+                                >
+                                  {prio} ↻
+                                </button>
+                              </div>
+                              <span className="text-[9px] font-mono block text-right text-zinc-500">
+                                {prio === "Alta"
+                                  ? "⚡ Fase 1 (B1 / R1-R2)"
+                                  : prio === "Media"
+                                  ? "⚖ Flex (R2-R3)"
+                                  : "🛡 Guardar a R4-R5"}
+                              </span>
                             </div>
                           </div>
 
-                          {/* CONTROLES DE COACH: PRIORIDAD DE DRAFT, BLIND PICK STATUS & ACCIONES */}
-                          <div className="flex flex-wrap items-center gap-3">
-                            {/* Botón de Ciclo de Prioridad */}
-                            <button
-                              type="button"
-                              onClick={() => handleCycleRolePriority(currentComp.id, laneConfig.role)}
-                              title="Clic para cambiar prioridad de selección para esta posición"
-                              className={`px-3 py-1.5 rounded-xl border text-xs font-mono font-bold uppercase transition-all shadow-md flex items-center gap-2 ${
-                                prio === "Alta"
-                                  ? "bg-rose-950/90 text-rose-200 border-rose-500 hover:bg-rose-900"
-                                  : prio === "Media"
-                                  ? "bg-amber-950/90 text-amber-200 border-amber-500 hover:bg-amber-900"
-                                  : "bg-emerald-950/90 text-emerald-200 border-emerald-500 hover:bg-emerald-900"
-                              }`}
-                            >
-                              <span className="text-[10px] text-zinc-400">PRIORIDAD:</span>
-                              {prio === "Alta" && "🔴 ALTA (B1 / R1-R2)"}
-                              {prio === "Media" && "🟡 MEDIA (R2-R3)"}
-                              {prio === "Baja" && "🟢 BAJA / LAST (R4-R5)"}
-                            </button>
-
-                            {/* Diagnóstico Blind Pick */}
-                            {hasSafeFp ? (
-                              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-bold rounded-xl shadow">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                                <span>✓ First Pick Seguro</span>
-                              </span>
-                            ) : (
-                              <span className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs font-mono font-bold rounded-xl shadow">
-                                <AlertTriangle className="h-4 w-4 text-rose-400" />
-                                <span>⚠️ Riesgoso a Ciegas (R4-R5)</span>
-                              </span>
-                            )}
-
-                            {/* Botón Añadir Pick Rápido */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setQuickAddRole(laneConfig.role);
-                                setQuickAddSearch("");
-                                setQuickAddTier("S");
-                                setQuickAddTag("FP");
-                              }}
-                              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-md shadow-purple-900/40 transition-all hover:scale-105"
-                            >
-                              <Plus className="h-3.5 w-3.5" />
-                              <span>+ Añadir Pick</span>
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* CUERPO DE LA LÍNEA: TIER S, TIER A, TIER B */}
-                        <div className="p-4 sm:p-5 space-y-4">
-                          {/* TIERS GRID */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {/* TIERS DE PICKS (S, A, B) */}
+                          <div className="p-3 space-y-4 flex-1">
                             {/* TIER S */}
-                            <div className="rounded-xl border border-amber-500/40 bg-zinc-900/40 p-3.5 flex flex-col justify-between">
-                              <div>
-                                <div className="flex items-center justify-between pb-2 mb-3 border-b border-amber-500/30">
-                                  <div className="flex items-center gap-2">
-                                    <span className="bg-amber-400 text-black font-mono font-black text-xs px-2 py-0.5 rounded shadow">
-                                      TIER S
-                                    </span>
-                                    <span className="text-xs font-bold text-amber-200 uppercase tracking-wide">
-                                      Picks Clave (Núcleo)
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] font-mono text-zinc-400">
-                                    {roleData.S.length} picks
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
+                                    TIER S
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    ({roleData.S.length})
                                   </span>
                                 </div>
+                                <span className="text-[9px] font-mono text-amber-400/80 font-bold">
+                                  Core Pick
+                                </span>
+                              </div>
 
-                                <div className="space-y-2.5">
+                              {roleData.S.length === 0 ? (
+                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
+                                  Sin picks S
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-1.5">
                                   {roleData.S.map((entry) => {
-                                    const champ = findChampion(entry.campeon_id);
-                                    const isFp = entry.pick_tag === "FP" || (!entry.pick_tag && entry.is_first_pickable !== false);
-                                    const isLp = entry.pick_tag === "LP";
-                                    const isRisky = entry.pick_tag === "Risky";
-
-                                    // Flex detection
-                                    const isFlex = playerChampions.some(
-                                      (pc) =>
-                                        pc.campeon_id.toLowerCase() === entry.campeon_id.toLowerCase() &&
-                                        pc.jugador !== laneConfig.player &&
-                                        pc.tipos_comp.some((t) => t.toLowerCase() === currentComp.nombre.toLowerCase())
-                                    );
-
+                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
                                     return (
                                       <div
                                         key={entry.id}
-                                        className="flex items-center justify-between gap-3 bg-zinc-950/90 border border-zinc-800 hover:border-amber-500/60 rounded-xl p-2.5 transition-all shadow-md group"
+                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-amber-500/50 transition-all shadow-sm"
                                       >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <img
-                                            src={getChampionAvatar(entry.campeon_id)}
-                                            alt={entry.campeon_id}
-                                            className="h-12 w-12 rounded-xl object-cover border-2 border-amber-500/50 group-hover:border-amber-400 shadow-md shrink-0 group-hover:scale-105 transition-all"
-                                          />
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                              <span className="font-display font-black text-sm text-white truncate">
-                                                {champ ? champ.name : entry.campeon_id}
-                                              </span>
-                                              {isFlex && (
-                                                <span className="bg-cyan-950 text-cyan-300 border border-cyan-500/50 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded shadow">
-                                                  ⚡ FLEX
-                                                </span>
-                                              )}
-                                            </div>
+                                        {/* Tag Badge interactivo (FP / LP / Risky) */}
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCyclePickTag(entry.id)}
+                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
+                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
+                                            tag === "FP"
+                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
+                                              : tag === "LP"
+                                              ? "bg-purple-600 text-white hover:bg-purple-500"
+                                              : tag === "Risky"
+                                              ? "bg-amber-500 text-black hover:bg-amber-400"
+                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                          }`}
+                                        >
+                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
+                                        </button>
 
-                                            {/* Tag interactivo: Clic para alternar */}
-                                            <button
-                                              type="button"
-                                              onClick={() => handleCyclePickTag(entry.id)}
-                                              title="Clic para cambiar etiqueta táctica (FP -> LP -> Risky -> Normal)"
-                                              className={`mt-1 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase transition-all shadow ${
-                                                isFp
-                                                  ? "bg-emerald-600 text-white border border-emerald-400 hover:bg-emerald-500"
-                                                  : isLp
-                                                  ? "bg-rose-600 text-white border border-rose-400 hover:bg-rose-500"
-                                                  : isRisky
-                                                  ? "bg-amber-500 text-black border border-amber-300 hover:bg-amber-400"
-                                                  : "bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700"
-                                              }`}
-                                            >
-                                              {isFp && "★ FIRST PICK"}
-                                              {isLp && "LAST PICK"}
-                                              {isRisky && "⚠️ RISKY"}
-                                              {!isFp && !isLp && !isRisky && "ESTÁNDAR"}
-                                            </button>
-                                          </div>
-                                        </div>
+                                        <img
+                                          src={getChampionAvatar(entry.campeon_id)}
+                                          alt={entry.campeon_id}
+                                          className="h-11 w-11 rounded-lg object-cover border border-amber-500/40 group-hover:scale-105 transition-transform"
+                                        />
+                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
+                                          {entry.campeon_id}
+                                        </span>
 
-                                        {/* Controles: Cambiar de Tier & Quitar de la Compo */}
-                                        <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                                        {/* Micro-acciones: Bajar a Tier A o Eliminar */}
+                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
                                           <button
                                             type="button"
                                             onClick={() => handleShiftTier(entry.id, "down")}
                                             title="Bajar a Tier A"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                                           >
-                                            <ChevronDown className="h-3.5 w-3.5" />
+                                            <ChevronDown className="h-3 w-3" />
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta composición"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-rose-950 text-zinc-500 hover:text-rose-400 border border-zinc-800"
+                                            title="Quitar de esta compo"
+                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
                                           >
-                                            <X className="h-3.5 w-3.5" />
+                                            <X className="h-3 w-3" />
                                           </button>
                                         </div>
                                       </div>
                                     );
                                   })}
-
-                                  {roleData.S.length === 0 && (
-                                    <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
-                                      <p className="text-xs text-zinc-500 mb-2">Sin picks prioritarios Tier S</p>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setQuickAddRole(laneConfig.role);
-                                          setQuickAddTier("S");
-                                          setQuickAddTag("FP");
-                                          setQuickAddSearch("");
-                                        }}
-                                        className="text-[11px] text-amber-400 hover:text-amber-300 font-mono font-bold"
-                                      >
-                                        + Añadir Pick Tier S
-                                      </button>
-                                    </div>
-                                  )}
                                 </div>
-                              </div>
+                              )}
                             </div>
 
                             {/* TIER A */}
-                            <div className="rounded-xl border border-purple-500/40 bg-zinc-900/40 p-3.5 flex flex-col justify-between">
-                              <div>
-                                <div className="flex items-center justify-between pb-2 mb-3 border-b border-purple-500/30">
-                                  <div className="flex items-center gap-2">
-                                    <span className="bg-purple-600 text-white font-mono font-black text-xs px-2 py-0.5 rounded shadow">
-                                      TIER A
-                                    </span>
-                                    <span className="text-xs font-bold text-purple-200 uppercase tracking-wide">
-                                      Segundas Opciones & Flex
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] font-mono text-zinc-400">
-                                    {roleData.A.length} picks
+                            <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
+                                    TIER A
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    ({roleData.A.length})
                                   </span>
                                 </div>
+                                <span className="text-[9px] font-mono text-purple-400/80 font-bold">
+                                  Alternativa
+                                </span>
+                              </div>
 
-                                <div className="space-y-2.5">
+                              {roleData.A.length === 0 ? (
+                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
+                                  Sin picks A
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-1.5">
                                   {roleData.A.map((entry) => {
-                                    const champ = findChampion(entry.campeon_id);
-                                    const isFp = entry.pick_tag === "FP" || (!entry.pick_tag && entry.is_first_pickable !== false);
-                                    const isLp = entry.pick_tag === "LP";
-                                    const isRisky = entry.pick_tag === "Risky";
-
-                                    // Flex detection
-                                    const isFlex = playerChampions.some(
-                                      (pc) =>
-                                        pc.campeon_id.toLowerCase() === entry.campeon_id.toLowerCase() &&
-                                        pc.jugador !== laneConfig.player &&
-                                        pc.tipos_comp.some((t) => t.toLowerCase() === currentComp.nombre.toLowerCase())
-                                    );
-
+                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
                                     return (
                                       <div
                                         key={entry.id}
-                                        className="flex items-center justify-between gap-3 bg-zinc-950/90 border border-zinc-800 hover:border-purple-500/60 rounded-xl p-2.5 transition-all shadow-md group"
+                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-purple-500/50 transition-all shadow-sm"
                                       >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <img
-                                            src={getChampionAvatar(entry.campeon_id)}
-                                            alt={entry.campeon_id}
-                                            className="h-12 w-12 rounded-xl object-cover border-2 border-purple-500/50 group-hover:border-purple-400 shadow-md shrink-0 group-hover:scale-105 transition-all"
-                                          />
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                              <span className="font-display font-black text-sm text-white truncate">
-                                                {champ ? champ.name : entry.campeon_id}
-                                              </span>
-                                              {isFlex && (
-                                                <span className="bg-cyan-950 text-cyan-300 border border-cyan-500/50 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded shadow">
-                                                  ⚡ FLEX
-                                                </span>
-                                              )}
-                                            </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCyclePickTag(entry.id)}
+                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
+                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
+                                            tag === "FP"
+                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
+                                              : tag === "LP"
+                                              ? "bg-purple-600 text-white hover:bg-purple-500"
+                                              : tag === "Risky"
+                                              ? "bg-amber-500 text-black hover:bg-amber-400"
+                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                          }`}
+                                        >
+                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
+                                        </button>
 
-                                            {/* Tag interactivo */}
-                                            <button
-                                              type="button"
-                                              onClick={() => handleCyclePickTag(entry.id)}
-                                              title="Clic para cambiar etiqueta táctica"
-                                              className={`mt-1 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase transition-all shadow ${
-                                                isFp
-                                                  ? "bg-emerald-600 text-white border border-emerald-400 hover:bg-emerald-500"
-                                                  : isLp
-                                                  ? "bg-rose-600 text-white border border-rose-400 hover:bg-rose-500"
-                                                  : isRisky
-                                                  ? "bg-amber-500 text-black border border-amber-300 hover:bg-amber-400"
-                                                  : "bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700"
-                                              }`}
-                                            >
-                                              {isFp && "★ FIRST PICK"}
-                                              {isLp && "LAST PICK"}
-                                              {isRisky && "⚠️ RISKY"}
-                                              {!isFp && !isLp && !isRisky && "ESTÁNDAR"}
-                                            </button>
-                                          </div>
-                                        </div>
+                                        <img
+                                          src={getChampionAvatar(entry.campeon_id)}
+                                          alt={entry.campeon_id}
+                                          className="h-11 w-11 rounded-lg object-cover border border-purple-500/40 group-hover:scale-105 transition-transform"
+                                        />
+                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
+                                          {entry.campeon_id}
+                                        </span>
 
-                                        {/* Controles de Tier */}
-                                        <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
                                           <button
                                             type="button"
                                             onClick={() => handleShiftTier(entry.id, "up")}
                                             title="Subir a Tier S"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                                           >
-                                            <ChevronUp className="h-3.5 w-3.5" />
+                                            <ChevronUp className="h-3 w-3" />
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => handleShiftTier(entry.id, "down")}
                                             title="Bajar a Tier B"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                                           >
-                                            <ChevronDown className="h-3.5 w-3.5" />
+                                            <ChevronDown className="h-3 w-3" />
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta composición"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-rose-950 text-zinc-500 hover:text-rose-400 border border-zinc-800"
+                                            title="Quitar de esta compo"
+                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
                                           >
-                                            <X className="h-3.5 w-3.5" />
+                                            <X className="h-3 w-3" />
                                           </button>
                                         </div>
                                       </div>
                                     );
                                   })}
-
-                                  {roleData.A.length === 0 && (
-                                    <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
-                                      <p className="text-xs text-zinc-500 mb-2">Sin opciones Tier A</p>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setQuickAddRole(laneConfig.role);
-                                          setQuickAddTier("A");
-                                          setQuickAddTag("FP");
-                                          setQuickAddSearch("");
-                                        }}
-                                        className="text-[11px] text-purple-400 hover:text-purple-300 font-mono font-bold"
-                                      >
-                                        + Añadir Pick Tier A
-                                      </button>
-                                    </div>
-                                  )}
                                 </div>
-                              </div>
+                              )}
                             </div>
 
                             {/* TIER B */}
-                            <div className="rounded-xl border border-blue-500/40 bg-zinc-900/40 p-3.5 flex flex-col justify-between">
-                              <div>
-                                <div className="flex items-center justify-between pb-2 mb-3 border-b border-blue-500/30">
-                                  <div className="flex items-center gap-2">
-                                    <span className="bg-blue-600 text-white font-mono font-black text-xs px-2 py-0.5 rounded shadow">
-                                      TIER B
-                                    </span>
-                                    <span className="text-xs font-bold text-blue-200 uppercase tracking-wide">
-                                      Situacionales & Bolsillo
-                                    </span>
-                                  </div>
-                                  <span className="text-[11px] font-mono text-zinc-400">
-                                    {roleData.B.length} picks
+                            <div className="space-y-1.5 pt-2 border-t border-zinc-800/60">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-black px-2 py-0.5 rounded shadow-sm">
+                                    TIER B
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 font-mono">
+                                    ({roleData.B.length})
                                   </span>
                                 </div>
+                                <span className="text-[9px] font-mono text-sky-400/80 font-bold">
+                                  Situacional
+                                </span>
+                              </div>
 
-                                <div className="space-y-2.5">
+                              {roleData.B.length === 0 ? (
+                                <div className="text-[11px] text-zinc-600 italic py-2 text-center bg-zinc-900/30 rounded-lg border border-dashed border-zinc-800">
+                                  Sin picks B
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-1.5">
                                   {roleData.B.map((entry) => {
-                                    const champ = findChampion(entry.campeon_id);
-                                    const isFp = entry.pick_tag === "FP";
-                                    const isLp = entry.pick_tag === "LP" || (!entry.pick_tag && currentComp.no_first_pick_reasons?.some((r) => r.champ.toLowerCase() === entry.campeon_id.toLowerCase()));
-                                    const isRisky = entry.pick_tag === "Risky";
-
-                                    // Flex detection
-                                    const isFlex = playerChampions.some(
-                                      (pc) =>
-                                        pc.campeon_id.toLowerCase() === entry.campeon_id.toLowerCase() &&
-                                        pc.jugador !== laneConfig.player &&
-                                        pc.tipos_comp.some((t) => t.toLowerCase() === currentComp.nombre.toLowerCase())
-                                    );
-
+                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
                                     return (
                                       <div
                                         key={entry.id}
-                                        className="flex items-center justify-between gap-3 bg-zinc-950/90 border border-zinc-800 hover:border-blue-500/60 rounded-xl p-2.5 transition-all shadow-md group"
+                                        className="group relative flex flex-col items-center p-1.5 rounded-xl bg-zinc-900/80 hover:bg-zinc-800/90 border border-zinc-800 hover:border-sky-500/50 transition-all shadow-sm"
                                       >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                          <img
-                                            src={getChampionAvatar(entry.campeon_id)}
-                                            alt={entry.campeon_id}
-                                            className="h-12 w-12 rounded-xl object-cover border-2 border-blue-500/50 group-hover:border-blue-400 shadow-md shrink-0 group-hover:scale-105 transition-all"
-                                          />
-                                          <div className="min-w-0">
-                                            <div className="flex items-center gap-1.5 flex-wrap">
-                                              <span className="font-display font-black text-sm text-white truncate">
-                                                {champ ? champ.name : entry.campeon_id}
-                                              </span>
-                                              {isFlex && (
-                                                <span className="bg-cyan-950 text-cyan-300 border border-cyan-500/50 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded shadow">
-                                                  ⚡ FLEX
-                                                </span>
-                                              )}
-                                            </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCyclePickTag(entry.id)}
+                                          title="Clic para cambiar etiqueta (FP, LP, Risky, Normal)"
+                                          className={`absolute top-1 right-1 text-[8px] font-mono font-black px-1 py-0.2 rounded shadow cursor-pointer transition-all ${
+                                            tag === "FP"
+                                              ? "bg-emerald-500 text-black hover:bg-emerald-400"
+                                              : tag === "LP"
+                                              ? "bg-purple-600 text-white hover:bg-purple-500"
+                                              : tag === "Risky"
+                                              ? "bg-amber-500 text-black hover:bg-amber-400"
+                                              : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                                          }`}
+                                        >
+                                          {tag === "FP" ? "FP" : tag === "LP" ? "LP" : tag === "Risky" ? "⚠️" : "-"}
+                                        </button>
 
-                                            {/* Tag interactivo */}
-                                            <button
-                                              type="button"
-                                              onClick={() => handleCyclePickTag(entry.id)}
-                                              title="Clic para cambiar etiqueta táctica"
-                                              className={`mt-1 flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase transition-all shadow ${
-                                                isFp
-                                                  ? "bg-emerald-600 text-white border border-emerald-400 hover:bg-emerald-500"
-                                                  : isLp
-                                                  ? "bg-rose-600 text-white border border-rose-400 hover:bg-rose-500"
-                                                  : isRisky
-                                                  ? "bg-amber-500 text-black border border-amber-300 hover:bg-amber-400"
-                                                  : "bg-zinc-800 text-zinc-300 border border-zinc-700 hover:bg-zinc-700"
-                                              }`}
-                                            >
-                                              {isFp && "★ FIRST PICK"}
-                                              {isLp && "LAST PICK"}
-                                              {isRisky && "⚠️ RISKY"}
-                                              {!isFp && !isLp && !isRisky && "ESTÁNDAR"}
-                                            </button>
-                                          </div>
-                                        </div>
+                                        <img
+                                          src={getChampionAvatar(entry.campeon_id)}
+                                          alt={entry.campeon_id}
+                                          className="h-11 w-11 rounded-lg object-cover border border-sky-500/40 group-hover:scale-105 transition-transform"
+                                        />
+                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full text-center leading-tight">
+                                          {entry.campeon_id}
+                                        </span>
 
-                                        {/* Controles de Tier */}
-                                        <div className="flex items-center gap-1 shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+                                        <div className="absolute inset-0 bg-black/85 backdrop-blur-[1px] rounded-xl opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition-opacity">
                                           <button
                                             type="button"
                                             onClick={() => handleShiftTier(entry.id, "up")}
                                             title="Subir a Tier A"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800"
+                                            className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
                                           >
-                                            <ChevronUp className="h-3.5 w-3.5" />
+                                            <ChevronUp className="h-3 w-3" />
                                           </button>
                                           <button
                                             type="button"
                                             onClick={() => handleRemoveChampFromComp(entry.id, currentComp.nombre)}
-                                            title="Quitar de esta composición"
-                                            className="p-1 rounded bg-zinc-900 hover:bg-rose-950 text-zinc-500 hover:text-rose-400 border border-zinc-800"
+                                            title="Quitar de esta compo"
+                                            className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-500/50 text-rose-300"
                                           >
-                                            <X className="h-3.5 w-3.5" />
+                                            <X className="h-3 w-3" />
                                           </button>
                                         </div>
                                       </div>
                                     );
                                   })}
-
-                                  {roleData.B.length === 0 && (
-                                    <div className="text-center py-6 border border-dashed border-zinc-800 rounded-xl">
-                                      <p className="text-xs text-zinc-500 mb-2">Sin picks situacionales Tier B</p>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setQuickAddRole(laneConfig.role);
-                                          setQuickAddTier("B");
-                                          setQuickAddTag("Risky");
-                                          setQuickAddSearch("");
-                                        }}
-                                        className="text-[11px] text-blue-400 hover:text-blue-300 font-mono font-bold"
-                                      >
-                                        + Añadir Pick Tier B
-                                      </button>
-                                    </div>
-                                  )}
                                 </div>
-                              </div>
+                              )}
                             </div>
                           </div>
+                        </div>
 
-                          {/* INTEL TÁCTICO DEL COACH: ADVERTENCIAS & COUNTERS ESPECÍFICOS DE ESTA LÍNEA */}
+                        {/* PIE DE COLUMNA: BOTÓN DE AÑADIR PICK & INTEL DE LÍNEA */}
+                        <div className="p-3 pt-0 space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickAddRole(laneConfig.role);
+                              setQuickAddSearch("");
+                              setQuickAddTier("S");
+                              setQuickAddTag("FP");
+                            }}
+                            className="w-full py-2 px-2.5 rounded-xl border border-dashed border-zinc-700 hover:border-purple-400 bg-zinc-900/60 hover:bg-purple-950/40 text-zinc-300 hover:text-purple-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                          >
+                            <Plus className="h-3.5 w-3.5 text-purple-400" />
+                            <span>+ Añadir Pick ({displayRoleName})</span>
+                          </button>
+
                           {(roleWarnings.length > 0 || roleCounters.length > 0) && (
-                            <div className="pt-3 border-t border-zinc-800/80 space-y-2.5">
-                              {/* Warnings */}
-                              {roleWarnings.map((warn, wIdx) => {
-                                const champ = findChampion(warn.champ);
-                                return (
-                                  <div
-                                    key={wIdx}
-                                    className="bg-rose-950/40 border border-rose-500/40 rounded-xl p-3 flex items-start gap-3 shadow-md"
-                                  >
-                                    <img
-                                      src={getChampionAvatar(warn.champ)}
-                                      alt={warn.champ}
-                                      className="h-9 w-9 rounded-lg object-cover border border-rose-500/60 shrink-0 mt-0.5"
-                                    />
-                                    <div className="text-xs">
-                                      <span className="font-mono font-bold text-rose-300 uppercase tracking-wide block mb-0.5 flex items-center gap-1.5">
-                                        <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
-                                        ADVERTENCIA PARA {laneConfig.role} — {champ?.name || warn.champ}:
-                                      </span>
-                                      <p className="text-rose-100 font-medium leading-relaxed">
-                                        {warn.reason}
-                                      </p>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-
-                              {/* Counters específicos de la línea */}
+                            <div className="p-2 rounded-xl bg-rose-950/25 border border-rose-500/30 text-[10px] space-y-1">
+                              <span className="font-bold text-rose-400 flex items-center gap-1 uppercase font-mono">
+                                <AlertTriangle className="h-3 w-3" /> Intel de Línea
+                              </span>
+                              {roleWarnings.slice(0, 2).map((w, idx) => (
+                                <p key={idx} className="text-zinc-300 leading-tight">
+                                  <strong className="text-rose-300">{w.champ}:</strong> {w.reason}
+                                </p>
+                              ))}
                               {roleCounters.length > 0 && (
-                                <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                  <div className="flex items-center gap-2.5 flex-wrap">
-                                    <span className="text-[11px] font-mono font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1">
-                                      <AlertTriangle className="h-3.5 w-3.5" /> Counters rivales en {laneConfig.role}:
+                                <div className="flex items-center gap-1 pt-1 border-t border-rose-900/40 flex-wrap">
+                                  <span className="text-zinc-400 text-[9px]">Counters:</span>
+                                  {roleCounters.slice(0, 3).map((cId) => (
+                                    <span key={cId} className="text-[9px] font-bold text-rose-200 bg-black/60 px-1 py-0.2 rounded border border-rose-500/40">
+                                      {cId}
                                     </span>
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      {roleCounters.map((cId) => (
-                                        <div
-                                          key={cId}
-                                          className="flex items-center gap-1.5 bg-black/60 border border-rose-500/50 rounded-lg p-1 pr-2.5 shadow"
-                                        >
-                                          <img
-                                            src={getChampionAvatar(cId)}
-                                            alt={cId}
-                                            className="h-6 w-6 rounded object-cover border border-rose-500/40"
-                                          />
-                                          <span className="text-xs font-bold text-rose-200">{cId}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  <span className="text-[10px] text-zinc-500 font-mono">
-                                    Evitar pickear a ciegas si el rival tiene estos campeones abiertos
-                                  </span>
+                                  ))}
                                 </div>
                               )}
                             </div>
