@@ -182,8 +182,8 @@ export const roster: Player[] = [
   {
     role: "Support",
     nick: "Liber",
-    social: "@liberlol",
-    href: "https://x.com",
+    social: "@liber_lch",
+    href: "https://x.com/liber_lch",
     opgg: "https://op.gg/es/lol/summoners/euw/Liber",
     flag: "ES",
     desc: "Engage milimétrico y control total de la visión",
