@@ -11,43 +11,26 @@ import {
   getYouTubeThumbnail,
   type PlayerHighlight,
 } from "@/config/constants";
-import { RoleBadge, type RoleType } from "@/components/RoleBadge";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Void Lynx — Equipo de Esports de League of Legends" },
+      { title: "Void Lynx — Equipo de esports de League of Legends" },
       {
         name: "description",
         content:
-          "Void Lynx: Roster oficial y staff táctico del equipo competitivo de League of Legends. Dominancia en la Grieta del Invocador.",
+          "Void Lynx: roster y staff del equipo competitivo de League of Legends. Síguenos en nuestras redes.",
       },
-      { property: "og:title", content: "Void Lynx — League of Legends Esports" },
+      { property: "og:title", content: "Void Lynx — Esports LoL" },
       {
         property: "og:description",
-        content: "Roster titular y staff del equipo competitivo de League of Legends Void Lynx.",
+        content: "Roster y staff del equipo de League of Legends Void Lynx.",
       },
     ],
   }),
   component: Index,
 });
-
-function getRoleKey(roleStr: string): RoleType {
-  const upper = roleStr.toUpperCase();
-  if (upper.includes("JUNGLE") || upper === "JGL") return "JGL";
-  if (upper.includes("SUPPORT") || upper === "SUPP") return "SUPP";
-  if (upper.includes("MID")) return "MID";
-  if (upper.includes("TOP")) return "TOP";
-  return "ADC";
-}
-
-const PLAYER_NUMBERS: Record<string, string> = {
-  Kaserolo: "01",
-  Tamudor: "02",
-  Upss: "03",
-  Arnoop88: "04",
-  Liber: "05",
-};
 
 function Index() {
   const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
@@ -56,147 +39,51 @@ function Index() {
   >(null);
 
   return (
-    <div className="min-h-screen bg-[#07060b] text-zinc-100 font-sans selection:bg-purple-600 selection:text-white relative overflow-hidden tactical-grid">
-      {/* Ambient background lighting */}
-      <div className="pointer-events-none fixed -top-40 left-1/2 -translate-x-1/2 w-[1200px] h-[500px] bg-gradient-to-b from-purple-900/20 via-fuchsia-950/10 to-transparent blur-[140px] z-0" />
-      <div className="pointer-events-none fixed bottom-0 right-0 w-[600px] h-[600px] bg-purple-950/10 blur-[160px] z-0" />
-
-      {/* Top Tactical Header */}
-      <header className="fixed top-0 w-full z-50 bg-[#07060b]/80 backdrop-blur-2xl border-b border-purple-900/20 shadow-2xl">
-        <div className="mx-auto flex w-full max-w-[2560px] items-center justify-between px-6 py-4 lg:px-12">
-          <a href="#top" className="flex items-center gap-3.5 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-purple-600/30 blur-md rounded-full group-hover:scale-125 transition-transform duration-500" />
-              <img
-                src={newLogo}
-                alt="Void Lynx Logo"
-                className="h-9 w-9 object-contain brightness-[2.2] contrast-[1.2] relative z-10 transition-transform duration-300 group-hover:scale-105"
-              />
-            </div>
-            <div>
-              <span className="font-display font-black tracking-[0.25em] text-sm uppercase text-white block leading-none">
-                VOID LYNX
-              </span>
-              <span className="text-[9px] font-mono tracking-widest text-purple-400/80 uppercase block mt-0.5">
-                LOL ESPORTS DIVISION
-              </span>
-            </div>
+    <div className="min-h-screen bg-black text-zinc-200 font-sans selection:bg-purple-500 selection:text-white">
+      <header className="fixed top-0 w-full z-50 bg-black/50 backdrop-blur-xl border-b border-white/5">
+        <div className="mx-auto flex w-full max-w-[2560px] items-center justify-between px-6 py-6 lg:px-12">
+          <a href="#top" className="flex items-center gap-4 hover:opacity-70 transition-opacity">
+            <img
+              src={newLogo}
+              alt="Void Lynx Logo"
+              className="h-10 w-10 object-contain brightness-[2.5] contrast-[1.2]"
+            />
+            <span className="font-bold tracking-[0.3em] text-xs uppercase text-zinc-100">
+              VOID LYNX
+            </span>
           </a>
-
-          <nav className="flex items-center gap-6 sm:gap-8 text-xs font-semibold tracking-[0.2em] text-zinc-400 uppercase">
+          <nav className="flex items-center gap-6 sm:gap-10 text-xs font-medium tracking-[0.2em] text-zinc-500 uppercase">
             {nav.map((n) => (
-              <a
-                key={n.href}
-                href={n.href}
-                className="hover:text-purple-300 transition-colors hidden sm:inline relative py-1 after:absolute after:bottom-0 after:left-0 after:w-0 hover:after:w-full after:h-[2px] after:bg-purple-500 after:transition-all after:duration-300"
-              >
+              <a key={n.href} href={n.href} className="hover:text-white transition-colors hidden sm:inline">
                 {n.label}
               </a>
             ))}
-
             <Link
               to="/staff"
-              className="group relative inline-flex items-center gap-2.5 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-950/90 via-purple-900/80 to-purple-950/90 border border-purple-500/50 hover:border-purple-400 text-purple-200 hover:text-white transition-all shadow-[0_0_25px_rgba(168,85,247,0.3)] hover:shadow-[0_0_35px_rgba(168,85,247,0.5)] font-mono text-[11px] font-bold tracking-wider"
+              className="hover:text-purple-300 text-purple-400 transition-colors"
             >
-              <span className="h-2 w-2 rounded-full bg-purple-400 animate-pulse" />
-              <span className="font-display font-bold uppercase tracking-widest">STAFF DRAFTER</span>
-              <span className="text-purple-400 group-hover:translate-x-0.5 transition-transform">→</span>
+              Staff Drafter
             </Link>
           </nav>
         </div>
       </header>
 
-      <main id="top" className="relative z-10 mx-auto w-full max-w-[2560px] pt-28 pb-20 sm:pb-36">
-        {/* HERO SECTION: Esports Stage Atmosphere */}
-        <section className="relative flex flex-col items-center text-center mt-12 mb-36 px-6 overflow-hidden">
-          {/* Tactical Status Eyebrow */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-purple-950/60 border border-purple-500/30 backdrop-blur-md text-[11px] font-mono tracking-widest text-purple-300 uppercase mb-8 shadow-[0_0_20px_rgba(168,85,247,0.2)] animate-in fade-in slide-in-from-top-3 duration-700">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-zinc-400">CIRCUITO TORMENTA 2026</span>
-            <span className="text-zinc-600">•</span>
-            <span className="font-bold text-purple-300">COMPETITIVE ROSTER</span>
-          </div>
-
-          {/* Central Logo Aura */}
-          <div className="relative group cursor-pointer mb-6">
-            <div className="absolute inset-0 bg-purple-600/25 blur-[120px] rounded-full scale-150 group-hover:scale-175 opacity-60 group-hover:opacity-100 transition-all duration-1000" />
+      <main id="top" className="mx-auto w-full max-w-[2560px] pt-32 pb-16 sm:pb-32">
+        <section className="flex flex-col items-center text-center mt-24 mb-48 px-6">
+          <div className="relative group cursor-pointer mb-8">
+            <div className="absolute inset-0 bg-purple-600/20 blur-[100px] rounded-full scale-150 opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
             <img
               src={newLogo}
               alt="Void Lynx Logo"
-              className="w-44 sm:w-64 object-contain relative z-10 mix-blend-lighten contrast-[1.25] brightness-[2.2] transition-transform duration-700 group-hover:scale-105"
+              className="w-48 sm:w-80 object-contain relative z-10 mix-blend-lighten contrast-[1.2]"
             />
           </div>
 
-          {/* Main Esports Heading */}
-          <h1 className="text-6xl sm:text-8xl lg:text-[10rem] font-display font-black uppercase tracking-tight text-white drop-shadow-2xl mb-4 leading-none select-none">
+          <h1 className="text-7xl sm:text-9xl lg:text-[12rem] font-extrabold uppercase tracking-tighter text-white drop-shadow-2xl mb-16 leading-none">
             VOID LYNX
           </h1>
 
-          <p className="text-base sm:text-xl font-display font-semibold tracking-[0.2em] text-purple-300 uppercase max-w-2xl mb-8">
-            Silence before the leap.
-          </p>
-
-          <p className="text-sm sm:text-base text-zinc-400 max-w-xl mx-auto mb-10 leading-relaxed font-sans">
-            Equipo competitivo de League of Legends. Analítica táctica, draft predictivo y dominancia coordinada en la Grieta del Invocador.
-          </p>
-
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6 w-full max-w-3xl mb-12 px-4">
-            <div className="p-4 rounded-xl bg-zinc-950/70 border border-purple-900/30 backdrop-blur-md">
-              <span className="block font-display font-black text-2xl sm:text-3xl text-purple-400">
-                5
-              </span>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mt-1">
-                Titulares Activos
-              </span>
-            </div>
-            <div className="p-4 rounded-xl bg-zinc-950/70 border border-purple-900/30 backdrop-blur-md">
-              <span className="block font-display font-black text-2xl sm:text-3xl text-purple-400">
-                8
-              </span>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mt-1">
-                Compos Tácticas
-              </span>
-            </div>
-            <div className="p-4 rounded-xl bg-zinc-950/70 border border-purple-900/30 backdrop-blur-md">
-              <span className="block font-display font-black text-2xl sm:text-3xl text-purple-400">
-                172
-              </span>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mt-1">
-                Campeones en BBDD
-              </span>
-            </div>
-            <div className="p-4 rounded-xl bg-zinc-950/70 border border-purple-900/30 backdrop-blur-md">
-              <span className="block font-display font-black text-2xl sm:text-3xl text-purple-400">
-                D1
-              </span>
-              <span className="block font-mono text-[10px] uppercase tracking-wider text-zinc-500 mt-1">
-                Cloudflare SQL
-              </span>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-16">
-            <Link
-              to="/staff"
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 hover:from-purple-500 hover:to-indigo-600 text-white font-display font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_35px_rgba(168,85,247,0.4)] hover:shadow-[0_0_55px_rgba(168,85,247,0.7)] hover:scale-105 active:scale-95"
-            >
-              <span>⚡ Staff Tactical Drafter</span>
-              <span>→</span>
-            </Link>
-
-            <a
-              href="#roster"
-              className="inline-flex items-center gap-2 px-7 py-4 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 hover:border-purple-500/40 text-zinc-300 hover:text-white font-display font-bold text-xs uppercase tracking-widest transition-all backdrop-blur-md"
-            >
-              <span>Ver Roster Titular</span>
-              <span>↓</span>
-            </a>
-          </div>
-
-          {/* Social Icons */}
-          <div className="flex flex-wrap items-center justify-center gap-7 pt-4 border-t border-purple-900/20 max-w-md mx-auto">
+          <div className="flex flex-wrap items-center justify-center gap-8">
             {socials.map((s) => (
               <a
                 key={s.name}
@@ -205,9 +92,9 @@ function Index() {
                 title={s.name}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-zinc-500 hover:text-purple-300 transition-colors hover:scale-110"
+                className="text-zinc-600 hover:text-white transition-colors"
               >
-                <span className="h-5 w-5 block overflow-visible shrink-0">
+                <span className="h-6 w-6 block overflow-visible shrink-0">
                   {socialIcons[s.name]}
                 </span>
               </a>
@@ -215,30 +102,21 @@ function Index() {
           </div>
         </section>
 
-        {/* ROSTER SECTION */}
-        <section id="roster" className="mb-40 scroll-mt-28">
-          <div className="px-6 lg:px-12 mb-12 flex items-baseline justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
-              <h2 className="text-sm font-display font-black tracking-[0.35em] uppercase text-white">
-                Roster Titular 2026
-              </h2>
-            </div>
-            <div className="h-px bg-gradient-to-r from-purple-500/30 to-transparent flex-1 hidden sm:block" />
-            <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
-              5 Jugadores • Starting Five
-            </span>
+        <section id="roster" className="mb-48 scroll-mt-32">
+          <div className="px-6 lg:px-12 mb-16 flex items-baseline gap-4">
+            <h2 className="text-sm font-bold tracking-[0.4em] uppercase text-zinc-500">
+              Roster Activo
+            </h2>
+            <div className="h-px bg-white/10 flex-1" />
           </div>
 
-          <div className="flex flex-col border-y border-purple-900/20">
-            {roster.map((p, idx) => {
+          <div className="flex flex-col">
+            {roster.map((p) => {
               const isExpanded = expandedPlayer === p.nick;
-              const roleKey = getRoleKey(p.role);
-              const numberTag = PLAYER_NUMBERS[p.nick] || `0${idx + 1}`;
 
               return (
-                <div key={p.role} className="border-b border-purple-900/20 last:border-b-0 flex flex-col">
-                  {/* Main Player Row */}
+                <div key={p.role} className="border-b border-white/5 flex flex-col">
+                  {/* Main Player Row (Click to toggle expansion preview) */}
                   <div
                     role="button"
                     tabIndex={0}
@@ -246,140 +124,144 @@ function Index() {
                     onKeyDown={(e) =>
                       e.key === "Enter" && setExpandedPlayer(isExpanded ? null : p.nick)
                     }
-                    className={`group relative py-12 lg:py-16 px-6 lg:px-12 flex flex-col lg:flex-row lg:items-center justify-between cursor-pointer transition-all duration-500 overflow-hidden ${
-                      isExpanded
-                        ? "bg-purple-950/30 shadow-[inset_0_0_60px_rgba(168,85,247,0.15)]"
-                        : "hover:bg-purple-950/15"
+                    className={`group relative py-16 lg:py-24 px-6 lg:px-12 flex flex-col lg:flex-row lg:items-center justify-between cursor-pointer transition-colors duration-500 overflow-hidden ${
+                      isExpanded ? "bg-purple-950/20" : "hover:bg-white/[0.02]"
                     }`}
                   >
                     {/* Champion Background Artwork */}
-                    <div className="absolute inset-0 opacity-20 group-hover:opacity-50 transition-opacity duration-1000 pointer-events-none z-0 mix-blend-screen flex items-center justify-center">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#07060b] via-[#07060b]/80 to-transparent z-10" />
+                    <div className="absolute inset-0 opacity-20 group-hover:opacity-60 transition-opacity duration-1000 pointer-events-none z-0 mix-blend-screen flex items-center justify-center">
+                      <div className="absolute inset-0 bg-purple-950/80 group-hover:bg-purple-900/50 mix-blend-color transition-colors duration-1000 z-10" />
                       <img
                         src={p.champ}
                         alt=""
-                        className={`w-full h-full object-cover object-[center_25%] grayscale scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out ${
-                          p.imageClass || "contrast-115 brightness-95"
+                        className={`w-full h-full object-cover object-[center_20%] grayscale scale-105 group-hover:scale-100 transition-transform duration-[3s] ease-out ${
+                          p.imageClass || "contrast-110 brightness-100"
                         }`}
                       />
                     </div>
 
-                    {/* Left: Number, Role Badge, Flag, Nickname */}
-                    <div className="flex flex-wrap items-center gap-4 sm:gap-8 z-10 relative">
-                      <span className="font-mono text-xs font-bold tracking-widest text-purple-400/60 w-8">
-                        #{numberTag}
+                    {/* Left: Flag, Nickname, OP.GG & Expand Trigger */}
+                    <div className="flex flex-wrap items-baseline gap-6 lg:gap-10 z-10 relative">
+                      <span className="text-xs font-medium tracking-[0.3em] uppercase text-zinc-600 w-8">
+                        {p.flag}
                       </span>
-
-                      <RoleBadge role={roleKey} showLabel={false} size="md" />
-
-                      <div className="flex flex-wrap items-baseline gap-4 sm:gap-6">
-                        <h3 className="text-5xl sm:text-6xl lg:text-8xl font-display font-black uppercase tracking-tight text-white/90 group-hover:text-white transition-colors drop-shadow-xl">
+                      <div className="flex flex-wrap items-center gap-4 lg:gap-6">
+                        <h3 className="text-6xl sm:text-7xl lg:text-9xl font-extrabold uppercase tracking-tighter text-white/90 group-hover:text-white transition-colors drop-shadow-2xl">
                           {p.nick}
                         </h3>
 
-                        {/* Signature champions chips on card preview */}
-                        {p.signatureChampions && p.signatureChampions.length > 0 && (
-                          <div className="hidden sm:flex items-center gap-1.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                            {p.signatureChampions.slice(0, 3).map((c) => (
-                              <span
-                                key={c}
-                                className="px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-[10px] font-mono text-zinc-300"
-                              >
-                                {c}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* OP.GG link */}
                         {p.opgg && (
                           <a
                             href={p.opgg}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="pointer-events-auto opacity-70 group-hover:opacity-100 transition-all duration-300 flex items-center gap-1.5 bg-zinc-900/90 hover:bg-purple-900/70 border border-zinc-800 hover:border-purple-500/50 rounded-full px-3 py-1 text-[10px] font-mono font-bold tracking-wider uppercase text-zinc-300 hover:text-white shrink-0"
+                            className="pointer-events-auto opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100 transition-all duration-300 flex items-center gap-1.5 bg-white/10 hover:bg-purple-500/30 backdrop-blur-sm border border-white/10 hover:border-purple-400/40 rounded-full px-3 py-1.5 text-[10px] font-bold tracking-[0.15em] uppercase text-zinc-300 hover:text-white shrink-0"
                           >
                             <span>OP.GG</span>
-                            <span className="text-[10px]">↗</span>
+                            <svg
+                              className="w-2.5 h-2.5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              strokeWidth={2.5}
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
+                              />
+                            </svg>
                           </a>
                         )}
 
-                        {/* Expand Trigger Button */}
+                        {/* Interactive Preview Trigger Badge */}
                         <div
-                          className={`pointer-events-auto flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-mono font-bold tracking-wider uppercase transition-all duration-300 ${
+                          className={`pointer-events-auto flex items-center gap-2 rounded-full border px-3 py-1.5 text-[10px] font-bold tracking-[0.2em] uppercase transition-all duration-300 ${
                             isExpanded
-                              ? "border-purple-400 bg-purple-600/30 text-purple-200 shadow-[0_0_15px_rgba(168,85,247,0.4)]"
-                              : "border-zinc-800 bg-zinc-900/80 text-zinc-400 group-hover:border-purple-500/50 group-hover:text-purple-300"
+                              ? "border-purple-400/80 bg-purple-600/30 text-purple-200 shadow-[0_0_20px_rgba(168,85,247,0.4)]"
+                              : "border-white/10 bg-white/5 text-zinc-400 group-hover:border-purple-500/40 group-hover:bg-purple-950/50 group-hover:text-purple-300"
                           }`}
                         >
-                          <span>{isExpanded ? "Cerrar Dossier" : "Ver Perfil y Jugadas"}</span>
-                          <span className={`transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}>
-                            ▼
+                          <span className="hidden sm:inline">
+                            {isExpanded ? "Cerrar" : "Ver jugadas y perfil"}
                           </span>
+                          <span className="sm:hidden">{isExpanded ? "Cerrar" : "Jugadas"}</span>
+                          <svg
+                            className={`h-3 w-3 transition-transform duration-300 ${isExpanded ? "rotate-180" : ""}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M19.5 8.25l-7.5 7.5-7.5-7.5"
+                            />
+                          </svg>
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: Role, Handle & Quote */}
-                    <div className="flex flex-col items-start lg:items-end mt-6 lg:mt-0 opacity-80 group-hover:opacity-100 transition-opacity duration-500 z-10 relative">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-lg sm:text-xl font-display font-black tracking-widest uppercase text-purple-400">
-                          {p.role}
-                        </span>
-                        <span className="text-[11px] font-mono text-zinc-500 tracking-wider">
-                          [{p.flag}]
-                        </span>
-                      </div>
-
+                    {/* Right: Role, Social Handle & Quote */}
+                    <div className="flex flex-col items-start lg:items-end mt-6 lg:mt-0 opacity-70 group-hover:opacity-100 transition-opacity duration-500 z-10 relative">
+                      <span className="text-xl sm:text-2xl font-bold tracking-[0.2em] uppercase text-purple-400 mb-2 drop-shadow-md">
+                        {p.role}
+                      </span>
                       {p.href ? (
                         <a
                           href={p.href}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-xs font-mono tracking-wider text-zinc-400 hover:text-purple-300 transition-colors uppercase flex items-center gap-1.5 pointer-events-auto"
+                          className="text-sm font-medium tracking-widest text-zinc-200 hover:text-purple-300 transition-colors uppercase drop-shadow flex items-center gap-2 pointer-events-auto"
                         >
                           <span className="h-3 w-3 shrink-0">{socialIcons.X}</span>
                           {p.social}
                         </a>
                       ) : (
-                        <span className="text-xs font-mono tracking-wider text-zinc-500 uppercase flex items-center gap-1.5">
+                        <span className="text-sm font-medium tracking-widest text-zinc-500 uppercase drop-shadow flex items-center gap-2">
                           {p.social}
                         </span>
                       )}
-
-                      <span className="text-xs text-zinc-400 max-w-xs text-left lg:text-right mt-3 leading-relaxed italic">
+                      <span className="text-sm text-zinc-400 max-w-xs text-left lg:text-right mt-4 leading-relaxed drop-shadow italic">
                         "{p.desc}"
                       </span>
                     </div>
                   </div>
 
-                  {/* Expanded Player Dossier */}
+                  {/* Expanded Player Preview Showcase */}
                   {isExpanded && (
-                    <div className="relative z-20 border-t border-purple-500/30 bg-gradient-to-b from-[#100d1c] via-[#090812] to-[#07060b] px-6 lg:px-12 py-10 lg:py-14 overflow-hidden animate-in fade-in-50 slide-in-from-top-4 duration-500">
+                    <div className="relative z-20 border-t border-purple-500/30 bg-gradient-to-b from-purple-950/25 via-zinc-950 to-black px-6 lg:px-12 py-10 lg:py-14 overflow-hidden animate-in fade-in-50 slide-in-from-top-4 duration-500">
+                      {/* Ambient purple aura bloom */}
+                      <div className="pointer-events-none absolute -right-20 -bottom-20 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl" />
+
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 relative z-10">
-                        {/* Left Column: Player Profile (5 cols) */}
+                        {/* Left Column: Player Profile, Socials & Stats (5 cols) */}
                         <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
                           <div>
                             <div className="flex items-center gap-3 mb-3">
-                              <RoleBadge role={roleKey} showLabel size="sm" />
-                              <span className="text-xs font-mono text-zinc-400 uppercase tracking-widest">
-                                TITULAR // ROSTER 2026
+                              <span className="px-3 py-1 rounded-full text-[10px] font-bold tracking-[0.2em] uppercase bg-purple-950/60 border border-purple-500/30 text-purple-300 shadow-sm">
+                                {p.role}
+                              </span>
+                              <span className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+                                LoL Competitivo
                               </span>
                             </div>
 
-                            <h4 className="text-4xl sm:text-5xl font-display font-black uppercase text-white tracking-tight">
+                            <h4 className="text-4xl sm:text-5xl font-black uppercase text-white tracking-tight">
                               {p.nick}
                             </h4>
 
-                            <p className="mt-2 text-sm text-zinc-300 italic">"{p.desc}"</p>
+                            <p className="mt-2 text-sm text-zinc-400 italic">"{p.desc}"</p>
                           </div>
 
-                          {/* Socials & Profiles */}
+                          {/* Social Networks & Verified Profiles */}
                           <div>
-                            <p className="text-[10px] font-mono font-bold tracking-widest uppercase text-zinc-400 mb-2.5">
-                              Perfiles Verificados
+                            <p className="text-[11px] font-bold tracking-[0.25em] uppercase text-zinc-500 mb-3">
+                              Redes sociales y perfiles
                             </p>
                             <div className="flex flex-wrap gap-2.5">
                               {p.href && (
@@ -387,9 +269,11 @@ function Index() {
                                   href={p.href}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-zinc-900/90 hover:bg-purple-900/40 border border-zinc-800 hover:border-purple-500/50 text-xs font-mono text-zinc-200 hover:text-white transition-all shadow-sm"
+                                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/[0.04] hover:bg-purple-500/20 border border-white/10 hover:border-purple-500/40 text-xs font-medium text-zinc-200 hover:text-white transition-all shadow-sm group/soc"
                                 >
-                                  <span className="h-3.5 w-3.5 text-zinc-400">{socialIcons.X}</span>
+                                  <span className="h-3.5 w-3.5 text-zinc-400 group-hover/soc:text-purple-300 transition-colors">
+                                    {socialIcons.X}
+                                  </span>
                                   <span>{p.social}</span>
                                 </a>
                               )}
@@ -399,28 +283,40 @@ function Index() {
                                   href={p.opgg}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-950/60 hover:bg-purple-900/80 border border-purple-500/40 text-xs font-mono font-bold text-purple-200 hover:text-white transition-all shadow-[0_0_15px_rgba(168,85,247,0.2)]"
+                                  className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 border border-purple-500/30 hover:border-purple-400/60 text-xs font-bold text-purple-200 hover:text-white transition-all shadow-sm"
                                 >
-                                  <span>ABRIR OP.GG</span>
-                                  <span>↗</span>
+                                  <span>VER PERFIL EN OP.GG</span>
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={2.5}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25"
+                                    />
+                                  </svg>
                                 </a>
                               )}
                             </div>
                           </div>
 
-                          {/* Signature Champions */}
+                          {/* Signature Champion Pool */}
                           {p.signatureChampions && p.signatureChampions.length > 0 && (
                             <div className="pt-2">
-                              <p className="text-[10px] font-mono font-bold tracking-widest uppercase text-zinc-400 mb-2.5">
-                                Campeones Insignia
+                              <p className="text-[11px] font-bold tracking-[0.25em] uppercase text-zinc-500 mb-2.5">
+                                Campeones principales
                               </p>
                               <div className="flex flex-wrap gap-2">
                                 {p.signatureChampions.map((champ) => (
                                   <span
                                     key={champ}
-                                    className="px-3 py-1.5 rounded-lg bg-zinc-900/90 border border-purple-900/40 text-xs font-mono font-bold text-purple-200 tracking-wider shadow-sm"
+                                    className="px-3.5 py-1.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs font-bold text-zinc-200 tracking-wider hover:border-purple-500/40 hover:text-white transition-colors"
                                   >
-                                    ★ {champ}
+                                    {champ}
                                   </span>
                                 ))}
                               </div>
@@ -428,28 +324,29 @@ function Index() {
                           )}
                         </div>
 
-                        {/* Right Column: Highlights (7 cols) */}
+                        {/* Right Column: Highlights & Featured Plays (7 cols) */}
                         <div className="lg:col-span-7 flex flex-col justify-between">
                           <div>
                             <div className="flex items-center justify-between mb-4">
-                              <p className="text-xs font-mono font-bold tracking-widest uppercase text-purple-300">
-                                Clutches & Jugadas Destacadas
+                              <p className="text-xs font-bold tracking-[0.3em] uppercase text-zinc-400">
+                                Jugadas destacadas
                               </p>
-                              <span className="text-[11px] font-mono text-zinc-500 uppercase tracking-widest">
+                              <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-widest">
                                 Void Lynx LoL
                               </span>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              {p.highlights?.map((hl, hlIdx) => (
+                              {p.highlights?.map((hl, idx) => (
                                 <div
-                                  key={hlIdx}
+                                  key={idx}
                                   onClick={() =>
                                     setActiveHighlight({ player: p.nick, champ: p.champ, ...hl })
                                   }
-                                  className="group/clip relative flex flex-col justify-between rounded-xl border border-zinc-800 bg-zinc-950/90 p-3.5 transition-all duration-300 hover:border-purple-500/60 hover:bg-zinc-900/80 hover:-translate-y-0.5 cursor-pointer shadow-lg overflow-hidden"
+                                  className="group/clip relative flex flex-col justify-between rounded-xl border border-white/10 bg-zinc-950/80 p-4 transition-all duration-300 hover:border-purple-500/50 hover:bg-zinc-900/70 hover:-translate-y-0.5 cursor-pointer shadow-lg overflow-hidden"
                                 >
-                                  <div className="relative h-28 w-full rounded-lg overflow-hidden mb-2.5 bg-black">
+                                  {/* Thumbnail banner with video or champion visual */}
+                                  <div className="relative h-32 w-full rounded-lg overflow-hidden mb-3 bg-black">
                                     <img
                                       src={getYouTubeThumbnail(hl.youtubeUrl, p.champ)}
                                       alt={hl.title}
@@ -459,21 +356,26 @@ function Index() {
                                       className="w-full h-full object-cover grayscale group-hover/clip:grayscale-0 group-hover/clip:scale-105 transition-all duration-500"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 border border-white/10 text-[10px] font-mono font-bold text-zinc-300">
+                                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/80 border border-white/10 text-[10px] font-bold text-zinc-300">
                                       {hl.duration}
                                     </div>
                                     <div className="absolute inset-0 flex items-center justify-center">
-                                      <div className="w-9 h-9 rounded-full bg-purple-600/90 group-hover/clip:bg-purple-500 flex items-center justify-center text-white shadow-[0_0_15px_rgba(168,85,247,0.7)] group-hover/clip:scale-110 transition-all duration-300">
-                                        <span className="text-xs translate-x-0.5">▶</span>
+                                      <div className="w-10 h-10 rounded-full bg-purple-600/90 group-hover/clip:bg-purple-500 flex items-center justify-center text-white shadow-[0_0_15px_rgba(168,85,247,0.7)] group-hover/clip:scale-110 transition-all duration-300">
+                                        <svg
+                                          className="w-4 h-4 translate-x-0.5 fill-current"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <path d="M8 5v14l11-7z" />
+                                        </svg>
                                       </div>
                                     </div>
                                   </div>
 
                                   <div>
-                                    <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-purple-400 block truncate">
+                                    <span className="text-[10px] font-bold tracking-wider uppercase text-purple-400">
                                       {hl.tournament}
                                     </span>
-                                    <h5 className="text-xs font-bold text-white group-hover/clip:text-purple-200 transition-colors mt-0.5 line-clamp-2">
+                                    <h5 className="text-sm font-bold text-white group-hover/clip:text-purple-200 transition-colors mt-0.5">
                                       {hl.title}
                                     </h5>
                                   </div>
@@ -482,16 +384,16 @@ function Index() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between pt-6 mt-6 border-t border-purple-900/20">
-                            <p className="text-xs font-mono text-zinc-500">
-                              Haz clic en una jugada para ver la repetición.
+                          <div className="flex items-center justify-between pt-6 mt-6 border-t border-white/5">
+                            <p className="text-xs text-zinc-500">
+                              Haz clic en una jugada para ver el vídeo.
                             </p>
                             <button
                               type="button"
                               onClick={() => setExpandedPlayer(null)}
-                              className="text-xs font-mono font-bold tracking-wider uppercase text-zinc-400 hover:text-purple-300 transition-colors"
+                              className="text-xs font-bold tracking-wider uppercase text-zinc-400 hover:text-purple-300 transition-colors"
                             >
-                              Cerrar Dossier ✕
+                              Cerrar ✕
                             </button>
                           </div>
                         </div>
@@ -504,48 +406,53 @@ function Index() {
           </div>
         </section>
 
-        {/* STAFF SECTION */}
-        <section id="staff" className="relative scroll-mt-28 py-8 mb-36">
-          <div className="px-6 lg:px-12 mb-12 flex items-baseline justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="h-2 w-2 rounded-full bg-purple-500 shadow-[0_0_10px_rgba(168,85,247,0.8)]" />
-              <h2 className="text-sm font-display font-black tracking-[0.35em] uppercase text-white">
-                Cuerpo Técnico & Staff
-              </h2>
-            </div>
-            <div className="h-px bg-gradient-to-r from-purple-500/30 to-transparent flex-1 hidden sm:block" />
-            <span className="text-xs font-mono text-zinc-500 uppercase tracking-widest">
-              Dirección & Coaching
-            </span>
+        <section id="staff" className="relative scroll-mt-32 py-12">
+          <div className="px-6 lg:px-12 mb-16 flex items-baseline gap-4">
+            <h2 className="text-sm font-bold tracking-[0.4em] uppercase text-zinc-500">Staff</h2>
+            <div className="h-px bg-white/10 flex-1" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 px-6 lg:px-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 px-6 lg:px-12">
             {staff.map((s) => (
               <div
                 key={s.nick}
-                className="group relative flex flex-col justify-between min-h-[220px] p-7 rounded-2xl border border-purple-900/30 bg-gradient-to-br from-zinc-950 via-[#0d0b16] to-[#07060b] hover:border-purple-500/50 transition-all duration-500 overflow-hidden shadow-xl hover:shadow-[0_16px_50px_-12px_rgba(168,85,247,0.3)] hover:-translate-y-1"
+                className="group relative flex flex-col justify-between min-h-[220px] p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 via-zinc-950 to-black hover:border-purple-500/50 transition-all duration-500 overflow-hidden shadow-xl hover:shadow-[0_16px_50px_-12px_rgba(168,85,247,0.35)] hover:-translate-y-1"
               >
-                {/* Background Watermark Crest */}
-                <div className="pointer-events-none absolute -right-6 -bottom-6 w-44 h-44 select-none opacity-20 group-hover:opacity-40 transition-opacity duration-700">
+                {/* Big Void Lynx Logo on the side with gradient fade and ambient glow */}
+                <div className="pointer-events-none absolute -right-6 -bottom-6 sm:-right-8 sm:-bottom-8 w-44 h-44 sm:w-52 sm:h-52 select-none overflow-visible">
+                  {/* Purple aura bloom */}
+                  <div className="absolute inset-0 rounded-full bg-purple-600/15 blur-2xl transition-all duration-700 group-hover:bg-purple-500/30 group-hover:scale-125" />
+
+                  {/* Large Void Lynx Logo */}
                   <img
                     src={newLogo}
                     alt=""
-                    className="w-full h-full object-contain mix-blend-lighten contrast-[1.2] brightness-[2.2]"
+                    className="relative z-10 w-full h-full object-contain mix-blend-lighten contrast-[1.2] brightness-[2.2] opacity-25 transition-all duration-700 group-hover:opacity-45 group-hover:scale-105 drop-shadow-[0_0_25px_rgba(168,85,247,0.4)]"
+                    style={{
+                      maskImage: "linear-gradient(to top left, black 40%, transparent 95%)",
+                      WebkitMaskImage: "linear-gradient(to top left, black 40%, transparent 95%)",
+                    }}
                   />
                 </div>
 
+                {/* Subtle gradient sweep across the card */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-950 via-zinc-950/70 to-transparent" />
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-purple-500/0 to-transparent transition-opacity duration-500 group-hover:via-purple-500/50" />
+
+                {/* Card content */}
                 <div className="relative z-10">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-widest text-purple-400 group-hover:text-purple-300 transition-colors">
+                  <span className="text-xs font-bold uppercase tracking-[0.3em] text-purple-400/90 group-hover:text-purple-300 transition-colors drop-shadow">
                     {s.role}
                   </span>
 
-                  <h3 className="mt-2.5 font-display font-black uppercase tracking-tight text-3xl text-white group-hover:text-purple-100 transition-colors">
+                  <h3 className="mt-3 font-black uppercase tracking-tight text-3xl sm:text-4xl text-white group-hover:text-purple-100 transition-colors drop-shadow-md">
                     {s.nick}
                   </h3>
 
-                  <div className="h-px bg-white/10 w-10 my-4 group-hover:w-full group-hover:bg-purple-500/50 transition-all duration-500" />
+                  <div className="h-px bg-white/15 w-12 my-5 group-hover:w-full group-hover:bg-purple-500/60 transition-all duration-500" />
                 </div>
 
+                {/* Social links */}
                 {s.socials && s.socials.length > 0 ? (
                   <div className="relative z-10 flex flex-wrap items-center gap-2 pt-2">
                     {s.socials.map((soc) => (
@@ -555,16 +462,18 @@ function Index() {
                         target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`${s.nick} en ${soc.name}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 hover:bg-purple-950/80 border border-zinc-800 hover:border-purple-500/50 text-xs font-mono text-zinc-300 hover:text-white transition-all backdrop-blur-sm"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 hover:bg-purple-950/80 border border-white/10 hover:border-purple-500/50 text-xs font-medium tracking-wider text-zinc-300 hover:text-white transition-all backdrop-blur-sm group/soc shadow-sm"
                       >
-                        <span className="h-3.5 w-3.5 text-zinc-400">{socialIcons[soc.name]}</span>
+                        <span className="h-3.5 w-3.5 text-zinc-400 group-hover/soc:text-purple-300 transition-colors shrink-0">
+                          {socialIcons[soc.name]}
+                        </span>
                         <span>{soc.handle}</span>
                       </a>
                     ))}
                   </div>
                 ) : (
                   <div className="relative z-10 pt-2">
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-600">
+                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-zinc-600">
                       Void Lynx Staff
                     </span>
                   </div>
@@ -572,55 +481,20 @@ function Index() {
               </div>
             ))}
           </div>
-
-          {/* Tactical Drafter Hub Card */}
-          <div className="mt-14 px-6 lg:px-12">
-            <div className="relative rounded-2xl border border-purple-500/40 bg-gradient-to-r from-purple-950/50 via-zinc-950 to-[#07060b] p-8 sm:p-10 overflow-hidden shadow-[0_0_50px_rgba(168,85,247,0.25)]">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                <div className="max-w-3xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="bg-purple-950/90 border border-purple-500/50 text-purple-300 text-xs px-3 py-1 rounded-full font-mono uppercase tracking-wider font-bold">
-                      ⚡ War Room & Tactical Hub
-                    </span>
-                    <span className="text-zinc-500 text-xs font-mono uppercase">
-                      Cloudflare D1 & Pages
-                    </span>
-                  </div>
-                  <h3 className="text-2xl sm:text-4xl font-display font-black uppercase text-white tracking-tight leading-tight">
-                    Matriz Táctica de Composiciones & Draft Simulator
-                  </h3>
-                  <p className="mt-3 text-sm text-zinc-400 leading-relaxed font-sans">
-                    Matriz interactiva inspirada en el Excel del equipo: 5 columnas tácticas para los 5 roles titulares (Kaserolo, Tamudor, Upss, arnoop88 y Liber), control de First Picks seguros, advertencias de no abrir a ciegas, counters directos y simulador de fase de bans con persistencia serverless.
-                  </p>
-                </div>
-
-                <div className="shrink-0">
-                  <Link
-                    to="/staff"
-                    className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-display font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_30px_rgba(168,85,247,0.5)] hover:shadow-[0_0_50px_rgba(168,85,247,0.7)] hover:scale-105"
-                  >
-                    <span>Entrar a la Matriz Táctica</span>
-                    <span>→</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
       </main>
 
-      <footer className="border-t border-purple-900/20 py-16 bg-[#050408]">
-        <div className="mx-auto w-full max-w-[2560px] px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between text-xs font-mono tracking-widest text-zinc-500 uppercase">
-          <div className="flex items-center gap-3.5 mb-6 sm:mb-0">
+      <footer className="border-t border-white/5 py-16 mt-32 bg-black">
+        <div className="mx-auto w-full max-w-[2560px] px-6 lg:px-12 flex flex-col sm:flex-row items-center justify-between text-xs font-medium tracking-[0.2em] text-zinc-600 uppercase">
+          <div className="flex items-center gap-4 mb-6 sm:mb-0">
             <img
               src={newLogo}
               alt="Void Lynx"
-              className="h-6 w-6 opacity-90 brightness-[2.2] contrast-[1.2]"
+              className="h-6 w-6 opacity-90 brightness-[2.5] contrast-[1.2]"
             />
-            <p>Void Lynx Esports © {new Date().getFullYear()}</p>
+            <p>Void Lynx © {new Date().getFullYear()}</p>
           </div>
-          <p className="text-purple-400/80">Silence before the leap.</p>
+          <p>Silence before the leap.</p>
         </div>
       </footer>
 
@@ -633,20 +507,24 @@ function Index() {
           onClick={() => setActiveHighlight(null)}
         >
           <div
-            className="relative w-full max-w-4xl rounded-2xl border border-purple-500/40 bg-zinc-950 p-6 sm:p-8 shadow-[0_0_80px_rgba(168,85,247,0.4)] overflow-hidden"
+            className="relative w-full max-w-4xl rounded-2xl border border-purple-500/40 bg-zinc-950 p-6 sm:p-8 shadow-[0_0_80px_rgba(168,85,247,0.3)] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Ambient purple aura */}
+            <div className="absolute -top-24 -right-24 w-72 h-72 bg-purple-600/20 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Modal Header */}
             <div className="flex items-start justify-between gap-4 mb-6 relative z-10">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[10px] font-mono font-bold tracking-widest uppercase px-2.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/40 text-purple-300">
+                  <span className="text-[10px] font-bold tracking-[0.2em] uppercase px-2.5 py-0.5 rounded bg-purple-950/80 border border-purple-500/30 text-purple-300">
                     {activeHighlight.tournament}
                   </span>
-                  <span className="text-xs font-mono text-zinc-400 uppercase tracking-wider">
+                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                     {activeHighlight.player}
                   </span>
                 </div>
-                <h3 className="text-xl sm:text-2xl font-display font-black uppercase text-white tracking-tight">
+                <h3 className="text-xl sm:text-2xl font-extrabold uppercase text-white tracking-tight">
                   {activeHighlight.title}
                 </h3>
               </div>
@@ -654,14 +532,23 @@ function Index() {
               <button
                 type="button"
                 onClick={() => setActiveHighlight(null)}
-                className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors font-mono text-sm"
+                className="rounded-lg p-2 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
                 aria-label="Cerrar modal"
               >
-                ✕
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-zinc-800 shadow-2xl">
+            {/* Video Player Display Area (Real YouTube Iframe Embed) */}
+            <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-black border border-white/10 shadow-2xl">
               <iframe
                 src={`${getYouTubeEmbedUrl(activeHighlight.youtubeUrl)}?autoplay=1&rel=0&modestbranding=1`}
                 title={activeHighlight.title}
