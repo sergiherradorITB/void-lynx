@@ -63,6 +63,9 @@ import {
   Table,
   SlidersHorizontal,
   Check,
+  ExternalLink,
+  Globe,
+  Tv,
 } from "lucide-react";
 
 export const Route = createFileRoute("/staff")({
@@ -619,6 +622,102 @@ function StaffPage() {
   }>({ side: "blue", type: "pick", index: 0 });
 
   const [draftSearchInput, setDraftSearchInput] = useState<string>("");
+
+  // Integración de Sala Drafter.lol & Modos de Visualización
+  const [drafterRoomUrl, setDrafterRoomUrl] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("vl_drafter_room_url") || "";
+    }
+    return "";
+  });
+  const [drafterInputUrl, setDrafterInputUrl] = useState<string>("");
+  const [drafterArenaMode, setDrafterArenaMode] = useState<"builtin" | "drafter_lol" | "split">("builtin");
+
+  const handleSetDrafterRoomUrl = (url: string) => {
+    setDrafterRoomUrl(url);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("vl_drafter_room_url", url);
+    }
+  };
+
+  const cleanDrafterIframeUrl = useMemo(() => {
+    if (!drafterRoomUrl.trim()) return "";
+    let url = drafterRoomUrl.trim();
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = `https://drafter.lol/room/${url}`;
+    }
+    return url;
+  }, [drafterRoomUrl]);
+
+  // Secuencia oficial de turnos de draft competitivo (Riot Games / Drafter.lol)
+  const DRAFT_SEQUENCE = useMemo(() => [
+    { phase: "BANS_1", side: "blue" as const, type: "ban" as const, index: 0, label: "B1 Ban", ourTurn: ourSide === "BLUE" },
+    { phase: "BANS_1", side: "red" as const, type: "ban" as const, index: 0, label: "R1 Ban", ourTurn: ourSide === "RED" },
+    { phase: "BANS_1", side: "blue" as const, type: "ban" as const, index: 1, label: "B2 Ban", ourTurn: ourSide === "BLUE" },
+    { phase: "BANS_1", side: "red" as const, type: "ban" as const, index: 1, label: "R2 Ban", ourTurn: ourSide === "RED" },
+    { phase: "BANS_1", side: "blue" as const, type: "ban" as const, index: 2, label: "B3 Ban", ourTurn: ourSide === "BLUE" },
+    { phase: "BANS_1", side: "red" as const, type: "ban" as const, index: 2, label: "R3 Ban", ourTurn: ourSide === "RED" },
+    { phase: "PICKS_1", side: "blue" as const, type: "pick" as const, index: 0, label: "B1 Pick", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_1", side: "red" as const, type: "pick" as const, index: 0, label: "R1 Pick", ourTurn: ourSide === "RED" },
+    { phase: "PICKS_1", side: "red" as const, type: "pick" as const, index: 1, label: "R2 Pick", ourTurn: ourSide === "RED" },
+    { phase: "PICKS_1", side: "blue" as const, type: "pick" as const, index: 1, label: "B2 Pick", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_1", side: "blue" as const, type: "pick" as const, index: 2, label: "B3 Pick", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_1", side: "red" as const, type: "pick" as const, index: 2, label: "R3 Pick", ourTurn: ourSide === "RED" },
+    { phase: "BANS_2", side: "red" as const, type: "ban" as const, index: 3, label: "R4 Ban", ourTurn: ourSide === "RED" },
+    { phase: "BANS_2", side: "blue" as const, type: "ban" as const, index: 3, label: "B4 Ban", ourTurn: ourSide === "BLUE" },
+    { phase: "BANS_2", side: "red" as const, type: "ban" as const, index: 4, label: "R5 Ban", ourTurn: ourSide === "RED" },
+    { phase: "BANS_2", side: "blue" as const, type: "ban" as const, index: 4, label: "B5 Ban", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_2", side: "red" as const, type: "pick" as const, index: 3, label: "R4 Pick", ourTurn: ourSide === "RED" },
+    { phase: "PICKS_2", side: "blue" as const, type: "pick" as const, index: 3, label: "B4 Pick", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_2", side: "blue" as const, type: "pick" as const, index: 4, label: "B5 Pick", ourTurn: ourSide === "BLUE" },
+    { phase: "PICKS_2", side: "red" as const, type: "pick" as const, index: 4, label: "R5 Pick", ourTurn: ourSide === "RED" },
+  ], [ourSide]);
+
+  // Turno actual según los slots llenos
+  const currentTurnStep = useMemo(() => {
+    return DRAFT_SEQUENCE.find((step) => {
+      const val = step.side === "blue"
+        ? (step.type === "pick" ? bluePicks[step.index] : blueBans[step.index])
+        : (step.type === "pick" ? redPicks[step.index] : redBans[step.index]);
+      return !val;
+    }) || null;
+  }, [DRAFT_SEQUENCE, bluePicks, blueBans, redPicks, redBans]);
+
+  // Asignar rápidamente un campeón desde las 5 columnas del companion táctico a Void Lynx
+  const handleQuickLockFromCompanion = (champId: string) => {
+    if (allUsedChampions.has(champId.toLowerCase())) {
+      alert(`${champId} ya está en la mesa de draft o baneado.`);
+      return;
+    }
+    const targetSide = ourSide === "BLUE" ? "blue" : "red";
+    const currentPicks = targetSide === "blue" ? bluePicks : redPicks;
+    let targetIdx = -1;
+    if (activeSlot.side === targetSide && activeSlot.type === "pick" && !currentPicks[activeSlot.index]) {
+      targetIdx = activeSlot.index;
+    } else {
+      targetIdx = currentPicks.findIndex((p) => !p);
+    }
+
+    if (targetIdx === -1) {
+      alert("Los 5 picks de Void Lynx ya están asignados.");
+      return;
+    }
+
+    if (targetSide === "blue") {
+      const next = [...bluePicks];
+      next[targetIdx] = champId;
+      setBluePicks(next);
+    } else {
+      const next = [...redPicks];
+      next[targetIdx] = champId;
+      setRedPicks(next);
+    }
+
+    const nextEmpty = (targetSide === "blue" ? bluePicks : redPicks).findIndex((p, i) => i > targetIdx && !p);
+    if (nextEmpty !== -1) {
+      setActiveSlot({ side: targetSide, type: "pick", index: nextEmpty });
+    }
+  };
 
   // Todos los campeones ya usados en la mesa de draft
   const allUsedChampions = useMemo(() => {
@@ -3207,31 +3306,32 @@ function StaffPage() {
         )}
 
         {/* ========================================================================= */}
-        {/* TAB 4: SALA DE DRAFT EN VIVO (SIMULADOR DE PICKS & BANS ESTILO DRAFTER.LOL) */}
+        {/* TAB 4: SALA DE DRAFT EN VIVO (DRAFTER.LOL SYNC & ASISTENTE TÁCTICO) */}
         {/* ========================================================================= */}
         {activeTab === "live" && (
           <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header del Simulador con Controles de Partida */}
-            <div className="bg-zinc-950 border border-purple-900/40 p-5 rounded-2xl shadow-2xl relative overflow-hidden">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
+            {/* 1. BARRA SUPERIOR DE CONEXIÓN CON DRAFTER.LOL & CONTROLES DE PARTIDA */}
+            <div className="bg-zinc-950 border border-purple-900/40 p-5 rounded-2xl shadow-2xl relative overflow-hidden space-y-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-zinc-800/80">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="bg-purple-950 text-purple-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/30">
-                      Live Draft Engine
+                      Live Draft Engine 2.0
                     </span>
                     <span className="text-zinc-500 text-xs font-mono">
-                      Simulador táctico para scrims y torneos
+                      Mesa de Draft • Sincronización Drafter.lol • Companion del Coach
                     </span>
                   </div>
-                  <h2 className="font-display font-bold text-xl uppercase tracking-wider text-white flex items-center gap-2.5">
+                  <h2 className="font-display font-black text-xl uppercase tracking-wider text-white flex items-center gap-2.5">
                     <Swords className="h-6 w-6 text-purple-400" />
-                    <span>Mesa de Draft & Detector de Counters en Vivo</span>
+                    <span>Sala de Draft en Vivo & Asistente Táctico</span>
                   </h2>
                 </div>
 
-                {/* Acciones principales: Guardar, Historial, Reset */}
+                {/* Acciones principales: Historial, Guardar, Limpiar */}
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
+                    type="button"
                     onClick={() => setShowHistoryModal(true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-700 hover:border-purple-500 text-zinc-200 text-xs font-semibold transition-colors"
                   >
@@ -3240,26 +3340,118 @@ function StaffPage() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleSaveCurrentDraft}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all hover:scale-105"
                   >
                     <Save className="h-4 w-4" />
-                    <span>Guardar Draft</span>
+                    <span>Guardar Partida</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={handleResetDraftBoard}
-                    title="Limpiar todos los picks y bans"
+                    title="Limpiar todos los picks y bans de la mesa"
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-rose-400 text-xs transition-colors border border-zinc-800"
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
-                    <span>Limpiar</span>
+                    <span>Reiniciar Mesa</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* BARRA DE CONEXIÓN CON DRAFTER.LOL & SELECTOR DE VISTA */}
+              <div className="bg-gradient-to-r from-purple-950/40 via-zinc-900/80 to-zinc-950 p-4 rounded-xl border border-purple-800/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Globe className="h-4 w-4 text-purple-400" />
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-purple-300">
+                      Conexión en Vivo con Sala de Drafter.lol:
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Pega la URL de drafter.lol (ej: https://drafter.lol/room/xyz123) o el ID de sala..."
+                      value={drafterInputUrl || drafterRoomUrl}
+                      onChange={(e) => setDrafterInputUrl(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && drafterInputUrl.trim()) {
+                          handleSetDrafterRoomUrl(drafterInputUrl);
+                          setDrafterArenaMode("split");
+                        }
+                      }}
+                      className="flex-1 bg-black/70 border border-zinc-700 focus:border-purple-500 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-500 font-mono outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (drafterInputUrl.trim()) {
+                          handleSetDrafterRoomUrl(drafterInputUrl);
+                          setDrafterArenaMode("split");
+                        }
+                      }}
+                      className="px-3.5 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold font-mono transition-colors shadow shrink-0"
+                    >
+                      Conectar
+                    </button>
+                    {cleanDrafterIframeUrl && (
+                      <a
+                        href={cleanDrafterIframeUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir sala drafter.lol en nueva pestaña"
+                        className="p-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white transition-colors shrink-0"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                {/* Switcher de Modos de Pantalla */}
+                <div className="flex items-center gap-1.5 bg-black/60 border border-zinc-800 p-1.5 rounded-xl shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setDrafterArenaMode("builtin")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                      drafterArenaMode === "builtin"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Tv className="h-3.5 w-3.5" />
+                    <span>Mesa Nativa</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrafterArenaMode("split")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                      drafterArenaMode === "split"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    <span>Híbrido (Drafter + Companion)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrafterArenaMode("drafter_lol")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all flex items-center gap-1.5 ${
+                      drafterArenaMode === "drafter_lol"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    <span>Solo Drafter.lol</span>
                   </button>
                 </div>
               </div>
 
               {/* Barra de Configuración de la Scrim / Partido */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-zinc-800/80">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2">
                 {/* Rival */}
                 <div>
                   <label className="block text-[10px] font-mono text-zinc-400 uppercase mb-1">
@@ -3290,7 +3482,7 @@ function StaffPage() {
                       }`}
                     >
                       <span className="h-2 w-2 rounded-full bg-blue-400" />
-                      <span>AZUL (First Pick)</span>
+                      <span>AZUL (B1 First Pick)</span>
                     </button>
                     <button
                       type="button"
@@ -3302,12 +3494,12 @@ function StaffPage() {
                       }`}
                     >
                       <span className="h-2 w-2 rounded-full bg-rose-400" />
-                      <span>ROJO (Counter)</span>
+                      <span>ROJO (R5 Last Pick)</span>
                     </button>
                   </div>
                 </div>
 
-                {/* Composición que queremos ejecutar */}
+                {/* Composición Objetivo que queremos ejecutar */}
                 <div>
                   <label className="block text-[10px] font-mono text-zinc-400 uppercase mb-1">
                     Composición Objetivo:
@@ -3349,411 +3541,736 @@ function StaffPage() {
               </div>
             </div>
 
-            {/* ALERTA EN VIVO: Counters detectados en el equipo rival */}
-            {enemyCountersDetected.length > 0 && (
-              <div className="bg-gradient-to-r from-rose-950/90 via-red-950/80 to-zinc-950 border-2 border-rose-500 rounded-xl p-4 shadow-2xl animate-pulse">
-                <div className="flex items-center gap-3.5">
-                  <div className="p-2 bg-rose-600/20 border border-rose-500 rounded-lg shrink-0">
-                    <AlertTriangle className="h-6 w-6 text-rose-400 animate-bounce" />
+            {/* 2. SI ESTÁ ACTIVO MODO DRAFTER.LOL: IFRAME EN VIVO */}
+            {(drafterArenaMode === "drafter_lol" || drafterArenaMode === "split") && cleanDrafterIframeUrl && (
+              <div className="rounded-2xl border-2 border-purple-500/50 bg-black shadow-2xl overflow-hidden">
+                <div className="bg-zinc-900/90 px-4 py-2 border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
+                  <span className="text-purple-300 flex items-center gap-2">
+                    <Globe className="h-3.5 w-3.5 text-purple-400" />
+                    <strong>SALA DRAFTER.LOL EN DIRECTO:</strong> {cleanDrafterIframeUrl}
+                  </span>
+                  <a
+                    href={cleanDrafterIframeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-zinc-400 hover:text-white flex items-center gap-1"
+                  >
+                    <span>Abrir Pantalla Completa</span>
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+                <iframe
+                  src={cleanDrafterIframeUrl}
+                  title="Drafter.lol Live Room"
+                  className="w-full h-[620px] bg-black border-none"
+                  allow="clipboard-write"
+                />
+              </div>
+            )}
+
+            {/* 3. MESA DE DRAFT INTEGRADA (CUANDO ESTÁ EN MODO BUILT-IN O SPLIT) */}
+            {(drafterArenaMode === "builtin" || (drafterArenaMode === "split" && !cleanDrafterIframeUrl)) && (
+              <div className="space-y-4">
+                {/* ALERTA EN VIVO: Counters detectados en el equipo rival */}
+                {enemyCountersDetected.length > 0 && (
+                  <div className="bg-gradient-to-r from-rose-950/90 via-red-950/80 to-zinc-950 border-2 border-rose-500 rounded-xl p-4 shadow-2xl animate-pulse">
+                    <div className="flex items-center gap-3.5">
+                      <div className="p-2 bg-rose-600/20 border border-rose-500 rounded-lg shrink-0">
+                        <AlertTriangle className="h-6 w-6 text-rose-400 animate-bounce" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-display font-bold text-sm uppercase tracking-wide text-rose-200">
+                            ¡ALERTA TÁCTICA! El rival ha drafteado counters de "{currentComp.nombre}"
+                          </h4>
+                          <span className="bg-rose-600 text-[10px] text-white font-mono font-bold px-2 py-0.2 rounded-full">
+                            {enemyCountersDetected.length} DETECTADOS
+                          </span>
+                        </div>
+                        <p className="text-xs text-rose-200/80 mt-0.5 leading-relaxed">
+                          Peligro para tu composición: {currentComp.counters_descripcion}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2.5">
+                          {enemyCountersDetected.map((cId) => (
+                            <span
+                              key={cId}
+                              className="bg-black/80 border border-rose-400 text-rose-200 text-xs px-2.5 py-1 rounded-md flex items-center gap-2 font-bold shadow"
+                            >
+                              <img
+                                src={getChampionAvatar(cId)}
+                                alt={cId}
+                                className="h-5 w-5 rounded object-cover"
+                              />
+                              <span>{cId}</span>
+                              <span className="text-[10px] text-rose-400 font-mono">COUNTER DIRECTO</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-display font-bold text-sm uppercase tracking-wide text-rose-200">
-                        ¡ALERTA TÁCTICA! El rival ha drafteado counters de "{currentComp.nombre}"
-                      </h4>
-                      <span className="bg-rose-600 text-[10px] text-white font-mono font-bold px-2 py-0.2 rounded-full">
-                        {enemyCountersDetected.length} DETECTADOS
+                )}
+
+                {/* MESA DE DRAFT: LADO AZUL vs LADO ROJO (ESTILO DRAFTER.LOL / RIOT ESPORTS) */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                  {/* ===================== LADO AZUL (lg:col-span-5) ===================== */}
+                  <div
+                    className={`lg:col-span-5 bg-zinc-950 rounded-2xl p-4 sm:p-5 border-2 shadow-2xl transition-all ${
+                      ourSide === "BLUE"
+                        ? "border-blue-500/70 shadow-blue-950/40 ring-1 ring-blue-500/30"
+                        : "border-zinc-800"
+                    }`}
+                  >
+                    {/* Cabecera Lado Azul */}
+                    <div className="flex items-center justify-between border-b border-blue-900/40 pb-3 mb-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_12px_#3b82f6] animate-pulse" />
+                        <span className="font-display font-extrabold text-base tracking-wider uppercase text-blue-400">
+                          LADO AZUL // {ourSide === "BLUE" ? "VOID LYNX" : rivalName}
+                        </span>
+                        {ourSide === "BLUE" && (
+                          <span className="bg-blue-950 border border-blue-400/50 text-blue-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                            NOSOTROS
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-mono text-zinc-400 font-bold">
+                        {bluePicks.filter(Boolean).length}/5 Picks
                       </span>
                     </div>
-                    <p className="text-xs text-rose-200/80 mt-0.5 leading-relaxed">
-                      Peligro para tu composición: {currentComp.counters_descripcion}
-                    </p>
-                    <div className="flex flex-wrap gap-2 mt-2.5">
-                      {enemyCountersDetected.map((cId) => (
-                        <span
-                          key={cId}
-                          className="bg-black/80 border border-rose-400 text-rose-200 text-xs px-2.5 py-1 rounded-md flex items-center gap-2 font-bold shadow"
+
+                    {/* BANS LADO AZUL (5 Slots) */}
+                    <div className="mb-4">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1.5 font-bold">
+                        Bans Lado Azul (1-5):
+                      </span>
+                      <div className="grid grid-cols-5 gap-2">
+                        {blueBans.map((ban, idx) => {
+                          const isActive =
+                            activeSlot.side === "blue" &&
+                            activeSlot.type === "ban" &&
+                            activeSlot.index === idx;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setActiveSlot({ side: "blue", type: "ban", index: idx })}
+                              className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
+                                isActive
+                                  ? "border-blue-400 ring-2 ring-blue-400 bg-blue-950/60 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+                                  : ban
+                                  ? "border-rose-900/60 bg-zinc-900"
+                                  : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/40"
+                              }`}
+                            >
+                              {ban ? (
+                                <>
+                                  <img
+                                    src={getChampionAvatar(ban)}
+                                    alt={ban}
+                                    className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
+                                  />
+                                  <div className="absolute inset-0 bg-rose-950/40 flex items-center justify-center">
+                                    <span className="text-rose-400 font-bold text-xs">✕</span>
+                                  </div>
+                                  <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[8px] text-zinc-300 font-mono truncate text-center px-0.5">
+                                    {ban}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[10px] font-mono text-zinc-600 font-bold">
+                                  B{idx + 1}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* PICKS LADO AZUL (5 Slots B1 - B5) */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block font-bold">
+                        Picks Lado Azul (B1 - B5):
+                      </span>
+                      {bluePicks.map((pick, idx) => {
+                        const isActive =
+                          activeSlot.side === "blue" &&
+                          activeSlot.type === "pick" &&
+                          activeSlot.index === idx;
+                        const champ = findChampion(pick);
+                        const isCounter =
+                          ourSide === "RED" &&
+                          pick &&
+                          currentComp.counters_campeones.some(
+                            (c) => c.toLowerCase() === pick.toLowerCase()
+                          );
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setActiveSlot({ side: "blue", type: "pick", index: idx })}
+                            className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              isActive
+                                ? "border-blue-400 bg-blue-950/50 ring-2 ring-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] -translate-y-0.5"
+                                : isCounter
+                                ? "border-rose-500 bg-rose-950/20"
+                                : pick
+                                ? "border-zinc-800 bg-zinc-900/80 hover:border-zinc-700"
+                                : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-xs font-mono font-black text-blue-400 w-7 shrink-0">
+                                B{idx + 1}
+                              </span>
+                              {pick ? (
+                                <>
+                                  <img
+                                    src={getChampionAvatar(pick)}
+                                    alt={pick}
+                                    className="h-10 w-10 rounded-lg border border-blue-500/50 object-cover shrink-0 shadow"
+                                  />
+                                  <div className="min-w-0 truncate">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-sm text-white truncate">
+                                        {champ ? champ.name : pick}
+                                      </span>
+                                      {isCounter && (
+                                        <span className="bg-rose-600 text-white text-[9px] font-bold px-1.5 rounded">
+                                          COUNTER
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-zinc-400 font-mono block">
+                                      {champ?.category || "Champion"}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-xs text-zinc-500 font-mono italic">
+                                  {isActive ? "👉 Seleccionando campeón..." : "Click para asignar pick B" + (idx + 1)}
+                                </span>
+                              )}
+                            </div>
+
+                            {pick && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearSlot("blue", "pick", idx);
+                                }}
+                                className="text-zinc-500 hover:text-rose-400 p-1.5 rounded hover:bg-rose-950/30 transition-colors text-xs"
+                                title="Quitar campeón"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* ===================== CENTRO: TRACKER DE TURNOS (lg:col-span-2) ===================== */}
+                  <div className="lg:col-span-2 flex flex-col items-center justify-center p-3 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 self-center">
+                    <span className="text-[10px] font-mono uppercase font-black tracking-wider text-purple-400">
+                      ESTADO DEL TURNO
+                    </span>
+                    {currentTurnStep ? (
+                      <div className="w-full text-center space-y-2">
+                        <div className={`p-3 rounded-xl border-2 shadow-lg ${
+                          currentTurnStep.side === "blue"
+                            ? "bg-blue-950/70 border-blue-500 text-blue-200"
+                            : "bg-rose-950/70 border-rose-500 text-rose-200"
+                        }`}>
+                          <span className="text-[9px] font-mono block uppercase font-bold text-zinc-400">
+                            {currentTurnStep.ourTurn ? "★ TU TURNO (VOID LYNX)" : "TURNO RIVAL"}
+                          </span>
+                          <span className="font-display font-black text-sm block">
+                            {currentTurnStep.label}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveSlot({
+                              side: currentTurnStep.side,
+                              type: currentTurnStep.type,
+                              index: currentTurnStep.index,
+                            });
+                          }}
+                          className="w-full py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-mono text-[11px] font-bold transition-all shadow"
                         >
-                          <img
-                            src={getChampionAvatar(cId)}
-                            alt={cId}
-                            className="h-5 w-5 rounded object-cover"
-                          />
-                          <span>{cId}</span>
-                          <span className="text-[10px] text-rose-400 font-mono">COUNTER DIRECTO</span>
+                          👉 Ir a este slot
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="p-3 text-center text-xs font-mono text-emerald-400 font-bold bg-emerald-950/60 border border-emerald-500/40 rounded-xl">
+                        ✓ Draft Completo
+                      </div>
+                    )}
+
+                    <div className="w-full pt-2 border-t border-zinc-800 text-center">
+                      <span className="text-[9px] font-mono text-zinc-500 block">
+                        Slot Activo: {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ===================== LADO ROJO (lg:col-span-5) ===================== */}
+                  <div
+                    className={`lg:col-span-5 bg-zinc-950 rounded-2xl p-4 sm:p-5 border-2 shadow-2xl transition-all ${
+                      ourSide === "RED"
+                        ? "border-rose-500/70 shadow-rose-950/40 ring-1 ring-rose-500/30"
+                        : "border-zinc-800"
+                    }`}
+                  >
+                    {/* Cabecera Lado Rojo */}
+                    <div className="flex items-center justify-between border-b border-rose-900/40 pb-3 mb-4">
+                      <div className="flex items-center gap-2.5">
+                        <span className="h-3 w-3 rounded-full bg-rose-500 shadow-[0_0_12px_#f43f5e] animate-pulse" />
+                        <span className="font-display font-extrabold text-base tracking-wider uppercase text-rose-400">
+                          LADO ROJO // {ourSide === "RED" ? "VOID LYNX" : rivalName}
                         </span>
-                      ))}
+                        {ourSide === "RED" && (
+                          <span className="bg-rose-950 border border-rose-400/50 text-rose-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
+                            NOSOTROS
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs font-mono text-zinc-400 font-bold">
+                        {redPicks.filter(Boolean).length}/5 Picks
+                      </span>
+                    </div>
+
+                    {/* BANS LADO ROJO (5 Slots) */}
+                    <div className="mb-4">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block mb-1.5 font-bold">
+                        Bans Lado Rojo (1-5):
+                      </span>
+                      <div className="grid grid-cols-5 gap-2">
+                        {redBans.map((ban, idx) => {
+                          const isActive =
+                            activeSlot.side === "red" &&
+                            activeSlot.type === "ban" &&
+                            activeSlot.index === idx;
+                          return (
+                            <button
+                              key={idx}
+                              type="button"
+                              onClick={() => setActiveSlot({ side: "red", type: "ban", index: idx })}
+                              className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
+                                isActive
+                                  ? "border-rose-400 ring-2 ring-rose-400 bg-rose-950/60 shadow-[0_0_15px_rgba(244,63,94,0.5)]"
+                                  : ban
+                                  ? "border-rose-900/60 bg-zinc-900"
+                                  : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/40"
+                              }`}
+                            >
+                              {ban ? (
+                                <>
+                                  <img
+                                    src={getChampionAvatar(ban)}
+                                    alt={ban}
+                                    className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
+                                  />
+                                  <div className="absolute inset-0 bg-rose-950/40 flex items-center justify-center">
+                                    <span className="text-rose-400 font-bold text-xs">✕</span>
+                                  </div>
+                                  <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[8px] text-zinc-300 font-mono truncate text-center px-0.5">
+                                    {ban}
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[10px] font-mono text-zinc-600 font-bold">
+                                  R{idx + 1}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* PICKS LADO ROJO (5 Slots R1 - R5) */}
+                    <div className="space-y-2">
+                      <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block font-bold">
+                        Picks Lado Rojo (R1 - R5):
+                      </span>
+                      {redPicks.map((pick, idx) => {
+                        const isActive =
+                          activeSlot.side === "red" &&
+                          activeSlot.type === "pick" &&
+                          activeSlot.index === idx;
+                        const champ = findChampion(pick);
+                        const isCounter =
+                          ourSide === "BLUE" &&
+                          pick &&
+                          currentComp.counters_campeones.some(
+                            (c) => c.toLowerCase() === pick.toLowerCase()
+                          );
+
+                        return (
+                          <div
+                            key={idx}
+                            onClick={() => setActiveSlot({ side: "red", type: "pick", index: idx })}
+                            className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              isActive
+                                ? "border-rose-400 bg-rose-950/50 ring-2 ring-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.35)] -translate-y-0.5"
+                                : isCounter
+                                ? "border-rose-500 bg-rose-950/20"
+                                : pick
+                                ? "border-zinc-800 bg-zinc-900/80 hover:border-zinc-700"
+                                : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="text-xs font-mono font-black text-rose-400 w-7 shrink-0">
+                                R{idx + 1}
+                              </span>
+                              {pick ? (
+                                <>
+                                  <img
+                                    src={getChampionAvatar(pick)}
+                                    alt={pick}
+                                    className="h-10 w-10 rounded-lg border border-rose-500/50 object-cover shrink-0 shadow"
+                                  />
+                                  <div className="min-w-0 truncate">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-sm text-white truncate">
+                                        {champ ? champ.name : pick}
+                                      </span>
+                                      {isCounter && (
+                                        <span className="bg-rose-600 text-white text-[9px] font-bold px-1.5 rounded">
+                                          COUNTER
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-[10px] text-zinc-400 font-mono block">
+                                      {champ?.category || "Champion"}
+                                    </span>
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-xs text-zinc-500 font-mono italic">
+                                  {isActive ? "👉 Seleccionando campeón..." : "Click para asignar pick R" + (idx + 1)}
+                                </span>
+                              )}
+                            </div>
+
+                            {pick && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleClearSlot("red", "pick", idx);
+                                }}
+                                className="text-zinc-500 hover:text-rose-400 p-1.5 rounded hover:bg-rose-950/30 transition-colors text-xs"
+                                title="Quitar campeón"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* MESA DE DRAFT COMPLETA: LADO AZUL vs LADO ROJO (ESTILO LOL ESPORTS) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* ===================== LADO AZUL ===================== */}
-              <div
-                className={`bg-zinc-950 rounded-2xl p-5 border shadow-2xl transition-all ${
-                  ourSide === "BLUE"
-                    ? "border-blue-500/50 shadow-blue-950/40 ring-1 ring-blue-500/30"
-                    : "border-zinc-800"
-                }`}
-              >
-                {/* Cabecera Lado Azul */}
-                <div className="flex items-center justify-between border-b border-blue-900/40 pb-3 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6]" />
-                    <span className="font-display font-extrabold text-base tracking-wider uppercase text-blue-400">
-                      LADO AZUL // {ourSide === "BLUE" ? "VOID LYNX" : rivalName}
-                    </span>
-                    {ourSide === "BLUE" && (
-                      <span className="bg-blue-950 border border-blue-400/50 text-blue-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
-                        NOSOTROS
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-mono text-zinc-400">
-                    {bluePicks.filter(Boolean).length}/5 Picks
-                  </span>
-                </div>
-
-                {/* BANS LADO AZUL (5 Slots) */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                      Bans Lado Azul (1-5):
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {blueBans.map((ban, idx) => {
-                      const isActive =
-                        activeSlot.side === "blue" &&
-                        activeSlot.type === "ban" &&
-                        activeSlot.index === idx;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setActiveSlot({ side: "blue", type: "ban", index: idx })}
-                          className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
-                            isActive
-                              ? "border-blue-400 ring-2 ring-blue-400 bg-blue-950/60 shadow-[0_0_15px_rgba(59,130,246,0.5)]"
-                              : ban
-                              ? "border-rose-900/60 bg-zinc-900"
-                              : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/40"
-                          }`}
-                        >
-                          {ban ? (
-                            <>
-                              <img
-                                src={getChampionAvatar(ban)}
-                                alt={ban}
-                                className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
-                              />
-                              <div className="absolute inset-0 bg-rose-950/40 flex items-center justify-center">
-                                <span className="text-rose-400 font-bold text-xs">✕</span>
-                              </div>
-                              <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[9px] text-zinc-300 font-mono truncate text-center px-0.5">
-                                {ban}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-[10px] font-mono text-zinc-600 font-bold">
-                              BAN {idx + 1}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* PICKS LADO AZUL (5 Slots) */}
-                <div className="space-y-2.5">
-                  <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">
-                    Picks Lado Azul (B1 - B5):
-                  </span>
-                  {bluePicks.map((pick, idx) => {
-                    const isActive =
-                      activeSlot.side === "blue" &&
-                      activeSlot.type === "pick" &&
-                      activeSlot.index === idx;
-                    const champ = findChampion(pick);
-                    const isCounter =
-                      ourSide === "RED" &&
-                      pick &&
-                      currentComp.counters_campeones.some(
-                        (c) => c.toLowerCase() === pick.toLowerCase()
-                      );
-
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => setActiveSlot({ side: "blue", type: "pick", index: idx })}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                          isActive
-                            ? "border-blue-400 bg-blue-950/40 ring-2 ring-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] -translate-y-0.5"
-                            : isCounter
-                            ? "border-rose-500 bg-rose-950/20"
-                            : pick
-                            ? "border-zinc-800 bg-zinc-900/80 hover:border-zinc-700"
-                            : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-xs font-mono font-bold text-blue-400 w-7 shrink-0">
-                            B{idx + 1}
-                          </span>
-                          {pick ? (
-                            <>
-                              <img
-                                src={getChampionAvatar(pick)}
-                                alt={pick}
-                                className="h-11 w-11 rounded-lg border border-blue-500/50 object-cover shrink-0 shadow"
-                              />
-                              <div className="min-w-0 truncate">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-sm text-white truncate">
-                                    {champ ? champ.name : pick}
-                                  </span>
-                                  {isCounter && (
-                                    <span className="bg-rose-600 text-white text-[9px] font-bold px-1.5 rounded">
-                                      COUNTER
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-mono block">
-                                  {champ?.category || "Champion"}
-                                </span>
-                              </div>
-                            </>
-                          ) : (
-                            <span className="text-xs text-zinc-500 font-mono italic">
-                              {isActive ? "👉 Seleccionando campeón..." : "Click para asignar pick"}
-                            </span>
-                          )}
-                        </div>
-
-                        {pick && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearSlot("blue", "pick", idx);
-                            }}
-                            className="text-zinc-500 hover:text-rose-400 p-1.5 rounded hover:bg-rose-950/30 transition-colors text-xs"
-                            title="Quitar campeón"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* ===================== LADO ROJO ===================== */}
-              <div
-                className={`bg-zinc-950 rounded-2xl p-5 border shadow-2xl transition-all ${
-                  ourSide === "RED"
-                    ? "border-rose-500/50 shadow-rose-950/40 ring-1 ring-rose-500/30"
-                    : "border-zinc-800"
-                }`}
-              >
-                {/* Cabecera Lado Rojo */}
-                <div className="flex items-center justify-between border-b border-rose-900/40 pb-3 mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className="h-3 w-3 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e]" />
-                    <span className="font-display font-extrabold text-base tracking-wider uppercase text-rose-400">
-                      LADO ROJO // {ourSide === "RED" ? "VOID LYNX" : rivalName}
-                    </span>
-                    {ourSide === "RED" && (
-                      <span className="bg-rose-950 border border-rose-400/50 text-rose-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full">
-                        NOSOTROS
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-mono text-zinc-400">
-                    {redPicks.filter(Boolean).length}/5 Picks
-                  </span>
-                </div>
-
-                {/* BANS LADO ROJO (5 Slots) */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                      Bans Lado Rojo (1-5):
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {redBans.map((ban, idx) => {
-                      const isActive =
-                        activeSlot.side === "red" &&
-                        activeSlot.type === "ban" &&
-                        activeSlot.index === idx;
-                      return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setActiveSlot({ side: "red", type: "ban", index: idx })}
-                          className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
-                            isActive
-                              ? "border-rose-400 ring-2 ring-rose-400 bg-rose-950/60 shadow-[0_0_15px_rgba(244,63,94,0.5)]"
-                              : ban
-                              ? "border-rose-900/60 bg-zinc-900"
-                              : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/40"
-                          }`}
-                        >
-                          {ban ? (
-                            <>
-                              <img
-                                src={getChampionAvatar(ban)}
-                                alt={ban}
-                                className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
-                              />
-                              <div className="absolute inset-0 bg-rose-950/40 flex items-center justify-center">
-                                <span className="text-rose-400 font-bold text-xs">✕</span>
-                              </div>
-                              <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[9px] text-zinc-300 font-mono truncate text-center px-0.5">
-                                {ban}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-[10px] font-mono text-zinc-600 font-bold">
-                              BAN {idx + 1}
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* PICKS LADO ROJO (5 Slots) */}
-                <div className="space-y-2.5">
-                  <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">
-                    Picks Lado Rojo (R1 - R5):
-                  </span>
-                  {redPicks.map((pick, idx) => {
-                    const isActive =
-                      activeSlot.side === "red" &&
-                      activeSlot.type === "pick" &&
-                      activeSlot.index === idx;
-                    const champ = findChampion(pick);
-                    const isCounter =
-                      ourSide === "BLUE" &&
-                      pick &&
-                      currentComp.counters_campeones.some(
-                        (c) => c.toLowerCase() === pick.toLowerCase()
-                      );
-
-                    return (
-                      <div
-                        key={idx}
-                        onClick={() => setActiveSlot({ side: "red", type: "pick", index: idx })}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border cursor-pointer transition-all ${
-                          isActive
-                            ? "border-rose-400 bg-rose-950/40 ring-2 ring-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.35)] -translate-y-0.5"
-                            : isCounter
-                            ? "border-rose-500 bg-rose-950/20"
-                            : pick
-                            ? "border-zinc-800 bg-zinc-900/80 hover:border-zinc-700"
-                            : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <span className="text-xs font-mono font-bold text-rose-400 w-7 shrink-0">
-                            R{idx + 1}
-                          </span>
-                          {pick ? (
-                            <>
-                              <img
-                                src={getChampionAvatar(pick)}
-                                alt={pick}
-                                className="h-11 w-11 rounded-lg border border-rose-500/50 object-cover shrink-0 shadow"
-                              />
-                              <div className="min-w-0 truncate">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="font-bold text-sm text-white truncate">
-                                    {champ ? champ.name : pick}
-                                  </span>
-                                  {isCounter && (
-                                    <span className="bg-rose-600 text-white text-[9px] font-bold px-1.5 rounded">
-                                      COUNTER
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-mono block">
-                                  {champ?.category || "Champion"}
-                                </span>
-                              </div>
-                            </>
-                          ) : (
-                            <span className="text-xs text-zinc-500 font-mono italic">
-                              {isActive ? "👉 Seleccionando campeón..." : "Click para asignar pick"}
-                            </span>
-                          )}
-                        </div>
-
-                        {pick && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClearSlot("red", "pick", idx);
-                            }}
-                            className="text-zinc-500 hover:text-rose-400 p-1.5 rounded hover:bg-rose-950/30 transition-colors text-xs"
-                            title="Quitar campeón"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* PANEL INTERACTIVO: PICKER DE CAMPEONES PARA EL SLOT ACTIVO */}
-            <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-5 shadow-2xl">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2.5 rounded-xl font-bold font-mono text-xs uppercase ${
-                      activeSlot.side === "blue"
-                        ? "bg-blue-950 text-blue-300 border border-blue-500/50"
-                        : "bg-rose-950 text-rose-300 border border-rose-500/50"
-                    }`}
-                  >
-                    Slot Activo: {activeSlot.side.toUpperCase()} — {activeSlot.type.toUpperCase()}{" "}
-                    #{activeSlot.index + 1}
-                  </div>
+            {/* ========================================================================= */}
+            {/* 4. HERRAMIENTAS DEL COACH JUSTO DEBAJO: PRIORIDADES, CHAMPS POR ROL,       */}
+            {/* FIRST PICKS Y SUGERENCIAS EN DIRECTO PARA LA COMPO OBJETIVO               */}
+            {/* ========================================================================= */}
+            <div className="space-y-4 pt-2">
+              {/* Barra de Selección de Composición Objetivo & Inteligencia en Vivo */}
+              <div className="bg-zinc-950 border-2 border-purple-500/50 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
                   <div>
-                    <h3 className="font-display font-bold text-sm uppercase tracking-wider text-white">
-                      Asignar Campeón al Slot
-                    </h3>
-                    <p className="text-[11px] text-zinc-400">
-                      Haz clic en cualquier campeón abajo para asignarlo al slot seleccionado.
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-mono font-black uppercase tracking-wider text-purple-400 flex items-center gap-1.5">
+                        <Crosshair className="h-4 w-4" /> COMPANION TÁCTICO EN VIVO // COMPOSICIÓN ACTIVA
+                      </span>
+                      <span className="bg-purple-900/60 border border-purple-400/50 text-purple-200 text-xs font-mono font-black px-2.5 py-0.5 rounded-full">
+                        {currentComp.nombre}
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-300">
+                      Haz clic en cualquier campeón abajo para <strong>lockearlo inmediatamente</strong> en el slot de Void Lynx.
+                    </p>
+                  </div>
+
+                  {/* Selector Rápido de Composiciones */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                    {compositions.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedCompId(c.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold whitespace-nowrap transition-all ${
+                          selectedCompId === c.id
+                            ? "bg-purple-600 text-white shadow-lg shadow-purple-900/50 ring-1 ring-purple-400 scale-105"
+                            : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                        }`}
+                      >
+                        {c.nombre}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* DIRECTRICES Y CONSEJO EN DIRECTO SEGÚN EL TURNO */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+                  <div className="p-3 rounded-xl border border-emerald-500/50 bg-emerald-950/30">
+                    <span className="text-[10px] font-mono font-black text-emerald-400 uppercase block mb-1">
+                      🟢 QUÉ ABRIR EN FASE 1 (B1 / R1-R2):
+                    </span>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Roles prioritarios:{" "}
+                      <strong className="text-emerald-300">
+                        {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Alta").map(r => r.role).join(", ") || "Según bans"}
+                      </strong>
+                      . Lockea sus picks Tier S marcados en verde sin miedo a counterpicks directos.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-amber-500/50 bg-amber-950/30">
+                    <span className="text-[10px] font-mono font-black text-amber-400 uppercase block mb-1">
+                      🟡 QUÉ CONSOLIDAR EN FASE 2:
+                    </span>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Roles flexibles:{" "}
+                      <strong className="text-amber-300">
+                        {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Media").map(r => r.role).join(", ") || "Flex"}
+                      </strong>
+                      . Completar frontline o peel adaptándote a los bans de la 2ª fase.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl border border-purple-500/50 bg-purple-950/30">
+                    <span className="text-[10px] font-mono font-black text-purple-300 uppercase block mb-1">
+                      🟣 QUÉ GUARDAR A LAST PICK (R4-R5):
+                    </span>
+                    <p className="text-xs text-zinc-300 leading-relaxed">
+                      Línea a proteger:{" "}
+                      <strong className="text-purple-300">
+                        {VERTICAL_BOARD_ROLES.filter(r => (currentComp.role_priorities?.[r.role] || "Media") === "Baja").map(r => r.role).join(", ") || "Línea clave"}
+                      </strong>
+                      . ¡NO abras esta posición a ciegas! Espera al rival para destrozarlo en matchup.
                     </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Input de Búsqueda Rápida */}
+              {/* LAS 5 COLUMNAS VERTICALES EN VIVO (TOP - JNGL - MID - ADC - SUPP) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 items-stretch">
+                {VERTICAL_BOARD_ROLES.map((laneConfig) => {
+                  const roleData = getRoleChampsForComp(currentComp.nombre, laneConfig.role, laneConfig.player);
+                  const prio = currentComp.role_priorities?.[laneConfig.role] || "Media";
+                  const isAlta = prio === "Alta";
+                  const isMedia = prio === "Media";
+
+                  const roleWarnings = (currentComp.no_first_pick_reasons || []).filter((w) => {
+                    const champ = findChampion(w.champ);
+                    if (champ && champ.roles.includes(laneConfig.role)) return true;
+                    return [...roleData.S, ...roleData.A, ...roleData.B].some(
+                      (e) => e.campeon_id.toLowerCase() === w.champ.toLowerCase()
+                    );
+                  });
+
+                  const roleCounters = (currentComp.counters_campeones || []).filter((cId) => {
+                    const champ = findChampion(cId);
+                    return champ && champ.roles.includes(laneConfig.role);
+                  });
+
+                  const displayRoleName = laneConfig.role === "JGL" ? "JNGL" : laneConfig.role;
+
+                  return (
+                    <div
+                      key={laneConfig.role}
+                      className={`rounded-2xl border-2 bg-zinc-950/95 flex flex-col justify-between overflow-hidden shadow-2xl transition-all ${
+                        isAlta
+                          ? "border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                          : isMedia
+                          ? "border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                          : "border-purple-500/80 shadow-[0_0_20px_rgba(168,85,247,0.2)]"
+                      }`}
+                    >
+                      {/* Cabecera del Rol con Jugador Titular */}
+                      <div>
+                        <div className={`p-3 bg-gradient-to-b ${laneConfig.headerGradient} border-b border-zinc-800`}>
+                          <div className="flex items-center justify-between gap-1 mb-1">
+                            <div className="flex items-center gap-1.5">
+                              <RoleIconOnly role={laneConfig.role} size="sm" />
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-black uppercase ${laneConfig.badgeBg}`}>
+                                {displayRoleName}
+                              </span>
+                            </div>
+                            <span className="text-[10px] font-mono text-zinc-400 font-bold">
+                              {laneConfig.player}
+                            </span>
+                          </div>
+
+                          {/* Directiva de Selección */}
+                          <div className={`mt-2 p-1.5 rounded-lg border text-[10px] font-mono font-bold text-center ${
+                            isAlta
+                              ? "bg-emerald-950/70 border-emerald-500 text-emerald-300"
+                              : isMedia
+                              ? "bg-amber-950/70 border-amber-500 text-amber-300"
+                              : "bg-purple-950/70 border-purple-500 text-purple-300"
+                          }`}>
+                            {isAlta
+                              ? "🟢 FASE 1: ABRIR 1º"
+                              : isMedia
+                              ? "🟡 FASE 2: FLEXIBLE"
+                              : "🟣 FASE 3: LAST PICK"}
+                          </div>
+                        </div>
+
+                        {/* Listado de Picks por Tiers (S, A, B) */}
+                        <div className="p-2.5 space-y-3">
+                          {[
+                            { name: "TIER S", list: roleData.S, badgeStyle: "text-amber-400 border-amber-500/40 bg-amber-500/20" },
+                            { name: "TIER A", list: roleData.A, badgeStyle: "text-purple-300 border-purple-500/40 bg-purple-500/20" },
+                            { name: "TIER B", list: roleData.B, badgeStyle: "text-sky-300 border-sky-500/40 bg-sky-500/20" },
+                          ].map(({ name, list, badgeStyle }) => (
+                            <div key={name} className="space-y-1">
+                              <div className="flex items-center justify-between text-[10px] font-mono">
+                                <span className={`font-black px-1.5 py-0.2 rounded border ${badgeStyle}`}>
+                                  {name}
+                                </span>
+                                <span className="text-zinc-500">({list.length})</span>
+                              </div>
+
+                              {list.length === 0 ? (
+                                <div className="text-[10px] text-zinc-600 italic py-1 text-center">-</div>
+                              ) : (
+                                <div className="grid grid-cols-2 gap-1.5">
+                                  {list.map((entry) => {
+                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : "Normal");
+                                    const isUsed = allUsedChampions.has(entry.campeon_id.toLowerCase());
+                                    const isFP = tag === "FP";
+                                    const isLP = tag === "LP";
+                                    const isRisky = tag === "Risky";
+
+                                    return (
+                                      <button
+                                        key={entry.id}
+                                        type="button"
+                                        disabled={isUsed}
+                                        onClick={() => handleQuickLockFromCompanion(entry.campeon_id)}
+                                        title={
+                                          isUsed
+                                            ? `${entry.campeon_id} ya está en la mesa de draft`
+                                            : `Lockear ${entry.campeon_id} para Void Lynx`
+                                        }
+                                        className={`group relative flex flex-col items-center p-1.5 rounded-xl border text-center transition-all cursor-pointer ${
+                                          isUsed
+                                            ? "bg-zinc-900/40 border-zinc-800 opacity-40 cursor-not-allowed"
+                                            : isFP
+                                            ? "border-emerald-500/70 bg-emerald-950/40 hover:border-emerald-400 hover:scale-105 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                            : isLP
+                                            ? "border-purple-500/70 bg-purple-950/40 hover:border-purple-400 hover:scale-105 shadow-[0_0_10px_rgba(168,85,247,0.2)]"
+                                            : isRisky
+                                            ? "border-rose-500/70 bg-rose-950/40 hover:border-rose-400 hover:scale-105"
+                                            : "border-zinc-700 bg-zinc-900/80 hover:border-zinc-500 hover:scale-105"
+                                        }`}
+                                      >
+                                        {/* Badge de First Pick / Draft Status */}
+                                        <span className={`w-full text-[8px] font-mono font-black uppercase py-0.2 px-1 rounded mb-1 truncate ${
+                                          isUsed
+                                            ? "bg-zinc-800 text-zinc-500"
+                                            : isFP
+                                            ? "bg-emerald-500 text-black"
+                                            : isLP
+                                            ? "bg-purple-600 text-white"
+                                            : isRisky
+                                            ? "bg-rose-600 text-white"
+                                            : "bg-zinc-800 text-zinc-300"
+                                        }`}>
+                                          {isUsed ? "✓ EN MESA" : isFP ? "🟢 ABRIR (FP)" : isLP ? "🟣 LAST PICK" : isRisky ? "🔴 RIESGO" : "🟡 FLEX"}
+                                        </span>
+
+                                        <img
+                                          src={getChampionAvatar(entry.campeon_id)}
+                                          alt={entry.campeon_id}
+                                          className={`h-10 w-10 rounded-lg object-cover shadow ${
+                                            isFP
+                                              ? "border border-emerald-400"
+                                              : isLP
+                                              ? "border border-purple-400"
+                                              : isRisky
+                                              ? "border border-rose-500"
+                                              : "border border-zinc-700"
+                                          }`}
+                                        />
+
+                                        <span className="text-[11px] font-bold text-white mt-1 truncate max-w-full leading-tight">
+                                          {entry.campeon_id}
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Warnings / Counters en el pie de columna */}
+                      {(roleWarnings.length > 0 || roleCounters.length > 0) && (
+                        <div className="p-2 m-2 rounded-xl bg-rose-950/30 border border-rose-500/30 text-[9px] font-mono space-y-1">
+                          <span className="text-rose-400 font-bold block uppercase flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" /> Intel de Línea
+                          </span>
+                          {roleWarnings.slice(0, 1).map((w, idx) => (
+                            <p key={idx} className="text-zinc-300 truncate">
+                              <strong className="text-rose-300">{w.champ}:</strong> {w.reason}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 5. BUSCADOR GENERAL & SELECTOR DE CAMPEÓN PARA EL SLOT ACTIVO */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-2xl space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg border ${
+                    activeSlot.side === "blue"
+                      ? "bg-blue-950 text-blue-300 border-blue-500/50"
+                      : "bg-rose-950 text-rose-300 border-rose-500/50"
+                  }`}>
+                    Asignando a: {activeSlot.side.toUpperCase()} — {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+                  </span>
+                  <span className="text-xs text-zinc-400">
+                    O busca cualquier campeón del catálogo completo:
+                  </span>
+                </div>
+
                 <div className="relative w-full md:w-72">
+                  <Search className="h-4 w-4 absolute left-3 top-2.5 text-zinc-400" />
                   <input
                     type="text"
-                    placeholder="Buscar campeón (ej: Ornn, Jinx)..."
+                    placeholder="Buscar campeón en catálogo..."
                     value={draftSearchInput}
                     onChange={(e) => setDraftSearchInput(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-400 font-semibold"
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-400 font-semibold"
                   />
-                  <Search className="h-4 w-4 absolute left-3 top-2.5 text-zinc-400" />
                   {draftSearchInput && (
                     <button
+                      type="button"
                       onClick={() => setDraftSearchInput("")}
-                      className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-white text-xs"
+                      className="absolute right-2.5 top-2 text-zinc-400 hover:text-white text-xs"
                     >
                       ✕
                     </button>
@@ -3761,128 +4278,33 @@ function StaffPage() {
                 </div>
               </div>
 
-              {/* SI EL SLOT ACTIVO PERTENECE A VOID LYNX Y ES UN PICK: MOSTRAR RECOMENDADOS */}
-              {((ourSide === "BLUE" && activeSlot.side === "blue") ||
-                (ourSide === "RED" && activeSlot.side === "red")) &&
-                activeSlot.type === "pick" && (
-                  <div className="mb-4 p-3.5 bg-purple-950/30 border border-purple-800/40 rounded-xl">
-                    <span className="text-xs font-mono font-bold text-purple-300 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-purple-400" />
-                      <span>Picks Prioritarios Tier S para "{currentComp.nombre}":</span>
+              {/* Grid de campeones filtrados */}
+              <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-1.5 max-h-48 overflow-y-auto p-1">
+                {(draftSearchInput.trim()
+                  ? draftSearchMatches
+                  : CHAMPIONS_CATALOG.filter((c) => !allUsedChampions.has(c.id.toLowerCase())).slice(0, 24)
+                ).map((champ) => (
+                  <button
+                    key={champ.id}
+                    type="button"
+                    onClick={() => handleAssignChampion(champ.id)}
+                    className="flex flex-col items-center p-1.5 rounded-lg bg-zinc-900 hover:bg-purple-950/60 border border-zinc-800 hover:border-purple-400 transition-all text-center group"
+                  >
+                    <img
+                      src={getChampionAvatar(champ.id)}
+                      alt={champ.name}
+                      className="h-8 w-8 rounded object-cover border border-zinc-700 group-hover:border-purple-400"
+                    />
+                    <span className="text-[10px] font-bold text-white truncate max-w-full mt-0.5">
+                      {champ.name}
                     </span>
-                    <div className="flex flex-wrap gap-2">
-                      {voidLynxSuggestions.length > 0 ? (
-                        voidLynxSuggestions.map((entry) => {
-                          const player = PLAYERS_LIST.find((p) => p.name === entry.jugador);
-                          return (
-                            <button
-                              key={entry.id}
-                              type="button"
-                              onClick={() => handleAssignChampion(entry.campeon_id)}
-                              className="group flex items-center gap-2 bg-zinc-900/90 hover:bg-purple-900/60 border border-purple-500/30 hover:border-purple-400 p-1.5 pr-3 rounded-lg text-left transition-all hover:scale-105"
-                            >
-                              <img
-                                src={getChampionAvatar(entry.campeon_id)}
-                                alt={entry.campeon_id}
-                                className="h-8 w-8 rounded object-cover border border-purple-500/40"
-                              />
-                              <div>
-                                <div className="flex items-center gap-1">
-                                  <span className="font-bold text-xs text-white">
-                                    {entry.campeon_id}
-                                  </span>
-                                  <span className="text-[9px] font-mono text-amber-400 font-bold">
-                                    {entry.tier}
-                                  </span>
-                                </div>
-                                <span className="text-[10px] text-zinc-400 font-mono block">
-                                  {player?.displayName} ({player?.role})
-                                </span>
-                              </div>
-                            </button>
-                          );
-                        })
-                      ) : (
-                        <span className="text-xs text-zinc-500 italic">
-                          No quedan más picks Tier S sin asignar para esta composición.
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-              {/* SI EL SLOT ACTIVO ES UN BAN: MOSTRAR BANS RECOMENDADOS CONTRA ESTA COMPO */}
-              {activeSlot.type === "ban" && (
-                <div className="mb-4 p-3.5 bg-rose-950/20 border border-rose-900/40 rounded-xl">
-                  <span className="text-xs font-mono font-bold text-rose-300 uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
-                    <span>Top 4 Bans Recomendados para blindar "{currentComp.nombre}":</span>
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {currentComp.bans_recomendados.slice(0, 4).map((banId) => {
-                      const isUsed = allUsedChampions.has(banId.toLowerCase());
-                      return (
-                        <button
-                          key={banId}
-                          type="button"
-                          disabled={isUsed}
-                          onClick={() => handleAssignChampion(banId)}
-                          className="flex items-center gap-2 bg-zinc-900 hover:bg-rose-900/40 disabled:opacity-30 border border-rose-600/40 p-1.5 pr-3 rounded-lg text-left transition-all"
-                        >
-                          <img
-                            src={getChampionAvatar(banId)}
-                            alt={banId}
-                            className="h-7 w-7 rounded object-cover border border-rose-500/40"
-                          />
-                          <span className="font-bold text-xs text-rose-200">{banId}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Grid de Campeones del Buscador o Catálogo General */}
-              <div className="border-t border-zinc-800/80 pt-3">
-                <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block mb-2">
-                  {draftSearchInput.trim()
-                    ? `Resultados para "${draftSearchInput}":`
-                    : "Catálogo de Campeones Disponibles:"}
-                </span>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 max-h-64 overflow-y-auto pr-1">
-                  {(draftSearchInput.trim()
-                    ? draftSearchMatches
-                    : CHAMPIONS_CATALOG.filter((c) => !allUsedChampions.has(c.id.toLowerCase())).slice(
-                        0,
-                        30
-                      )
-                  ).map((champ) => (
-                    <button
-                      key={champ.id}
-                      type="button"
-                      onClick={() => handleAssignChampion(champ.id)}
-                      className="group flex flex-col items-center p-2 rounded-lg bg-zinc-900/70 hover:bg-purple-900/40 border border-zinc-800 hover:border-purple-400 transition-all text-center"
-                    >
-                      <img
-                        src={getChampionAvatar(champ.id)}
-                        alt={champ.name}
-                        className="h-10 w-10 rounded-md object-cover border border-zinc-700 group-hover:border-purple-400 mb-1"
-                      />
-                      <span className="font-bold text-[11px] text-white truncate w-full">
-                        {champ.name}
-                      </span>
-                      <span className="text-[9px] text-zinc-500 font-mono truncate w-full">
-                        {champ.roles.join("/")}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* NOTAS DEL COACH / OBSERVACIONES DE LA PARTIDA */}
-            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-5 shadow-xl">
+            {/* 6. NOTAS TÁCTICAS DEL DRAFT // OBSERVACIONES DE LA PARTIDA */}
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl p-4 sm:p-5 shadow-xl">
               <label className="block text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider mb-2">
                 Notas Tácticas del Draft // Adaptaciones de partida:
               </label>
@@ -3890,7 +4312,7 @@ function StaffPage() {
                 value={draftNotes}
                 onChange={(e) => setDraftNotes(e.target.value)}
                 placeholder="Apunta aquí la condición de victoria, hechizos de invocador a rastrear, pathing del jungla rival o instrucciones clave para el equipo..."
-                rows={3}
+                rows={2}
                 className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-3 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 leading-relaxed font-sans"
               />
             </div>
@@ -3899,7 +4321,6 @@ function StaffPage() {
             {showHistoryModal && (
               <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
                 <div className="bg-zinc-950 border border-purple-900/50 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-                  {/* Header Modal */}
                   <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/80">
                     <div className="flex items-center gap-2">
                       <History className="h-5 w-5 text-purple-400" />
@@ -3911,6 +4332,7 @@ function StaffPage() {
                       </span>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setShowHistoryModal(false)}
                       className="text-zinc-400 hover:text-white p-1 rounded transition-colors"
                     >
@@ -3918,7 +4340,6 @@ function StaffPage() {
                     </button>
                   </div>
 
-                  {/* Lista de Drafts */}
                   <div className="p-4 overflow-y-auto space-y-3 flex-1">
                     {draftsHistory.length > 0 ? (
                       draftsHistory.map((draft) => (
@@ -3951,7 +4372,6 @@ function StaffPage() {
                               </span>
                             </div>
 
-                            {/* Mini Previsualización de Picks */}
                             <div className="flex items-center gap-4 text-xs font-mono pt-1">
                               <div className="flex items-center gap-1">
                                 <span className="text-blue-400 text-[10px] font-bold">AZUL:</span>
@@ -3986,15 +4406,16 @@ function StaffPage() {
                             )}
                           </div>
 
-                          {/* Acciones */}
                           <div className="flex items-center gap-2 shrink-0">
                             <button
+                              type="button"
                               onClick={() => handleLoadSavedDraft(draft)}
                               className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors"
                             >
                               Cargar en Mesa
                             </button>
                             <button
+                              type="button"
                               onClick={() => handleDeleteSavedDraft(draft.id)}
                               className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
                               title="Eliminar registro"
@@ -4006,7 +4427,7 @@ function StaffPage() {
                       ))
                     ) : (
                       <div className="text-center py-12 text-zinc-500 text-xs">
-                        No hay drafts guardados todavía. Realiza un draft en la mesa y pulsa "Guardar Draft".
+                        No hay drafts guardados todavía. Realiza un draft en la mesa y pulsa "Guardar Partida".
                       </div>
                     )}
                   </div>
