@@ -1,16 +1,13 @@
-import React from "react";
-import { CompositionData, PlayerChampionEntry } from "@/data/staff-initial-data";
+import React, { useState, useMemo } from "react";
+import { CompositionData, PlayerChampionEntry, PriorityLevel } from "@/data/staff-initial-data";
 import { Champion, CHAMPIONS_CATALOG, findChampion, getChampionAvatar } from "@/data/champions";
 import { RoleIconOnly, RoleType } from "@/components/RoleBadge";
 import {
   Swords,
-  Globe,
   Share2,
   History,
   Save,
   RotateCcw,
-  ExternalLink,
-  Layers,
   AlertTriangle,
   Trash2,
   Crosshair,
@@ -18,23 +15,17 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  X,
-  Radio,
-  RefreshCw,
-  Zap,
-  BarChart3,
   ShieldAlert,
-  Activity,
   Flame,
-  TrendingUp,
-  Gauge,
-  Lightbulb,
-  Sparkles,
   Check,
+  Zap,
+  Target,
+  Sparkles,
+  Lock,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
-import { calculateCompMetrics, getSmartBans, getRosterCountersForEnemy, CompositionMetrics } from "@/lib/draft-tactics";
+import { calculateCompMetrics, getSmartBans, getRosterCountersForEnemy } from "@/lib/draft-tactics";
 
 interface LiveDraftArenaTabProps {
   ourSide: "BLUE" | "RED";
@@ -111,15 +102,6 @@ export function LiveDraftArenaTab({
   setSelectedCompId,
   compositions,
   currentComp,
-  drafterArenaMode,
-  setDrafterArenaMode,
-  cleanDrafterIframeUrl,
-  handleOpenDrafterPopout,
-  drafterInputUrl,
-  setDrafterInputUrl,
-  drafterRoomUrl,
-  handleSetDrafterRoomUrl,
-  enemyCountersDetected,
   bluePicks,
   blueBans,
   redPicks,
@@ -143,43 +125,94 @@ export function LiveDraftArenaTab({
   allUsedChampions,
   verticalBoardRoles,
   getRoleChampsForComp,
-  draftSearchInput,
-  setDraftSearchInput,
-  draftSearchMatches,
   draftNotes,
   setDraftNotes,
-  setActiveTab,
-  isDrafterAutoSync,
-  setIsDrafterAutoSync,
-  drafterSyncStatus,
-  lastDrafterSyncTime,
-  drafterLiveTime,
-  fetchAndApplyDrafterLiveState,
   playerChampions,
 }: LiveDraftArenaTabProps) {
-  const VERTICAL_BOARD_ROLES = verticalBoardRoles;
-  const [companionView, setCompanionView] = React.useState<"lanes" | "analysis" | "counters_bans">("lanes");
+  // Pestañas del selector inferior de campeones
+  const [bottomTab, setBottomTab] = useState<"adapted" | "catalog" | "counters">("adapted");
+  const [roleFilter, setRoleFilter] = useState<"ALL" | "TOP" | "JGL" | "MID" | "ADC" | "SUPP">("ALL");
+  const [catalogSearch, setCatalogSearch] = useState<string>("");
 
-  const blueMetrics = React.useMemo(() => calculateCompMetrics(bluePicks), [bluePicks]);
-  const redMetrics = React.useMemo(() => calculateCompMetrics(redPicks), [redPicks]);
-
-  const ourMetrics = ourSide === "BLUE" ? blueMetrics : redMetrics;
-  const enemyMetrics = ourSide === "BLUE" ? redMetrics : blueMetrics;
+  // Métricas tácticas en tiempo real
+  const blueMetrics = useMemo(() => calculateCompMetrics(bluePicks), [bluePicks]);
+  const redMetrics = useMemo(() => calculateCompMetrics(redPicks), [redPicks]);
 
   const ourPicks = ourSide === "BLUE" ? bluePicks : redPicks;
   const enemyPicks = ourSide === "BLUE" ? redPicks : bluePicks;
 
-  const stepIndex = currentTurnStep
-    ? (currentTurnStep.side === "blue" ? bluePicks.filter(Boolean).length : redPicks.filter(Boolean).length) * 2
-    : 20;
+  // Determinar en qué fase de draft estamos (Fase 1 vs Fase 2)
+  const totalPicksMade = [...bluePicks, ...redPicks].filter(Boolean).length;
+  const isDraftPhase1 = totalPicksMade < 6; // Los primeros 3 picks de cada equipo
 
-  const smartBansData = React.useMemo(() => {
-    return getSmartBans(enemyPicks, ourPicks, stepIndex);
-  }, [enemyPicks, ourPicks, stepIndex]);
+  // Cálculo de bans inteligentes y counters
+  const smartBansData = useMemo(() => {
+    return getSmartBans(enemyPicks, ourPicks, totalPicksMade >= 6 ? 12 : 0);
+  }, [enemyPicks, ourPicks, totalPicksMade]);
 
-  const rosterCounters = React.useMemo(() => {
+  const rosterCounters = useMemo(() => {
     return getRosterCountersForEnemy(enemyPicks, playerChampions || []);
   }, [enemyPicks, playerChampions]);
+
+  // Roles clasificados por Fase de Pick según la composición activa
+  const phaseRoles = useMemo(() => {
+    const p1: { role: RoleType; player: string; prio: PriorityLevel }[] = [];
+    const p2: { role: RoleType; player: string; prio: PriorityLevel }[] = [];
+
+    verticalBoardRoles.forEach((r) => {
+      const prio = currentComp.role_priorities?.[r.role] || "Media";
+      if (prio === "Alta") {
+        p1.push({ role: r.role, player: r.player, prio });
+      } else {
+        p2.push({ role: r.role, player: r.player, prio });
+      }
+    });
+
+    return { phase1: p1, phase2: p2 };
+  }, [verticalBoardRoles, currentComp]);
+
+  // Campeones adaptados a la compo actual filtrados por rol
+  const adaptedChamps = useMemo(() => {
+    const list: {
+      entry: PlayerChampionEntry;
+      role: RoleType;
+      player: string;
+      tier: "S" | "A" | "B" | "C";
+      isFP: boolean;
+      isLP: boolean;
+      isRisky: boolean;
+    }[] = [];
+
+    verticalBoardRoles.forEach((lane) => {
+      if (roleFilter !== "ALL" && lane.role !== roleFilter) return;
+      const data = getRoleChampsForComp(currentComp.nombre, lane.role, lane.player);
+
+      [...data.S, ...data.A, ...data.B].forEach((entry) => {
+        const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : undefined);
+        list.push({
+          entry,
+          role: lane.role,
+          player: lane.player,
+          tier: entry.tier,
+          isFP: tag === "FP",
+          isLP: tag === "LP",
+          isRisky: tag === "Risky",
+        });
+      });
+    });
+
+    return list;
+  }, [verticalBoardRoles, roleFilter, getRoleChampsForComp, currentComp]);
+
+  // Catálogo completo filtrado para el buscador inferior
+  const filteredCatalog = useMemo(() => {
+    const q = catalogSearch.trim().toLowerCase();
+    return CHAMPIONS_CATALOG.filter((c) => {
+      if (roleFilter !== "ALL" && !c.roles.includes(roleFilter)) return false;
+      if (!q) return true;
+      return c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q);
+    });
+  }, [catalogSearch, roleFilter]);
 
   return (
     <>
@@ -194,22 +227,22 @@ export function LiveDraftArenaTab({
 
       <div className="space-y-4 animate-in fade-in duration-300">
         {/* ========================================================================= */}
-        {/* 1. TOP HEADER: CONTROLES DE PARTIDA & CONEXIÓN DRAFTER.LOL               */}
+        {/* 1. TOP HEADER: CONTROLES DE SCRIM & ACCIONES                              */}
         {/* ========================================================================= */}
-        <div className="bg-zinc-950 border border-purple-900/40 p-4 rounded-2xl shadow-xl relative overflow-hidden space-y-3">
+        <div className="bg-zinc-950 border border-purple-900/40 p-4 rounded-2xl shadow-xl space-y-3">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-zinc-800/80">
             <div>
               <div className="flex items-center gap-2 mb-0.5">
                 <span className="bg-purple-950 text-purple-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/30">
-                  Esports Command Center 2.0
+                  Void Lynx • Esports Tactical Assistant
                 </span>
                 <span className="text-zinc-500 text-xs font-mono">
-                  Mesa de Draft Unificada • Zero-Scroll • Drafter.lol Sync
+                  Planificación por Fases de Pick • Counters en Vivo
                 </span>
               </div>
               <h2 className="font-display font-black text-lg uppercase tracking-wider text-white flex items-center gap-2">
                 <Swords className="h-5 w-5 text-purple-400" />
-                <span>Sala de Draft en Vivo & Asistente Táctico</span>
+                <span>Asistente Táctico de Draft & Sala de Scrim</span>
               </h2>
             </div>
 
@@ -237,7 +270,7 @@ export function LiveDraftArenaTab({
               <button
                 type="button"
                 onClick={handleSaveCurrentDraft}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all hover:scale-105"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-lg shadow-purple-900/30 transition-all hover:scale-105"
               >
                 <Save className="h-3.5 w-3.5" />
                 <span>Guardar Scrim</span>
@@ -255,108 +288,66 @@ export function LiveDraftArenaTab({
             </div>
           </div>
 
-          {/* Fila compacta de Configuración: Drafter URL, Rival, Lado, Compo, Resultado */}
+          {/* Fila de Configuración Limpia: Compo Objetivo, Lado, Rival, Resultado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-2.5 items-center text-xs">
-            {/* Drafter.lol Room (4 cols) */}
-            <div className="lg:col-span-4 flex items-center gap-1.5 bg-black/60 border border-zinc-800 rounded-lg px-2.5 py-1">
-              <Globe className="h-3.5 w-3.5 text-purple-400 shrink-0" />
-              <input
-                type="text"
-                placeholder="URL o ID Drafter.lol (ej: fotCSLKi)..."
-                value={drafterInputUrl || drafterRoomUrl}
-                onChange={(e) => setDrafterInputUrl(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && drafterInputUrl.trim()) {
-                    handleSetDrafterRoomUrl(drafterInputUrl);
-                  }
-                }}
-                className="flex-1 bg-transparent text-white font-mono text-xs outline-none placeholder-zinc-500 min-w-0"
-              />
-              {drafterInputUrl && drafterInputUrl.trim() !== drafterRoomUrl && (
-                <button
-                  type="button"
-                  onClick={() => handleSetDrafterRoomUrl(drafterInputUrl)}
-                  className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-mono font-bold shrink-0 transition-colors"
+            {/* Composición Objetivo (4 cols) */}
+            <div className="lg:col-span-4 flex items-center gap-2 bg-black/60 border border-purple-500/40 rounded-lg px-2.5 py-1.5">
+              <Crosshair className="h-4 w-4 text-purple-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-[9px] font-mono text-zinc-400 uppercase font-bold block leading-none mb-0.5">
+                  Composición Objetivo:
+                </span>
+                <select
+                  value={selectedCompId}
+                  onChange={(e) => setSelectedCompId(e.target.value)}
+                  className="w-full bg-transparent text-white font-display font-black text-xs outline-none cursor-pointer truncate"
                 >
-                  Conectar
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={handleOpenDrafterPopout}
-                title="Abrir en Popout para doble monitor"
-                className="text-purple-300 hover:text-white px-2 py-0.5 rounded bg-purple-950/80 border border-purple-500/40 text-[10px] font-mono font-bold flex items-center gap-1 shrink-0"
-              >
-                <span>Popout</span>
-                <ExternalLink className="h-2.5 w-2.5" />
-              </button>
-              {cleanDrafterIframeUrl && (
-                <button
-                  type="button"
-                  onClick={() => setDrafterArenaMode(drafterArenaMode === "split" ? "builtin" : "split")}
-                  className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${
-                    drafterArenaMode === "split"
-                      ? "bg-purple-600 text-white border-purple-400"
-                      : "bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
-                  }`}
-                >
-                  {drafterArenaMode === "split" ? "Cerrar" : "Dividir"}
-                </button>
-              )}
+                  {compositions.map((comp) => (
+                    <option key={comp.id} value={comp.id} className="bg-zinc-900 text-white">
+                      {comp.nombre} ({comp.enfoque})
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Rival (2 cols) */}
-            <div className="lg:col-span-2">
-              <input
-                type="text"
-                value={rivalName}
-                onChange={(e) => setRivalName(e.target.value)}
-                placeholder="Equipo Rival..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-2.5 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-semibold"
-              />
-            </div>
-
-            {/* Lado (2 cols) */}
-            <div className="lg:col-span-2 flex gap-1">
+            {/* Lado (3 cols) */}
+            <div className="lg:col-span-3 flex gap-1 bg-black/60 border border-zinc-800 p-1 rounded-lg">
               <button
                 type="button"
                 onClick={() => setOurSide("BLUE")}
-                className={`flex-1 py-1 rounded font-mono text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+                className={`flex-1 py-1 rounded font-mono text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
                   ourSide === "BLUE"
                     ? "bg-blue-600 text-white shadow border border-blue-400"
-                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-blue-300" />
-                <span>AZUL</span>
+                <span className="h-2 w-2 rounded-full bg-blue-300" />
+                <span>LADO AZUL</span>
               </button>
               <button
                 type="button"
                 onClick={() => setOurSide("RED")}
-                className={`flex-1 py-1 rounded font-mono text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+                className={`flex-1 py-1 rounded font-mono text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 ${
                   ourSide === "RED"
                     ? "bg-rose-600 text-white shadow border border-rose-400"
-                    : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-rose-300" />
-                <span>ROJO</span>
+                <span className="h-2 w-2 rounded-full bg-rose-300" />
+                <span>LADO ROJO</span>
               </button>
             </div>
 
-            {/* Composición Objetivo (2 cols) */}
-            <div className="lg:col-span-2">
-              <select
-                value={selectedCompId}
-                onChange={(e) => setSelectedCompId(e.target.value)}
-                className="w-full bg-zinc-900 border border-purple-500/50 rounded px-2 py-1.5 text-xs text-white focus:outline-none font-semibold truncate"
-              >
-                {compositions.map((comp) => (
-                  <option key={comp.id} value={comp.id}>
-                    {comp.nombre}
-                  </option>
-                ))}
-              </select>
+            {/* Equipo Rival (3 cols) */}
+            <div className="lg:col-span-3">
+              <input
+                type="text"
+                value={rivalName}
+                onChange={(e) => setRivalName(e.target.value)}
+                placeholder="Equipo Rival (ej: KOI, Heretics)..."
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-semibold"
+              />
             </div>
 
             {/* Resultado Scrim (2 cols) */}
@@ -364,11 +355,11 @@ export function LiveDraftArenaTab({
               <select
                 value={matchResult}
                 onChange={(e) => setMatchResult(e.target.value as any)}
-                className={`w-full bg-zinc-900 border rounded px-2 py-1.5 text-xs font-bold font-mono focus:outline-none ${
+                className={`w-full bg-zinc-900 border rounded-lg px-2 py-2 text-xs font-bold font-mono focus:outline-none transition-all ${
                   matchResult === "VICTORIA"
-                    ? "text-emerald-400 border-emerald-500/50"
+                    ? "text-emerald-400 border-emerald-500/50 bg-emerald-950/40"
                     : matchResult === "DERROTA"
-                    ? "text-rose-400 border-rose-500/50"
+                    ? "text-rose-400 border-rose-500/50 bg-rose-950/40"
                     : "text-zinc-300 border-zinc-800"
                 }`}
               >
@@ -378,966 +369,718 @@ export function LiveDraftArenaTab({
               </select>
             </div>
           </div>
+        </div>
 
-          {/* Barra de Telemetría y Sincronización en Tiempo Real Drafter.lol */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 px-3 py-2 rounded-xl bg-purple-950/20 border border-purple-900/40 text-xs">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <Radio className={`h-3.5 w-3.5 ${drafterSyncStatus === "connected" ? "text-emerald-400 animate-pulse" : "text-zinc-500"}`} />
-                <span className="font-mono text-[10px] text-zinc-400 uppercase font-bold">Drafter.lol Bridge:</span>
-                {drafterSyncStatus === "connected" ? (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/60 text-emerald-300 text-[10px] font-mono font-bold shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-                    EN VIVO
+        {/* ========================================================================= */}
+        {/* 2. PANEL TÁCTICO: COMPO QUE QUEREMOS JUGAR & PLAN DE FASES DE PICKS      */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+          {/* Tarjeta Izquierda: Identidad de Composición & Counters a Vigilar (6 cols) */}
+          <div className="lg:col-span-6 bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full bg-purple-400 shadow-[0_0_8px_#a855f7]" />
+                  <span className="font-display font-black text-sm uppercase tracking-wide text-white">
+                    {currentComp.nombre}
                   </span>
-                ) : drafterSyncStatus === "syncing" ? (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-950 border border-amber-500/60 text-amber-300 text-[10px] font-mono font-bold">
-                    <RefreshCw className="h-2.5 w-2.5 animate-spin" />
-                    CONECTANDO...
+                  <span className="px-2 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-500/40">
+                    {currentComp.enfoque}
                   </span>
-                ) : drafterSyncStatus === "error" ? (
-                  <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-950 border border-rose-500/60 text-rose-300 text-[10px] font-mono font-bold">
-                    ERROR AL CONECTAR
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-[10px] font-mono font-bold">
-                    SIN SALA VINCULADA
-                  </span>
-                )}
+                </div>
+                <span className="text-[10px] font-mono text-amber-400 font-bold bg-amber-950/60 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                  {currentComp.prioridad}
+                </span>
               </div>
 
-              {drafterRoomUrl && (
-                <span className="text-zinc-400 font-mono text-[11px] flex items-center gap-1">
-                  • Sala: <strong className="text-purple-300 font-semibold">{drafterRoomUrl.replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "").split("?")[0]}</strong>
-                </span>
-              )}
-
-              {lastDrafterSyncTime && (
-                <span className="text-zinc-500 font-mono text-[10px] hidden sm:inline">
-                  • Sincronizado: {lastDrafterSyncTime.toLocaleTimeString()}
-                </span>
-              )}
+              <p className="text-xs text-zinc-300 mt-2 leading-relaxed">
+                {currentComp.descripcion}
+              </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Botón Auto-Sync ON / OFF */}
-              <button
-                type="button"
-                onClick={() => setIsDrafterAutoSync(!isDrafterAutoSync)}
-                title="Activar/Desactivar sincronización continua en tiempo real (cada 2 segundos)"
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[10px] font-mono font-bold transition-all ${
-                  isDrafterAutoSync
-                    ? "bg-emerald-950/80 border-emerald-500/60 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] hover:bg-emerald-900/80"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${isDrafterAutoSync ? "bg-emerald-400 animate-pulse" : "bg-zinc-600"}`} />
-                <span>{isDrafterAutoSync ? "Auto-Sync: ACTIVO (2s)" : "Auto-Sync: PAUSADO"}</span>
-              </button>
+            {/* Counters que amenazan nuestra composición */}
+            <div className="space-y-1.5 pt-2 border-t border-zinc-800/80">
+              <div className="flex items-center gap-1.5 text-rose-400 text-xs font-mono font-bold">
+                <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                <span>Amenazas & Counters a Nuestra Composición:</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 leading-normal">
+                {currentComp.counters_descripcion}
+              </p>
 
-              {/* Botón Forzar Actualización Inmediata */}
-              <button
-                type="button"
-                onClick={() => fetchAndApplyDrafterLiveState()}
-                disabled={drafterSyncStatus === "syncing"}
-                title="Sincronizar picks y bans inmediatamente desde Drafter.lol"
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/70 hover:bg-purple-900 border border-purple-500/50 hover:border-purple-400 text-purple-200 text-[10px] font-mono font-bold transition-all hover:scale-105"
-              >
-                <RefreshCw className={`h-3 w-3 text-purple-300 ${drafterSyncStatus === "syncing" ? "animate-spin" : ""}`} />
-                <span>Sincronizar Ahora</span>
-              </button>
+              {/* Chips de Campeones Counter a Banear */}
+              {currentComp.counters_campeones.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-[9px] font-mono text-zinc-500 font-bold">Peligro:</span>
+                  {currentComp.counters_campeones.map((c) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-rose-950/70 border border-rose-500/40 text-[10px] font-mono text-rose-200"
+                    >
+                      <img
+                        src={getChampionAvatar(c)}
+                        alt={c}
+                        className="h-3.5 w-3.5 rounded-full object-cover"
+                      />
+                      <span>{c}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Tarjeta Derecha: EL PLAN ESTRATÉGICO DE FASES DE PICK (6 cols) */}
+          <div className="lg:col-span-6 bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-xl space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-emerald-400" />
+                <span className="font-display font-black text-sm uppercase tracking-wide text-white">
+                  Plan de Fases de Pick
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold">
+                <span className="text-zinc-400">FASE ACTUAL:</span>
+                <span className={`px-2 py-0.5 rounded-full ${
+                  isDraftPhase1
+                    ? "bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_8px_rgba(16,185,129,0.3)] animate-pulse"
+                    : "bg-purple-950 text-purple-300 border border-purple-500/60 shadow-[0_0_8px_rgba(168,85,247,0.3)] animate-pulse"
+                }`}>
+                  {isDraftPhase1 ? "FASE 1 (Picks 1-3)" : "FASE 2 (Picks 4-5)"}
+                </span>
+              </div>
+            </div>
+
+            {/* Visualización FASE 1 vs FASE 2 */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* Bloque FASE 1: First Picks Seguros */}
+              <div className={`p-3 rounded-xl border transition-all ${
+                isDraftPhase1
+                  ? "bg-emerald-950/30 border-emerald-500/60 ring-1 ring-emerald-500/30"
+                  : "bg-black/40 border-zinc-800 opacity-70"
+              }`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-display font-black text-xs uppercase text-emerald-400 flex items-center gap-1">
+                    <Zap className="h-3 w-3" />
+                    FASE 1 • PICKS 1 A 3
+                  </span>
+                  <span className="text-[9px] font-mono px-1 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/30 font-bold">
+                    PRIO ALTA
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-400 mb-2 leading-tight">
+                  Blind picks seguros sin counters duros para asegurar power-picks sin revelar la estrategia.
+                </p>
+
+                {/* Roles a priorizar en Fase 1 */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[9px] font-mono text-zinc-400">Roles sugeridos:</span>
+                    {phaseRoles.phase1.map((r) => (
+                      <span key={r.role} className="px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/50 text-emerald-200 text-[9px] font-mono font-bold">
+                        {r.role} ({r.player})
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Campeones seguros de blind-pick */}
+                  {currentComp.first_pick_safe.length > 0 && (
+                    <div className="flex items-center gap-1 flex-wrap pt-1 border-t border-emerald-900/30">
+                      <span className="text-[9px] font-mono text-zinc-400">First Picks:</span>
+                      {currentComp.first_pick_safe.map((c) => (
+                        <span key={c} className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-300 bg-black/60 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                          <img src={getChampionAvatar(c)} alt={c} className="h-3 w-3 rounded-full object-cover" />
+                          <span>{c}</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Bloque FASE 2: Counterpicks & Respuestas */}
+              <div className={`p-3 rounded-xl border transition-all ${
+                !isDraftPhase1
+                  ? "bg-purple-950/30 border-purple-500/60 ring-1 ring-purple-500/30"
+                  : "bg-black/40 border-zinc-800 opacity-70"
+              }`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-display font-black text-xs uppercase text-purple-400 flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    FASE 2 • PICKS 4 Y 5
+                  </span>
+                  <span className="text-[9px] font-mono px-1 rounded bg-purple-950 text-purple-300 border border-purple-500/30 font-bold">
+                    COUNTERPICK
+                  </span>
+                </div>
+                <p className="text-[10px] text-zinc-400 mb-2 leading-tight">
+                  Guardar estos roles para responder a lo que el rival haya elegido y ganar el matchup decisivo.
+                </p>
+
+                {/* Roles a guardar para Fase 2 */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <span className="text-[9px] font-mono text-zinc-400">Roles de respuesta:</span>
+                    {phaseRoles.phase2.map((r) => (
+                      <span key={r.role} className="px-1.5 py-0.2 rounded bg-purple-950 border border-purple-500/50 text-purple-200 text-[9px] font-mono font-bold">
+                        {r.role} ({r.player})
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className="text-[9px] text-zinc-500 font-mono block pt-1 border-t border-purple-900/30">
+                    💡 Evita blind-pickear estos roles si el enemigo aún no los ha mostrado.
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Pantalla dividida colapsable con Drafter.lol si se activa */}
-        {drafterArenaMode === "split" && cleanDrafterIframeUrl && (
-          <div className="rounded-2xl border-2 border-purple-500/50 bg-black shadow-2xl overflow-hidden animate-in slide-in-from-top-4 duration-300">
-            <div className="bg-zinc-900/90 px-4 py-2 border-b border-zinc-800 flex items-center justify-between text-xs font-mono">
-              <span className="text-purple-300 flex items-center gap-2">
-                <Globe className="h-3.5 w-3.5 text-purple-400" />
-                <strong>SALA DRAFTER.LOL EN DIRECTO:</strong> {cleanDrafterIframeUrl}
-              </span>
-              <button
-                type="button"
-                onClick={() => setDrafterArenaMode("builtin")}
-                className="text-zinc-400 hover:text-rose-400 text-xs px-2 py-0.5 rounded bg-zinc-800"
-              >
-                ✕ Ocultar
-              </button>
-            </div>
-            <iframe
-              src={cleanDrafterIframeUrl}
-              title="Drafter.lol Live Room"
-              className="w-full h-[450px] bg-black border-none"
-              allow="clipboard-write"
-            />
-          </div>
-        )}
-
         {/* ========================================================================= */}
-        {/* 2. MESA UNIFICADA ESPORTS: 3 COLS AZUL + 6 COLS COMPANION + 3 COLS ROJO  */}
+        {/* 3. MESA DE DRAFT BROADCAST HORIZONTAL: CAMPEONES GRANDES                 */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 xl:gap-4 items-start">
+        <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-2xl space-y-4">
           {/* ===================================================================== */}
-          {/* COLUMNA IZQUIERDA: LADO AZUL (3 COLS)                                 */}
+          {/* FILA SUPERIOR: LADO AZUL (PICKS GRANDES B1 - B5)                      */}
           {/* ===================================================================== */}
-          <div
-            className={`lg:col-span-3 bg-zinc-950 rounded-2xl p-3.5 border-2 shadow-xl flex flex-col justify-between transition-all ${
-              ourSide === "BLUE"
-                ? "border-blue-500/70 shadow-blue-950/40 ring-1 ring-blue-500/30"
-                : "border-zinc-800/90"
-            }`}
-          >
-            <div>
-              {/* Header Lado Azul */}
-              <div className="flex items-center justify-between border-b border-blue-900/40 pb-2.5 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse shrink-0" />
-                  <span className="font-display font-black text-sm tracking-wide uppercase text-blue-400 truncate">
-                    {ourSide === "BLUE" ? "VOID LYNX" : rivalName}
+          <div className={`p-3.5 rounded-2xl border-2 transition-all ${
+            ourSide === "BLUE"
+              ? "bg-blue-950/20 border-blue-500/70 shadow-lg shadow-blue-950/30"
+              : "bg-zinc-900/40 border-zinc-800"
+          }`}>
+            {/* Header Lado Azul: Nombre + Bans + Daño */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 mb-3 border-b border-blue-900/40">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-blue-500 shadow-[0_0_10px_#3b82f6] animate-pulse" />
+                <span className="font-display font-black text-sm uppercase text-blue-400 tracking-wider">
+                  {ourSide === "BLUE" ? "VOID LYNX (AZUL)" : `${rivalName || "RIVAL"} (AZUL)`}
+                </span>
+                {ourSide === "BLUE" && (
+                  <span className="bg-blue-950 border border-blue-400 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full">
+                    NOSOTROS
                   </span>
-                  {ourSide === "BLUE" && (
-                    <span className="bg-blue-950 border border-blue-400/50 text-blue-300 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full shrink-0">
-                      NOSOTROS
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] font-mono text-zinc-400 font-bold shrink-0">
-                  {bluePicks.filter(Boolean).length}/5
+                )}
+                <span className="text-xs font-mono text-zinc-400 font-bold">
+                  ({bluePicks.filter(Boolean).length}/5 Picks)
                 </span>
               </div>
 
-              {/* Bans Lado Azul (5 Slots) */}
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 uppercase tracking-wider mb-1 font-bold">
-                  <span>Bans Azul (B1-B5):</span>
-                  <span className="text-zinc-600">FASE DE BLOQUEO</span>
-                </div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {blueBans.map((ban, idx) => {
-                    const isActive =
-                      activeSlot.side === "blue" &&
-                      activeSlot.type === "ban" &&
-                      activeSlot.index === idx;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveSlot({ side: "blue", type: "ban", index: idx })}
-                        className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
-                          isActive
-                            ? "border-blue-400 ring-2 ring-blue-400 bg-blue-950/60 shadow-[0_0_15px_rgba(59,130,246,0.6)] scale-105"
-                            : ban
-                            ? "border-blue-900/60 bg-zinc-900"
-                            : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700"
-                        }`}
-                      >
-                        {ban ? (
-                          <>
-                            <img
-                              src={getChampionAvatar(ban)}
-                              alt={ban}
-                              className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
-                            />
-                            <div className="absolute inset-0 bg-blue-950/40 flex items-center justify-center">
-                              <span className="text-blue-400 font-bold text-xs">✕</span>
-                            </div>
-                            <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7px] text-zinc-300 font-mono truncate text-center px-0.5 leading-tight">
-                              {ban}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-[9px] font-mono text-zinc-600 font-bold">
-                            B{idx + 1}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Picks Lado Azul (5 Slots B1 - B5) */}
-              <div className="space-y-1.5">
-                <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block font-bold mb-1">
-                  Picks Lado Azul (B1 - B5):
-                </span>
-                {bluePicks.map((pick, idx) => {
-                  const isActive =
-                    activeSlot.side === "blue" &&
-                    activeSlot.type === "pick" &&
-                    activeSlot.index === idx;
-                  const champ = findChampion(pick);
-                  const isCounter =
-                    ourSide === "RED" &&
-                    pick &&
-                    currentComp.counters_campeones.some(
-                      (c) => c.toLowerCase() === pick.toLowerCase()
-                    );
-
+              {/* Bans Azul (5 Slots compactos) */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase mr-1">Bans:</span>
+                {blueBans.map((ban, idx) => {
+                  const isActive = activeSlot.side === "blue" && activeSlot.type === "ban" && activeSlot.index === idx;
                   return (
-                    <div
+                    <button
                       key={idx}
-                      onClick={() => setActiveSlot({ side: "blue", type: "pick", index: idx })}
-                      className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
+                      type="button"
+                      onClick={() => setActiveSlot({ side: "blue", type: "ban", index: idx })}
+                      className={`h-8 w-8 rounded-lg border overflow-hidden transition-all relative ${
                         isActive
-                          ? "border-blue-400 bg-blue-950/60 ring-2 ring-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.4)] -translate-y-0.5"
-                          : isCounter
-                          ? "border-rose-500 bg-rose-950/20"
-                          : pick
-                          ? "border-zinc-800 bg-zinc-900/90 hover:border-zinc-700"
-                          : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                          ? "border-blue-400 ring-2 ring-blue-400 bg-blue-950 scale-105"
+                          : ban
+                          ? "border-blue-900/60 bg-zinc-900"
+                          : "border-dashed border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
                       }`}
+                      title={ban ? `Ban: ${ban}` : `Asignar Ban Azul #${idx + 1}`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono font-black text-blue-400 w-6 shrink-0">
-                          B{idx + 1}
-                        </span>
-                        {pick ? (
-                          <>
-                            <img
-                              src={getChampionAvatar(pick)}
-                              alt={pick}
-                              className="h-9 w-9 rounded-lg border border-blue-500/50 object-cover shrink-0 shadow"
-                            />
-                            <div className="min-w-0 truncate">
-                              <div className="flex items-center gap-1">
-                                <span className="font-bold text-xs text-white truncate">
-                                  {champ ? champ.name : pick}
-                                </span>
-                                {isCounter && (
-                                  <span className="bg-rose-600 text-white text-[8px] font-bold px-1 rounded">
-                                    COUNTER
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[9px] text-zinc-400 font-mono block">
-                                {champ?.category || "Champion"}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-[11px] text-zinc-500 font-mono italic truncate">
-                            {isActive ? "👉 Seleccionando..." : "Click para asignar B" + (idx + 1)}
-                          </span>
-                        )}
-                      </div>
+                      {ban ? (
+                        <>
+                          <img src={getChampionAvatar(ban)} alt={ban} className="w-full h-full object-cover grayscale brightness-75" />
+                          <div className="absolute inset-0 bg-blue-950/50 flex items-center justify-center">
+                            <span className="text-blue-400 font-bold text-[10px]">✕</span>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-[9px] font-mono text-zinc-600 font-bold">B{idx + 1}</span>
+                      )}
+                    </button>
+                  );
+                })}
 
-                      {pick && (
+                {/* Mini Balance Daño Azul */}
+                <div className="ml-3 pl-3 border-l border-blue-900/40 text-[10px] font-mono hidden md:flex items-center gap-1.5">
+                  <span className="text-amber-400 font-bold">{blueMetrics.adPercent}% AD</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-sky-400 font-bold">{blueMetrics.apPercent}% AP</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5 Cartas GRANDES Horizontales de Picks Azul (B1 - B5) */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+              {bluePicks.map((pick, idx) => {
+                const isActive = activeSlot.side === "blue" && activeSlot.type === "pick" && activeSlot.index === idx;
+                const champ = findChampion(pick);
+                const isPhaseOneSlot = idx < 3;
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setActiveSlot({ side: "blue", type: "pick", index: idx })}
+                    className={`rounded-xl border-2 p-2.5 flex flex-col justify-between cursor-pointer transition-all relative min-h-[110px] ${
+                      isActive
+                        ? "border-blue-400 bg-blue-950/60 ring-2 ring-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.5)] -translate-y-1"
+                        : pick
+                        ? "border-blue-900/50 bg-zinc-900/90 hover:border-blue-500/60"
+                        : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                    }`}
+                  >
+                    {/* Header del Slot */}
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                      <span className="text-blue-400">PICK B{idx + 1}</span>
+                      <span className={`text-[8px] px-1 rounded uppercase ${
+                        isPhaseOneSlot ? "bg-emerald-950 text-emerald-300" : "bg-purple-950 text-purple-300"
+                      }`}>
+                        {isPhaseOneSlot ? "Fase 1" : "Fase 2"}
+                      </span>
+                    </div>
+
+                    {/* Contenido del Pick: Avatar Grande + Nombre */}
+                    {pick ? (
+                      <div className="flex items-center gap-2.5 my-auto">
+                        <img
+                          src={getChampionAvatar(pick)}
+                          alt={pick}
+                          className="h-12 w-12 rounded-xl border border-blue-400/60 object-cover shadow-lg shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 truncate">
+                          <span className="font-display font-black text-sm text-white block truncate">
+                            {champ ? champ.name : pick}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono block">
+                            {champ?.roles.join(" • ") || champ?.category || "Champion"}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="my-auto text-center py-2">
+                        <span className="text-xs font-mono text-zinc-500 italic block">
+                          {isActive ? "👉 Selecciona abajo" : `+ Clic para B${idx + 1}`}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Footer / Botón Limpiar */}
+                    {pick && (
+                      <div className="flex justify-end pt-1 border-t border-blue-900/20">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleClearSlot("blue", "pick", idx);
                           }}
-                          className="text-zinc-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/30 transition-colors text-xs"
+                          className="text-zinc-500 hover:text-rose-400 text-[10px] font-mono flex items-center gap-1 transition-colors"
                           title="Quitar campeón"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-2.5 w-2.5" />
+                          <span>Quitar</span>
                         </button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Card de Análisis Táctico Azul en Tiempo Real */}
-              <div className="mt-3 pt-3 border-t border-blue-900/30 space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-zinc-400 font-bold uppercase">Balance de Daño:</span>
-                  <span className="font-bold text-white">
-                    <span className="text-amber-400">{blueMetrics.adPercent}% AD</span> •{" "}
-                    <span className="text-sky-400">{blueMetrics.apPercent}% AP</span>
-                    {blueMetrics.truePercent > 0 && <span className="text-purple-300"> • {blueMetrics.truePercent}% True</span>}
-                  </span>
-                </div>
-
-                {/* Barra Tri-Color de Daño */}
-                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${blueMetrics.adPercent}%` }} className="bg-amber-500 transition-all duration-500" title={`AD: ${blueMetrics.adPercent}%`} />
-                  <div style={{ width: `${blueMetrics.apPercent}%` }} className="bg-sky-500 transition-all duration-500" title={`AP: ${blueMetrics.apPercent}%`} />
-                  <div style={{ width: `${blueMetrics.truePercent}%` }} className="bg-purple-400 transition-all duration-500" title={`True: ${blueMetrics.truePercent}%`} />
-                </div>
-
-                {/* Alerta de Daño */}
-                {blueMetrics.damageWarning.severity !== "ok" && (
-                  <div className={`px-2 py-1 rounded text-[9px] font-mono font-bold flex items-center gap-1.5 ${
-                    blueMetrics.damageWarning.severity === "danger"
-                      ? "bg-rose-950/80 border border-rose-500/60 text-rose-300 animate-pulse"
-                      : "bg-amber-950/80 border border-amber-500/60 text-amber-300"
-                  }`}>
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{blueMetrics.damageWarning.text}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                {/* Radar Táctico Compacto */}
-                <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Iniciación:</span>
-                      <span className="font-bold text-white">{blueMetrics.engageScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${blueMetrics.engageScore}%` }} className="h-full bg-blue-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Disengage:</span>
-                      <span className="font-bold text-white">{blueMetrics.disengageScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${blueMetrics.disengageScore}%` }} className="h-full bg-emerald-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Frontline:</span>
-                      <span className="font-bold text-white">{blueMetrics.frontlineScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${blueMetrics.frontlineScore}%` }} className="h-full bg-amber-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Waveclear:</span>
-                      <span className="font-bold text-white">{blueMetrics.waveclearScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${blueMetrics.waveclearScore}%` }} className="h-full bg-purple-500 rounded" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
-                  <span>Tempo: <strong className="text-zinc-200">{blueMetrics.tempoLabel.split("(")[0]}</strong></span>
-                  <span className="text-purple-300 font-bold">{blueMetrics.winCondition}</span>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
 
           {/* ===================================================================== */}
-          {/* COLUMNA CENTRAL: EL CORAZÓN TÁCTICO & 5 COLUMNAS VERTICALES (6 COLS)  */}
+          {/* BARRA CENTRAL DE TURNO & SECUENCIA BROADCAST                           */}
           {/* ===================================================================== */}
-          <div className="lg:col-span-6 flex flex-col space-y-3">
-            {/* HUD SUPERIOR: CONTROLADOR DE TURNO ACTIVO & ALERTAS */}
-            <div className="bg-zinc-950 border border-purple-900/50 rounded-2xl p-3 shadow-xl space-y-2">
-              <div className="flex items-center justify-between gap-2">
-                {/* Botón Turno Anterior */}
-                <button
-                  type="button"
-                  onClick={handlePrevTurnStep}
-                  title="Ir al turno anterior"
-                  className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-xs font-bold transition-colors flex items-center gap-1"
-                >
-                  <ChevronLeft className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Ant.</span>
-                </button>
+          <div className="bg-zinc-900/90 border border-purple-900/50 rounded-xl p-2.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+            {/* Botón Turno Anterior */}
+            <button
+              type="button"
+              onClick={handlePrevTurnStep}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>Turno Ant.</span>
+            </button>
 
-                {/* Banner de Turno Actual */}
-                <div className="flex-1 flex items-center justify-center gap-2 text-center min-w-0">
-                  {currentTurnStep ? (
-                    <div className={`px-3 py-1 rounded-xl border flex items-center gap-2 truncate ${
-                      currentTurnStep.side === "blue"
-                        ? "bg-blue-950/80 border-blue-500 text-blue-200"
-                        : "bg-rose-950/80 border-rose-500 text-rose-200"
-                    }`}>
-                      <span className={`h-2 w-2 rounded-full animate-ping shrink-0 ${
-                        currentTurnStep.side === "blue" ? "bg-blue-400" : "bg-rose-400"
-                      }`} />
-                      <span className="text-[10px] font-mono uppercase font-bold text-zinc-300">
-                        {currentTurnStep.ourTurn ? "★ TU TURNO:" : "TURNO RIVAL:"}
-                      </span>
-                      <span className="font-display font-black text-xs uppercase tracking-wide truncate">
-                        {currentTurnStep.label}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-xs font-mono text-emerald-400 font-bold">
-                      ✓ DRAFT COMPLETADO
-                    </span>
-                  )}
-
-                  {/* Temporizador Drafter.lol en Directo */}
-                  {drafterSyncStatus === "connected" && typeof drafterLiveTime === "number" && (
-                    <div
-                      title="Tiempo oficial restante del turno en Drafter.lol"
-                      className={`px-2.5 py-1 rounded-xl border font-mono font-black text-xs flex items-center gap-1.5 shrink-0 transition-all ${
-                        drafterLiveTime <= 10
-                          ? "bg-rose-950 border-rose-500 text-rose-300 animate-pulse shadow-[0_0_12px_rgba(244,63,94,0.6)]"
-                          : drafterLiveTime <= 20
-                          ? "bg-amber-950 border-amber-500 text-amber-300"
-                          : "bg-purple-950 border-purple-500 text-purple-200"
-                      }`}
-                    >
-                      <Radio className="h-3 w-3 animate-pulse" />
-                      <span>{drafterLiveTime}s</span>
-                    </div>
-                  )}
-
-                  {/* Indicador Slot Activo */}
-                  <span className={`text-[10px] font-mono px-2 py-0.5 rounded border font-bold shrink-0 ${
-                    activeSlot.side === "blue"
-                      ? "bg-blue-950 text-blue-300 border-blue-500/40"
-                      : "bg-rose-950 text-rose-300 border-rose-500/40"
-                  }`}>
-                    SLOT: {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+            {/* Banner Central de Turno */}
+            <div className="flex-1 flex flex-wrap items-center justify-center gap-2.5 text-center min-w-0">
+              {currentTurnStep ? (
+                <div className={`px-4 py-1.5 rounded-xl border flex items-center gap-2 shadow-lg ${
+                  currentTurnStep.side === "blue"
+                    ? "bg-blue-950 border-blue-400 text-blue-100 shadow-blue-950/50"
+                    : "bg-rose-950 border-rose-400 text-rose-100 shadow-rose-950/50"
+                }`}>
+                  <span className={`h-2.5 w-2.5 rounded-full animate-ping shrink-0 ${
+                    currentTurnStep.side === "blue" ? "bg-blue-400" : "bg-rose-400"
+                  }`} />
+                  <span className="font-mono text-xs uppercase font-bold text-zinc-300">
+                    {currentTurnStep.ourTurn ? "★ TU TURNO:" : "TURNO RIVAL:"}
+                  </span>
+                  <span className="font-display font-black text-sm uppercase tracking-wide">
+                    {currentTurnStep.label}
                   </span>
                 </div>
-
-                {/* Botón Siguiente Turno */}
-                <button
-                  type="button"
-                  onClick={handleNextTurnStep}
-                  title="Ir al siguiente turno"
-                  className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-xs font-bold transition-colors flex items-center gap-1"
-                >
-                  <span className="hidden sm:inline">Sig.</span>
-                  <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              {/* Alerta de Counters Detectados */}
-              {enemyCountersDetected.length > 0 && (
-                <div className="bg-rose-950/40 border border-rose-500/60 rounded-xl p-2 flex items-center gap-2 animate-pulse">
-                  <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
-                  <span className="text-[10px] text-rose-200 font-mono truncate flex-1">
-                    <strong>¡ALERTA!</strong> Rival pickeó {enemyCountersDetected.length} counter(s): {enemyCountersDetected.join(", ")}
-                  </span>
-                </div>
+              ) : (
+                <span className="text-xs font-mono text-emerald-400 font-bold bg-emerald-950 px-3 py-1 rounded-lg border border-emerald-500/40">
+                  ✓ DRAFT OFICIAL COMPLETADO
+                </span>
               )}
+
+              {/* Indicador de Slot Seleccionado */}
+              <span className={`text-[11px] font-mono px-2.5 py-1 rounded-lg border font-bold shrink-0 ${
+                activeSlot.side === "blue"
+                  ? "bg-blue-950 text-blue-300 border-blue-500/50"
+                  : "bg-rose-950 text-rose-300 border-rose-500/50"
+              }`}>
+                SLOT ACTIVO: {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+              </span>
             </div>
 
-            {/* COMPANION TÁCTICO: 5 CARRILES • RADAR DE COMPO • COUNTERS & BANS */}
-            <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-3 shadow-2xl space-y-3">
-              {/* Header con Switcher de Modos Tácticos */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-zinc-800">
-                <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-zinc-800">
-                  <button
-                    type="button"
-                    onClick={() => setCompanionView("lanes")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                      companionView === "lanes"
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <Crosshair className="h-3.5 w-3.5" />
-                    <span>5 Carriles ({currentComp.nombre})</span>
-                  </button>
+            {/* Botón Siguiente Turno */}
+            <button
+              type="button"
+              onClick={handleNextTurnStep}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-mono text-xs font-bold transition-all flex items-center gap-1 shrink-0"
+            >
+              <span>Siguiente</span>
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setCompanionView("analysis")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                      companionView === "analysis"
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <BarChart3 className="h-3.5 w-3.5" />
-                    <span>Radar & Comparativa</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setCompanionView("counters_bans")}
-                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
-                      companionView === "counters_bans"
-                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
-                        : "text-zinc-400 hover:text-white"
-                    }`}
-                  >
-                    <ShieldAlert className="h-3.5 w-3.5" />
-                    <span>Counters & Bans ({rosterCounters.length})</span>
-                  </button>
-                </div>
-
-                <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">
-                  Click para lockear en {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+          {/* ===================================================================== */}
+          {/* FILA INFERIOR: LADO ROJO (PICKS GRANDES R1 - R5)                      */}
+          {/* ===================================================================== */}
+          <div className={`p-3.5 rounded-2xl border-2 transition-all ${
+            ourSide === "RED"
+              ? "bg-rose-950/20 border-rose-500/70 shadow-lg shadow-rose-950/30"
+              : "bg-zinc-900/40 border-zinc-800"
+          }`}>
+            {/* Header Lado Rojo: Nombre + Bans + Daño */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 mb-3 border-b border-rose-900/40">
+              <div className="flex items-center gap-2">
+                <span className="h-3 w-3 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse" />
+                <span className="font-display font-black text-sm uppercase text-rose-400 tracking-wider">
+                  {ourSide === "RED" ? "VOID LYNX (ROJO)" : `${rivalName || "RIVAL"} (ROJO)`}
+                </span>
+                {ourSide === "RED" && (
+                  <span className="bg-rose-950 border border-rose-400 text-rose-300 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full">
+                    NOSOTROS
+                  </span>
+                )}
+                <span className="text-xs font-mono text-zinc-400 font-bold">
+                  ({redPicks.filter(Boolean).length}/5 Picks)
                 </span>
               </div>
 
-              {/* VISTA 1: LAS 5 COLUMNAS VERTICALES EN PARALELO (TOP - JNGL - MID - ADC - SUPP) */}
-              {companionView === "lanes" && (
-                <div className="grid grid-cols-5 gap-1.5 sm:gap-2 items-stretch">
-                {VERTICAL_BOARD_ROLES.map((laneConfig) => {
-                  const roleData = getRoleChampsForComp(currentComp.nombre, laneConfig.role, laneConfig.player);
-                  const prio = currentComp.role_priorities?.[laneConfig.role] || "Media";
-
-                  const roleWarnings = (currentComp.no_first_pick_reasons || []).filter((w) => {
-                    const champ = findChampion(w.champ);
-                    if (champ && champ.roles.includes(laneConfig.role)) return true;
-                    return [...roleData.S, ...roleData.A, ...roleData.B].some(
-                      (e) => e.campeon_id.toLowerCase() === w.champ.toLowerCase()
-                    );
-                  });
-
-                  const displayRoleName = laneConfig.role === "JGL" ? "JNGL" : laneConfig.role;
-                  const isAlta = prio === "Alta";
-                  const isMedia = prio === "Media";
-
+              {/* Bans Rojo (5 Slots compactos) */}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-mono text-zinc-400 font-bold uppercase mr-1">Bans:</span>
+                {redBans.map((ban, idx) => {
+                  const isActive = activeSlot.side === "red" && activeSlot.type === "ban" && activeSlot.index === idx;
                   return (
-                    <div
-                      key={laneConfig.role}
-                      className={`rounded-xl border bg-zinc-950/90 flex flex-col justify-between overflow-hidden shadow transition-all ${
-                        isAlta
-                          ? "border-emerald-500/50"
-                          : isMedia
-                          ? "border-amber-500/50"
-                          : "border-purple-500/50"
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setActiveSlot({ side: "red", type: "ban", index: idx })}
+                      className={`h-8 w-8 rounded-lg border overflow-hidden transition-all relative ${
+                        isActive
+                          ? "border-rose-400 ring-2 ring-rose-400 bg-rose-950 scale-105"
+                          : ban
+                          ? "border-rose-900/60 bg-zinc-900"
+                          : "border-dashed border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
                       }`}
+                      title={ban ? `Ban: ${ban}` : `Asignar Ban Rojo #${idx + 1}`}
                     >
-                      <div>
-                        {/* Cabecera del Rol */}
-                        <div className="p-1.5 bg-zinc-900/70 border-b border-zinc-800 text-center">
-                          <div className="flex items-center justify-center gap-1 mb-0.5">
-                            <RoleIconOnly role={laneConfig.role} size="sm" />
-                            <span className="font-mono font-black text-[10px] text-white uppercase">
-                              {displayRoleName}
-                            </span>
+                      {ban ? (
+                        <>
+                          <img src={getChampionAvatar(ban)} alt={ban} className="w-full h-full object-cover grayscale brightness-75" />
+                          <div className="absolute inset-0 bg-rose-950/50 flex items-center justify-center">
+                            <span className="text-rose-400 font-bold text-[10px]">✕</span>
                           </div>
-                          <span className="text-[9px] font-mono text-zinc-400 block truncate">
-                            {laneConfig.player}
-                          </span>
-                          <span className={`inline-block mt-0.5 px-1 py-0.1 rounded text-[8px] font-mono font-bold uppercase ${
-                            isAlta
-                              ? "bg-emerald-950 text-emerald-300 border border-emerald-500/30"
-                              : isMedia
-                              ? "bg-amber-950 text-amber-300 border border-amber-500/30"
-                              : "bg-purple-950 text-purple-300 border border-purple-500/30"
-                          }`}>
-                            {prio}
-                          </span>
-                        </div>
-
-                        {/* Listado de Tiers (S, A, B) */}
-                        <div className="p-1 space-y-1.5">
-                          {[
-                            { name: "S", list: roleData.S, color: "text-amber-400 bg-amber-500/20 border-amber-500/40" },
-                            { name: "A", list: roleData.A, color: "text-purple-300 bg-purple-500/20 border-purple-500/40" },
-                            { name: "B", list: roleData.B, color: "text-sky-300 bg-sky-500/20 border-sky-500/40" },
-                          ].map(({ name, list, color }) => (
-                            <div key={name} className="space-y-0.5">
-                              <div className="flex items-center justify-between text-[8px] font-mono px-1">
-                                <span className={`font-black px-1 rounded border ${color}`}>
-                                  T{name}
-                                </span>
-                                <span className="text-zinc-500">({list.length})</span>
-                              </div>
-
-                              {list.length === 0 ? (
-                                <div className="text-[8px] text-zinc-600 italic text-center py-0.5">-</div>
-                              ) : (
-                                <div className="space-y-1">
-                                  {list.map((entry) => {
-                                    const tag = entry.pick_tag || (entry.is_first_pickable ? "FP" : undefined);
-                                    const isUsed = allUsedChampions.has(entry.campeon_id.toLowerCase());
-                                    const isFP = tag === "FP";
-                                    const isLP = tag === "LP";
-                                    const isRisky = tag === "Risky";
-
-                                    return (
-                                      <button
-                                        key={entry.id}
-                                        type="button"
-                                        disabled={isUsed}
-                                        onClick={() => handleLockChampion(entry.campeon_id)}
-                                        title={
-                                          isUsed
-                                            ? `${entry.campeon_id} ya está en la mesa`
-                                            : `Lockear ${entry.campeon_id} en ${activeSlot.side.toUpperCase()} ${activeSlot.type.toUpperCase()} #${activeSlot.index + 1}`
-                                        }
-                                        className={`w-full flex items-center gap-1.5 p-1 rounded-lg border text-left transition-all cursor-pointer ${
-                                          isUsed
-                                            ? "bg-zinc-900/40 border-zinc-800 opacity-40 cursor-not-allowed"
-                                            : "bg-zinc-900/70 hover:bg-zinc-800 border-zinc-800 hover:border-purple-400 shadow-sm active:scale-95"
-                                        }`}
-                                      >
-                                        <div className="relative shrink-0">
-                                          <img
-                                            src={getChampionAvatar(entry.campeon_id)}
-                                            alt={entry.campeon_id}
-                                            className={`h-7 w-7 rounded-md object-cover ${
-                                              isUsed
-                                                ? "grayscale border border-zinc-700"
-                                                : isFP
-                                                ? "border border-emerald-400"
-                                                : isLP
-                                                ? "border border-purple-400"
-                                                : isRisky
-                                                ? "border border-amber-400"
-                                                : "border border-zinc-700"
-                                            }`}
-                                          />
-                                          {isUsed ? (
-                                            <span className="absolute -top-1 -right-1 px-0.5 py-0 rounded bg-emerald-600 text-white text-[6px] font-mono font-bold leading-none">
-                                              ✓
-                                            </span>
-                                          ) : isFP ? (
-                                            <span className="absolute -top-1 -right-1 px-0.5 py-0 rounded bg-emerald-500 text-black text-[7px] font-mono font-black leading-none">
-                                              FP
-                                            </span>
-                                          ) : isLP ? (
-                                            <span className="absolute -top-1 -right-1 px-0.5 py-0 rounded bg-purple-600 text-white text-[7px] font-mono font-black leading-none">
-                                              LP
-                                            </span>
-                                          ) : isRisky ? (
-                                            <span className="absolute -top-1 -right-1 px-0.5 py-0 rounded bg-amber-500 text-black text-[7px] font-mono font-black leading-none">
-                                              R
-                                            </span>
-                                          ) : null}
-                                        </div>
-
-                                        <span className="text-[10px] font-bold text-zinc-200 group-hover:text-white truncate flex-1 leading-tight">
-                                          {entry.campeon_id}
-                                        </span>
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Warnings / Intel rápido */}
-                      {roleWarnings.length > 0 && roleWarnings[0] && (
-                        <div className="p-1 m-1 rounded bg-rose-950/20 border border-rose-500/30 text-[7px] font-mono text-zinc-300 truncate">
-                          <strong className="text-rose-400">{roleWarnings[0].champ}:</strong> {roleWarnings[0].reason}
-                        </div>
+                        </>
+                      ) : (
+                        <span className="text-[9px] font-mono text-zinc-600 font-bold">R{idx + 1}</span>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
-              {/* VISTA 1 END */}
-                </div>
-              )}
 
-              {/* VISTA 2: RADAR & COMPARATIVA TÁCTICA FRENTE A FRENTE */}
-              {companionView === "analysis" && (
-                <div className="space-y-3 p-1">
-                  {/* Tarjeta de Comparativa de Daño */}
-                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono font-bold">
-                      <span className="text-purple-300 flex items-center gap-1.5">
-                        <Flame className="h-4 w-4 text-amber-400" />
-                        COMPARATIVA DE BALANCE DE DAÑO
+                {/* Mini Balance Daño Rojo */}
+                <div className="ml-3 pl-3 border-l border-rose-900/40 text-[10px] font-mono hidden md:flex items-center gap-1.5">
+                  <span className="text-amber-400 font-bold">{redMetrics.adPercent}% AD</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-sky-400 font-bold">{redMetrics.apPercent}% AP</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 5 Cartas GRANDES Horizontales de Picks Rojo (R1 - R5) */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
+              {redPicks.map((pick, idx) => {
+                const isActive = activeSlot.side === "red" && activeSlot.type === "pick" && activeSlot.index === idx;
+                const champ = findChampion(pick);
+                const isPhaseOneSlot = idx < 3;
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setActiveSlot({ side: "red", type: "pick", index: idx })}
+                    className={`rounded-xl border-2 p-2.5 flex flex-col justify-between cursor-pointer transition-all relative min-h-[110px] ${
+                      isActive
+                        ? "border-rose-400 bg-rose-950/60 ring-2 ring-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.5)] -translate-y-1"
+                        : pick
+                        ? "border-rose-900/50 bg-zinc-900/90 hover:border-rose-500/60"
+                        : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                    }`}
+                  >
+                    {/* Header del Slot */}
+                    <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                      <span className="text-rose-400">PICK R{idx + 1}</span>
+                      <span className={`text-[8px] px-1 rounded uppercase ${
+                        isPhaseOneSlot ? "bg-emerald-950 text-emerald-300" : "bg-purple-950 text-purple-300"
+                      }`}>
+                        {isPhaseOneSlot ? "Fase 1" : "Fase 2"}
                       </span>
-                      <span className="text-[10px] text-zinc-400">Void Lynx vs {rivalName}</span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      {/* Void Lynx Daño */}
-                      <div className="space-y-1 bg-black/40 p-2 rounded-lg border border-purple-900/30">
-                        <div className="flex justify-between text-[11px] font-mono">
-                          <span className="text-purple-400 font-bold">VOID LYNX</span>
-                          <span className="text-zinc-300">
-                            <span className="text-amber-400">{ourMetrics.adPercent}% AD</span> •{" "}
-                            <span className="text-sky-400">{ourMetrics.apPercent}% AP</span>
-                            {ourMetrics.truePercent > 0 && <span className="text-purple-300"> • {ourMetrics.truePercent}% True</span>}
+                    {/* Contenido del Pick: Avatar Grande + Nombre */}
+                    {pick ? (
+                      <div className="flex items-center gap-2.5 my-auto">
+                        <img
+                          src={getChampionAvatar(pick)}
+                          alt={pick}
+                          className="h-12 w-12 rounded-xl border border-rose-400/60 object-cover shadow-lg shrink-0"
+                        />
+                        <div className="min-w-0 flex-1 truncate">
+                          <span className="font-display font-black text-sm text-white block truncate">
+                            {champ ? champ.name : pick}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono block">
+                            {champ?.roles.join(" • ") || champ?.category || "Champion"}
                           </span>
                         </div>
-                        <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex">
-                          <div style={{ width: `${ourMetrics.adPercent}%` }} className="bg-amber-500" />
-                          <div style={{ width: `${ourMetrics.apPercent}%` }} className="bg-sky-500" />
-                          <div style={{ width: `${ourMetrics.truePercent}%` }} className="bg-purple-400" />
-                        </div>
-                        <span className={`text-[9px] font-mono block ${ourMetrics.damageWarning.severity === "danger" ? "text-rose-400" : ourMetrics.damageWarning.severity === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
-                          {ourMetrics.damageWarning.text}
-                        </span>
-                      </div>
-
-                      {/* Rival Daño */}
-                      <div className="space-y-1 bg-black/40 p-2 rounded-lg border border-rose-900/30">
-                        <div className="flex justify-between text-[11px] font-mono">
-                          <span className="text-rose-400 font-bold">{rivalName}</span>
-                          <span className="text-zinc-300">
-                            <span className="text-amber-400">{enemyMetrics.adPercent}% AD</span> •{" "}
-                            <span className="text-sky-400">{enemyMetrics.apPercent}% AP</span>
-                            {enemyMetrics.truePercent > 0 && <span className="text-purple-300"> • {enemyMetrics.truePercent}% True</span>}
-                          </span>
-                        </div>
-                        <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex">
-                          <div style={{ width: `${enemyMetrics.adPercent}%` }} className="bg-amber-500" />
-                          <div style={{ width: `${enemyMetrics.apPercent}%` }} className="bg-sky-500" />
-                          <div style={{ width: `${enemyMetrics.truePercent}%` }} className="bg-purple-400" />
-                        </div>
-                        <span className={`text-[9px] font-mono block ${enemyMetrics.damageWarning.severity === "danger" ? "text-rose-400" : enemyMetrics.damageWarning.severity === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
-                          {enemyMetrics.damageWarning.text}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Comparativa de Atributos Tácticos (Radar en Barras) */}
-                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2.5">
-                    <div className="flex items-center justify-between text-xs font-mono font-bold text-zinc-300">
-                      <span className="flex items-center gap-1.5">
-                        <Activity className="h-4 w-4 text-purple-400" />
-                        ATRIBUTOS & CAPACIDADES DE PELEA
-                      </span>
-                      <span className="text-[10px] text-zinc-400">Escala 0 a 100</span>
-                    </div>
-
-                    <div className="space-y-2">
-                      {[
-                        { label: "Iniciación (Engage)", our: ourMetrics.engageScore, enemy: enemyMetrics.engageScore, ourColor: "bg-blue-500", enemyColor: "bg-rose-500" },
-                        { label: "Disengage & Peel", our: ourMetrics.disengageScore, enemy: enemyMetrics.disengageScore, ourColor: "bg-emerald-500", enemyColor: "bg-amber-500" },
-                        { label: "Frontline / Tanques", our: ourMetrics.frontlineScore, enemy: enemyMetrics.frontlineScore, ourColor: "bg-amber-500", enemyColor: "bg-rose-400" },
-                        { label: "Waveclear / Asedio", our: ourMetrics.waveclearScore, enemy: enemyMetrics.waveclearScore, ourColor: "bg-purple-500", enemyColor: "bg-sky-500" },
-                        { label: "Control de Masas (CC)", our: ourMetrics.ccScore, enemy: enemyMetrics.ccScore, ourColor: "bg-sky-500", enemyColor: "bg-rose-500" },
-                      ].map((stat) => {
-                        const diff = stat.our - stat.enemy;
-                        return (
-                          <div key={stat.label} className="bg-black/40 p-2 rounded-lg border border-zinc-800/80">
-                            <div className="flex items-center justify-between text-[10px] font-mono mb-1">
-                              <span className="font-bold text-white">{stat.label}</span>
-                              <div className="flex items-center gap-2">
-                                <span className="text-purple-300 font-bold">VL: {stat.our}%</span>
-                                <span className="text-zinc-600">vs</span>
-                                <span className="text-rose-300 font-bold">RIV: {stat.enemy}%</span>
-                                <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${diff > 0 ? "bg-emerald-950 text-emerald-300 border border-emerald-500/30" : diff < 0 ? "bg-rose-950 text-rose-300 border border-rose-500/30" : "text-zinc-500"}`}>
-                                  {diff > 0 ? `+${diff}% VL` : diff < 0 ? `${diff}% RIV` : "="}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-                                <div style={{ width: `${stat.our}%` }} className={`h-full ${stat.ourColor} rounded-full transition-all duration-500`} />
-                              </div>
-                              <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-                                <div style={{ width: `${stat.enemy}%` }} className={`h-full ${stat.enemyColor} rounded-full transition-all duration-500`} />
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Diagnóstico de Tempo & Condición de Victoria */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-300">
-                        <TrendingUp className="h-4 w-4 text-emerald-400" />
-                        <span>TEMPO & CURVA DE PODER</span>
-                      </div>
-                      <div className="space-y-1 text-[10px] font-mono">
-                        <div className="flex justify-between text-zinc-300">
-                          <span>Void Lynx:</span>
-                          <span className="text-emerald-400 font-bold">{ourMetrics.tempoLabel}</span>
-                        </div>
-                        <div className="flex justify-between text-zinc-300">
-                          <span>Rival:</span>
-                          <span className="text-rose-400 font-bold">{enemyMetrics.tempoLabel}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-1.5">
-                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-300">
-                        <Gauge className="h-4 w-4 text-sky-400" />
-                        <span>CONDICIÓN DE VICTORIA</span>
-                      </div>
-                      <div className="space-y-1 text-[10px] font-mono">
-                        <div className="flex justify-between text-zinc-300">
-                          <span>Void Lynx:</span>
-                          <span className="text-purple-300 font-bold">{ourMetrics.winCondition}</span>
-                        </div>
-                        <div className="flex justify-between text-zinc-300">
-                          <span>Rival:</span>
-                          <span className="text-amber-300 font-bold">{enemyMetrics.winCondition}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Fortalezas y Advertencias */}
-                  {(ourMetrics.strengths.length > 0 || ourMetrics.warnings.length > 0) && (
-                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2 text-xs font-mono">
-                      <div className="text-[10px] uppercase font-bold text-zinc-400">Dictamen del Asistente para el Staff:</div>
-                      <div className="space-y-1">
-                        {ourMetrics.strengths.map((str, i) => (
-                          <div key={i} className="flex items-center gap-1.5 text-[10px] text-emerald-300">
-                            <Check className="h-3 w-3 text-emerald-400 shrink-0" />
-                            <span>{str}</span>
-                          </div>
-                        ))}
-                        {ourMetrics.warnings.map((warn, i) => (
-                          <div key={i} className="flex items-center gap-1.5 text-[10px] text-amber-300">
-                            <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
-                            <span>{warn}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* VISTA 3: COUNTERS EN ROSTER & BANS INTELIGENTES */}
-              {companionView === "counters_bans" && (
-                <div className="space-y-3 p-1">
-                  {/* Sección 1: Counters Directos según Roster */}
-                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono font-bold">
-                      <span className="text-purple-300 flex items-center gap-1.5">
-                        <ShieldAlert className="h-4 w-4 text-emerald-400" />
-                        COUNTERS DEL ROSTER DE VOID LYNX
-                      </span>
-                      <span className="text-[10px] text-zinc-400">Basado en Picks Rivales</span>
-                    </div>
-
-                    {rosterCounters.length === 0 ? (
-                      <div className="p-4 text-center text-xs font-mono text-zinc-400 bg-black/40 rounded-lg border border-zinc-800/80">
-                        {enemyPicks.filter(Boolean).length === 0
-                          ? "Esperando picks del rival... En cuanto el rival lockee un campeón, aquí se mostrarán los counters que nuestros jugadores (Pantic, Koldo, Miniduke, Flakked, Mersa) dominan para destrozarles la línea."
-                          : "No se detectaron counters directos críticos de kit en el roster actual contra las selecciones rivales."}
                       </div>
                     ) : (
-                      <div className="space-y-2">
-                        {rosterCounters.map(({ enemyChamp, ourCounters }) => (
-                          <div key={enemyChamp} className="bg-black/50 p-2 rounded-xl border border-rose-900/40 space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <img
-                                src={getChampionAvatar(enemyChamp)}
-                                alt={enemyChamp}
-                                className="h-6 w-6 rounded border border-rose-500/60 object-cover"
-                              />
-                              <span className="text-xs font-bold font-mono text-rose-300">
-                                Rival lockeó {enemyChamp}
-                              </span>
-                              <span className="text-[9px] text-zinc-500 font-mono">
-                                — Opciones del roster de Void Lynx:
-                              </span>
-                            </div>
+                      <div className="my-auto text-center py-2">
+                        <span className="text-xs font-mono text-zinc-500 italic block">
+                          {isActive ? "👉 Selecciona abajo" : `+ Clic para R${idx + 1}`}
+                        </span>
+                      </div>
+                    )}
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                              {ourCounters.map(({ playerChamp, reason }) => (
-                                <div
-                                  key={playerChamp.id}
-                                  className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-500/40 hover:border-emerald-400 transition-all"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <img
-                                      src={getChampionAvatar(playerChamp.campeon_id)}
-                                      alt={playerChamp.campeon_id}
-                                      className="h-7 w-7 rounded object-cover border border-emerald-500/50"
-                                    />
-                                    <div className="min-w-0 truncate">
-                                      <div className="flex items-center gap-1.5">
-                                        <span className="text-xs font-bold text-white truncate">
-                                          {playerChamp.campeon_id}
-                                        </span>
-                                        <span className="text-[8px] font-mono px-1 rounded bg-purple-950 text-purple-300 border border-purple-500/30">
-                                          {playerChamp.jugador}
-                                        </span>
-                                        <span className="text-[8px] font-mono px-1 rounded bg-amber-950 text-amber-300 font-bold border border-amber-500/30">
-                                          T{playerChamp.tier}
-                                        </span>
-                                      </div>
-                                      <span className="text-[8px] text-zinc-400 font-mono truncate block">
-                                        {reason}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <button
-                                    type="button"
-                                    onClick={() => handleLockChampion(playerChamp.campeon_id)}
-                                    className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
-                                  >
-                                    Lockear
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
+                    {/* Footer / Botón Limpiar */}
+                    {pick && (
+                      <div className="flex justify-end pt-1 border-t border-rose-900/20">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClearSlot("red", "pick", idx);
+                          }}
+                          className="text-zinc-500 hover:text-rose-400 text-[10px] font-mono flex items-center gap-1 transition-colors"
+                          title="Quitar campeón"
+                        >
+                          <Trash2 className="h-2.5 w-2.5" />
+                          <span>Quitar</span>
+                        </button>
                       </div>
                     )}
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-                  {/* Sección 2: Asistente de Bans Quirúrgicos */}
-                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs font-mono font-bold">
-                      <span className="text-purple-300 flex items-center gap-1.5">
-                        <AlertTriangle className="h-4 w-4 text-amber-400" />
-                        BANS RECOMENDADOS SEGÚN FASE
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[9px] text-zinc-400 font-mono">Líneas rivales sin pickear:</span>
-                        {smartBansData.missingEnemyRoles.map((role) => (
-                          <span key={role} className="px-1.5 py-0.2 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40 text-[8px] font-mono font-bold">
-                            {role}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+        {/* ========================================================================= */}
+        {/* 4. ABAJO DE TODO: PANEL DE SELECCIÓN DE CAMPEONES                         */}
+        {/* ========================================================================= */}
+        <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-2xl space-y-3.5">
+          {/* Header con Switcher de Pestañas y Filtro de Carril */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+            {/* Pestañas Principales */}
+            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setBottomTab("adapted")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                  bottomTab === "adapted"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                <span>Adaptados a {currentComp.nombre}</span>
+              </button>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      {smartBansData.recommendedBans.map((b) => (
-                        <div
-                          key={b.champion}
-                          className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-zinc-800 hover:border-purple-500 transition-all"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <img
-                              src={getChampionAvatar(b.champion)}
-                              alt={b.champion}
-                              className="h-7 w-7 rounded object-cover border border-rose-500/50"
-                            />
-                            <div className="min-w-0 truncate">
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs font-bold text-white truncate">
-                                  {b.champion}
-                                </span>
-                                <span className="text-[8px] font-mono px-1 rounded bg-zinc-800 text-zinc-300">
-                                  {b.role}
-                                </span>
-                              </div>
-                              <span className="text-[8px] text-zinc-400 font-mono truncate block">
-                                {b.reason}
-                              </span>
-                            </div>
-                          </div>
+              <button
+                type="button"
+                onClick={() => setBottomTab("catalog")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                  bottomTab === "catalog"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Todos los Campeones</span>
+              </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleLockChampion(b.champion)}
-                            className="px-2 py-1 rounded bg-rose-700 hover:bg-rose-600 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
-                          >
-                            Banear
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setBottomTab("counters")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                  bottomTab === "counters"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <ShieldAlert className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Counters Detectados ({rosterCounters.length})</span>
+              </button>
             </div>
 
-            {/* BUSCADOR RÁPIDO DE CUALQUIER CAMPEÓN PARA PICKS OFF-META */}
-            <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-2.5 shadow space-y-2">
-              <div className="flex items-center gap-2">
-                <Search className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+            {/* Filtros de Carril [TODOS • TOP • JGL • MID • ADC • SUPP] */}
+            <div className="flex items-center gap-1">
+              {(["ALL", "TOP", "JGL", "MID", "ADC", "SUPP"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRoleFilter(r)}
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all border ${
+                    roleFilter === r
+                      ? "bg-purple-600 text-white border-purple-400"
+                      : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                  }`}
+                >
+                  {r === "ALL" ? "TODOS" : r}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ===================================================================== */}
+          {/* PESTAÑA 1: CAMPEONES ADAPTADOS A LA COMPOSICIÓN                       */}
+          {/* ===================================================================== */}
+          {bottomTab === "adapted" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
+                <span>
+                  Mostrando <strong className="text-white">{adaptedChamps.length}</strong> opciones del roster de Void Lynx para esta compo:
+                </span>
+                <span className="text-[10px]">
+                  Click en cualquier campeón para lockearlo en {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                {adaptedChamps.map(({ entry, role, player, tier, isFP, isLP, isRisky }) => {
+                  const isUsed = allUsedChampions.has(entry.campeon_id.toLowerCase());
+
+                  return (
+                    <button
+                      key={entry.id}
+                      type="button"
+                      disabled={isUsed}
+                      onClick={() => handleLockChampion(entry.campeon_id)}
+                      title={
+                        isUsed
+                          ? `${entry.campeon_id} ya está en la mesa`
+                          : `Lockear ${entry.campeon_id} en ${activeSlot.side.toUpperCase()} ${activeSlot.type.toUpperCase()} #${activeSlot.index + 1}`
+                      }
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all relative group cursor-pointer ${
+                        isUsed
+                          ? "bg-zinc-900/30 border-zinc-800 opacity-40 cursor-not-allowed"
+                          : "bg-zinc-900/70 hover:bg-zinc-850 border-zinc-800 hover:border-purple-400 shadow hover:scale-105 active:scale-95"
+                      }`}
+                    >
+                      {/* Avatar del Campeón */}
+                      <div className="relative mb-1">
+                        <img
+                          src={getChampionAvatar(entry.campeon_id)}
+                          alt={entry.campeon_id}
+                          className={`h-11 w-11 rounded-lg object-cover ${
+                            isUsed
+                              ? "grayscale"
+                              : isFP
+                              ? "border-2 border-emerald-400 ring-2 ring-emerald-500/30"
+                              : isLP
+                              ? "border-2 border-purple-400"
+                              : isRisky
+                              ? "border-2 border-amber-400"
+                              : "border border-zinc-700"
+                          }`}
+                        />
+                        {/* Badge de Fase / Tag */}
+                        {isFP ? (
+                          <span
+                            title="First Pick Seguro en Fase 1"
+                            className="absolute -top-1 -right-1 bg-emerald-500 text-black text-[7px] font-black px-1 rounded shadow"
+                          >
+                            FP
+                          </span>
+                        ) : isLP ? (
+                          <span
+                            title="Late Pick / Counter en Fase 2"
+                            className="absolute -top-1 -right-1 bg-purple-500 text-white text-[7px] font-black px-1 rounded shadow"
+                          >
+                            LP
+                          </span>
+                        ) : isRisky ? (
+                          <span
+                            title="Arriesgado a ciegas"
+                            className="absolute -top-1 -right-1 bg-amber-500 text-black text-[7px] font-black px-1 rounded shadow"
+                          >
+                            R
+                          </span>
+                        ) : null}
+
+                        {isUsed && (
+                          <div className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center">
+                            <Lock className="h-4 w-4 text-zinc-400" />
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="font-bold text-xs text-white truncate w-full">
+                        {entry.campeon_id}
+                      </span>
+
+                      <div className="flex items-center gap-1 mt-0.5 text-[8px] font-mono">
+                        <span className={`px-1 rounded font-black ${
+                          tier === "S"
+                            ? "bg-amber-950 text-amber-300 border border-amber-500/40"
+                            : tier === "A"
+                            ? "bg-purple-950 text-purple-300 border border-purple-500/40"
+                            : "bg-sky-950 text-sky-300 border border-sky-500/40"
+                        }`}>
+                          T{tier}
+                        </span>
+                        <span className="text-zinc-400 font-bold">{role}</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* PESTAÑA 2: CATÁLOGO COMPLETO DE TODOS LOS CAMPEONES                   */}
+          {/* ===================================================================== */}
+          {bottomTab === "catalog" && (
+            <div className="space-y-2.5">
+              {/* Buscador de Texto */}
+              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2">
+                <Search className="h-4 w-4 text-purple-400 shrink-0" />
                 <input
                   type="text"
-                  placeholder="¿Pick sorpresa / off-meta? Escribe el nombre aquí..."
-                  value={draftSearchInput}
-                  onChange={(e) => setDraftSearchInput(e.target.value)}
-                  className="flex-1 bg-zinc-900 border border-zinc-700 rounded px-2 py-1 text-xs text-white placeholder-zinc-500 outline-none focus:border-purple-400"
+                  placeholder="Escribe el nombre de cualquier campeón (ej: Ahri, K'Sante, Lillia)..."
+                  value={catalogSearch}
+                  onChange={(e) => setCatalogSearch(e.target.value)}
+                  className="flex-1 bg-transparent text-white font-mono text-xs outline-none placeholder-zinc-500"
                 />
-                {draftSearchInput && (
+                {catalogSearch && (
                   <button
                     type="button"
-                    onClick={() => setDraftSearchInput("")}
+                    onClick={() => setCatalogSearch("")}
                     className="text-zinc-400 hover:text-white text-xs px-1"
                   >
                     ✕
@@ -1345,280 +1088,191 @@ export function LiveDraftArenaTab({
                 )}
               </div>
 
-              {/* Tira horizontal de resultados rápidos */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
-                {(draftSearchInput.trim()
-                  ? draftSearchMatches
-                  : CHAMPIONS_CATALOG.filter((c) => !allUsedChampions.has(c.id.toLowerCase())).slice(0, 16)
-                ).map((champ) => (
-                  <button
-                    key={champ.id}
-                    type="button"
-                    onClick={() => handleLockChampion(champ.name)}
-                    className="flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-900 hover:bg-purple-950 border border-zinc-800 hover:border-purple-400 shrink-0 transition-all text-left"
-                  >
-                    <img
-                      src={getChampionAvatar(champ.id)}
-                      alt={champ.name}
-                      className="h-5 w-5 rounded object-cover"
-                    />
-                    <span className="text-[10px] font-bold text-white whitespace-nowrap">
-                      {champ.name}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* ===================================================================== */}
-          {/* COLUMNA DERECHA: LADO ROJO (3 COLS)                                   */}
-          {/* ===================================================================== */}
-          <div
-            className={`lg:col-span-3 bg-zinc-950 rounded-2xl p-3.5 border-2 shadow-xl flex flex-col justify-between transition-all ${
-              ourSide === "RED"
-                ? "border-rose-500/70 shadow-rose-950/40 ring-1 ring-rose-500/30"
-                : "border-zinc-800/90"
-            }`}
-          >
-            <div>
-              {/* Header Lado Rojo */}
-              <div className="flex items-center justify-between border-b border-rose-900/40 pb-2.5 mb-3">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500 shadow-[0_0_10px_#f43f5e] animate-pulse shrink-0" />
-                  <span className="font-display font-black text-sm tracking-wide uppercase text-rose-400 truncate">
-                    {ourSide === "RED" ? "VOID LYNX" : rivalName}
-                  </span>
-                  {ourSide === "RED" && (
-                    <span className="bg-rose-950 border border-rose-400/50 text-rose-300 text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-full shrink-0">
-                      NOSOTROS
-                    </span>
-                  )}
-                </div>
-                <span className="text-[11px] font-mono text-zinc-400 font-bold shrink-0">
-                  {redPicks.filter(Boolean).length}/5
-                </span>
-              </div>
-
-              {/* Bans Lado Rojo (5 Slots) */}
-              <div className="mb-3">
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 uppercase tracking-wider mb-1 font-bold">
-                  <span>Bans Rojo (R1-R5):</span>
-                  <span className="text-zinc-600">FASE DE BLOQUEO</span>
-                </div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {redBans.map((ban, idx) => {
-                    const isActive =
-                      activeSlot.side === "red" &&
-                      activeSlot.type === "ban" &&
-                      activeSlot.index === idx;
-                    return (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setActiveSlot({ side: "red", type: "ban", index: idx })}
-                        className={`relative aspect-square rounded-lg border flex flex-col items-center justify-center overflow-hidden transition-all group ${
-                          isActive
-                            ? "border-rose-400 ring-2 ring-rose-400 bg-rose-950/60 shadow-[0_0_15px_rgba(244,63,94,0.6)] scale-105"
-                            : ban
-                            ? "border-rose-900/60 bg-zinc-900"
-                            : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700"
-                        }`}
-                      >
-                        {ban ? (
-                          <>
-                            <img
-                              src={getChampionAvatar(ban)}
-                              alt={ban}
-                              className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 transition-all"
-                            />
-                            <div className="absolute inset-0 bg-rose-950/40 flex items-center justify-center">
-                              <span className="text-rose-400 font-bold text-xs">✕</span>
-                            </div>
-                            <span className="absolute bottom-0 inset-x-0 bg-black/80 text-[7px] text-zinc-300 font-mono truncate text-center px-0.5 leading-tight">
-                              {ban}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-[9px] font-mono text-zinc-600 font-bold">
-                            R{idx + 1}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Picks Lado Rojo (5 Slots R1 - R5) */}
-              <div className="space-y-1.5">
-                <span className="text-[9px] font-mono text-zinc-400 uppercase tracking-wider block font-bold mb-1">
-                  Picks Lado Rojo (R1 - R5):
-                </span>
-                {redPicks.map((pick, idx) => {
-                  const isActive =
-                    activeSlot.side === "red" &&
-                    activeSlot.type === "pick" &&
-                    activeSlot.index === idx;
-                  const champ = findChampion(pick);
-                  const isCounter =
-                    ourSide === "BLUE" &&
-                    pick &&
-                    currentComp.counters_campeones.some(
-                      (c) => c.toLowerCase() === pick.toLowerCase()
-                    );
+              {/* Grid Completo */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 max-h-[320px] overflow-y-auto pr-1">
+                {filteredCatalog.map((c) => {
+                  const isUsed = allUsedChampions.has(c.id.toLowerCase());
 
                   return (
-                    <div
-                      key={idx}
-                      onClick={() => setActiveSlot({ side: "red", type: "pick", index: idx })}
-                      className={`flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${
-                        isActive
-                          ? "border-rose-400 bg-rose-950/60 ring-2 ring-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)] -translate-y-0.5"
-                          : isCounter
-                          ? "border-rose-500 bg-rose-950/20"
-                          : pick
-                          ? "border-zinc-800 bg-zinc-900/90 hover:border-zinc-700"
-                          : "border-dashed border-zinc-800 bg-zinc-900/30 hover:border-zinc-700 hover:bg-zinc-900/50"
+                    <button
+                      key={c.id}
+                      type="button"
+                      disabled={isUsed}
+                      onClick={() => handleLockChampion(c.name)}
+                      className={`p-2 rounded-xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer ${
+                        isUsed
+                          ? "bg-zinc-900/30 border-zinc-800 opacity-40 cursor-not-allowed"
+                          : "bg-zinc-900/70 hover:bg-zinc-800 border-zinc-800 hover:border-purple-400 shadow hover:scale-105 active:scale-95"
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono font-black text-rose-400 w-6 shrink-0">
-                          R{idx + 1}
-                        </span>
-                        {pick ? (
-                          <>
-                            <img
-                              src={getChampionAvatar(pick)}
-                              alt={pick}
-                              className="h-9 w-9 rounded-lg border border-rose-500/50 object-cover shrink-0 shadow"
-                            />
-                            <div className="min-w-0 truncate">
-                              <div className="flex items-center gap-1">
-                                <span className="font-bold text-xs text-white truncate">
-                                  {champ ? champ.name : pick}
-                                </span>
-                                {isCounter && (
-                                  <span className="bg-rose-600 text-white text-[8px] font-bold px-1 rounded">
-                                    COUNTER
-                                  </span>
-                                )}
-                              </div>
-                              <span className="text-[9px] text-zinc-400 font-mono block">
-                                {champ?.category || "Champion"}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <span className="text-[11px] text-zinc-500 font-mono italic truncate">
-                            {isActive ? "👉 Seleccionando..." : "Click para asignar R" + (idx + 1)}
-                          </span>
-                        )}
-                      </div>
-
-                      {pick && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleClearSlot("red", "pick", idx);
-                          }}
-                          className="text-zinc-500 hover:text-rose-400 p-1 rounded hover:bg-rose-950/30 transition-colors text-xs"
-                          title="Quitar campeón"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
+                      <img
+                        src={getChampionAvatar(c.id)}
+                        alt={c.name}
+                        className={`h-11 w-11 rounded-lg object-cover mb-1 ${isUsed ? "grayscale" : "border border-zinc-700"}`}
+                      />
+                      <span className="font-bold text-xs text-white truncate w-full">
+                        {c.name}
+                      </span>
+                      <span className="text-[9px] text-zinc-400 font-mono">
+                        {c.roles.join(" • ")}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
+            </div>
+          )}
 
-              {/* Card de Análisis Táctico Rojo en Tiempo Real */}
-              <div className="mt-3 pt-3 border-t border-rose-900/30 space-y-2">
-                <div className="flex items-center justify-between text-[10px] font-mono">
-                  <span className="text-zinc-400 font-bold uppercase">Balance de Daño:</span>
-                  <span className="font-bold text-white">
-                    <span className="text-amber-400">{redMetrics.adPercent}% AD</span> •{" "}
-                    <span className="text-sky-400">{redMetrics.apPercent}% AP</span>
-                    {redMetrics.truePercent > 0 && <span className="text-purple-300"> • {redMetrics.truePercent}% True</span>}
+          {/* ===================================================================== */}
+          {/* PESTAÑA 3: COUNTERS DETECTADOS & BANS INTELIGENTES                     */}
+          {/* ===================================================================== */}
+          {bottomTab === "counters" && (
+            <div className="space-y-3">
+              {/* Sección 1: Counters Directos a los Picks Rivales */}
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono font-bold">
+                  <span className="text-purple-300 flex items-center gap-1.5">
+                    <ShieldAlert className="h-4 w-4 text-emerald-400" />
+                    COUNTERS DEL ROSTER DE VOID LYNX
                   </span>
+                  <span className="text-[10px] text-zinc-400">Calculado según picks rivales</span>
                 </div>
 
-                {/* Barra Tri-Color de Daño */}
-                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex shadow-inner">
-                  <div style={{ width: `${redMetrics.adPercent}%` }} className="bg-amber-500 transition-all duration-500" title={`AD: ${redMetrics.adPercent}%`} />
-                  <div style={{ width: `${redMetrics.apPercent}%` }} className="bg-sky-500 transition-all duration-500" title={`AP: ${redMetrics.apPercent}%`} />
-                  <div style={{ width: `${redMetrics.truePercent}%` }} className="bg-purple-400 transition-all duration-500" title={`True: ${redMetrics.truePercent}%`} />
-                </div>
+                {rosterCounters.length === 0 ? (
+                  <div className="p-4 text-center text-xs font-mono text-zinc-400 bg-black/40 rounded-lg border border-zinc-800/80">
+                    {enemyPicks.filter(Boolean).length === 0
+                      ? "Esperando picks del rival... En cuanto el rival lockee un campeón en la mesa, aquí se mostrarán los counters que nuestros jugadores (Kaserolo, Tamudor, Upss, arnoop88, Liber) dominan para destrozarles la línea."
+                      : "No se detectaron counters directos críticos de kit en el roster actual contra las selecciones rivales."}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {rosterCounters.map(({ enemyChamp, ourCounters }) => (
+                      <div key={enemyChamp} className="bg-black/50 p-2 rounded-xl border border-rose-900/40 space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={getChampionAvatar(enemyChamp)}
+                            alt={enemyChamp}
+                            className="h-6 w-6 rounded border border-rose-500/60 object-cover"
+                          />
+                          <span className="text-xs font-bold font-mono text-rose-300">
+                            Rival eligió {enemyChamp}
+                          </span>
+                          <span className="text-[9px] text-zinc-500 font-mono">
+                            — Opciones con ventaja de línea de nuestro roster:
+                          </span>
+                        </div>
 
-                {/* Alerta de Daño */}
-                {redMetrics.damageWarning.severity !== "ok" && (
-                  <div className={`px-2 py-1 rounded text-[9px] font-mono font-bold flex items-center gap-1.5 ${
-                    redMetrics.damageWarning.severity === "danger"
-                      ? "bg-rose-950/80 border border-rose-500/60 text-rose-300 animate-pulse"
-                      : "bg-amber-950/80 border border-amber-500/60 text-amber-300"
-                  }`}>
-                    <AlertTriangle className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{redMetrics.damageWarning.text}</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                          {ourCounters.map(({ playerChamp, reason }) => (
+                            <div
+                              key={playerChamp.id}
+                              className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-500/40 hover:border-emerald-400 transition-all"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <img
+                                  src={getChampionAvatar(playerChamp.campeon_id)}
+                                  alt={playerChamp.campeon_id}
+                                  className="h-7 w-7 rounded object-cover border border-emerald-500/50"
+                                />
+                                <div className="min-w-0 truncate">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-bold text-white truncate">
+                                      {playerChamp.campeon_id}
+                                    </span>
+                                    <span className="text-[8px] font-mono px-1 rounded bg-purple-950 text-purple-300 border border-purple-500/30">
+                                      {playerChamp.jugador}
+                                    </span>
+                                    <span className="text-[8px] font-mono px-1 rounded bg-amber-950 text-amber-300 font-bold border border-amber-500/30">
+                                      T{playerChamp.tier}
+                                    </span>
+                                  </div>
+                                  <span className="text-[8px] text-zinc-400 font-mono truncate block">
+                                    {reason}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => handleLockChampion(playerChamp.campeon_id)}
+                                className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
+                              >
+                                Lockear
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {/* Radar Táctico Compacto */}
-                <div className="grid grid-cols-2 gap-1.5 pt-0.5">
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Iniciación:</span>
-                      <span className="font-bold text-white">{redMetrics.engageScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${redMetrics.engageScore}%` }} className="h-full bg-rose-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Disengage:</span>
-                      <span className="font-bold text-white">{redMetrics.disengageScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${redMetrics.disengageScore}%` }} className="h-full bg-emerald-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Frontline:</span>
-                      <span className="font-bold text-white">{redMetrics.frontlineScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${redMetrics.frontlineScore}%` }} className="h-full bg-amber-500 rounded" />
-                    </div>
-                  </div>
-                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Waveclear:</span>
-                      <span className="font-bold text-white">{redMetrics.waveclearScore}%</span>
-                    </div>
-                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
-                      <div style={{ width: `${redMetrics.waveclearScore}%` }} className="h-full bg-purple-500 rounded" />
-                    </div>
+              {/* Sección 2: Bans Recomendados */}
+              <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono font-bold">
+                  <span className="text-purple-300 flex items-center gap-1.5">
+                    <AlertTriangle className="h-4 w-4 text-amber-400" />
+                    BANS RECOMENDADOS SEGÚN FASE
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[9px] text-zinc-400 font-mono">Líneas rivales sin pickear:</span>
+                    {smartBansData.missingEnemyRoles.map((role) => (
+                      <span key={role} className="px-1.5 py-0.2 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40 text-[8px] font-mono font-bold">
+                        {role}
+                      </span>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
-                  <span>Tempo: <strong className="text-zinc-200">{redMetrics.tempoLabel.split("(")[0]}</strong></span>
-                  <span className="text-purple-300 font-bold">{redMetrics.winCondition}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                  {smartBansData.recommendedBans.map((b) => (
+                    <div
+                      key={b.champion}
+                      className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-zinc-800 hover:border-purple-500 transition-all"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img
+                          src={getChampionAvatar(b.champion)}
+                          alt={b.champion}
+                          className="h-7 w-7 rounded object-cover border border-rose-500/50"
+                        />
+                        <div className="min-w-0 truncate">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white truncate">
+                              {b.champion}
+                            </span>
+                            <span className="text-[8px] font-mono px-1 rounded bg-zinc-800 text-zinc-300">
+                              {b.role}
+                            </span>
+                          </div>
+                          <span className="text-[8px] text-zinc-400 font-mono truncate block">
+                            {b.reason}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleLockChampion(b.champion)}
+                        className="px-2 py-1 rounded bg-rose-700 hover:bg-rose-600 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
+                      >
+                        Banear
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* ========================================================================= */}
-        {/* 3. NOTAS TÁCTICAS DEL DRAFT (INFERIOR COMPACTO)                            */}
+        {/* 5. NOTAS TÁCTICAS DEL DRAFT (INFERIOR COMPACTO)                            */}
         {/* ========================================================================= */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-3 shadow-lg">
           <label className="block text-[10px] font-mono font-bold text-zinc-300 uppercase tracking-wider mb-1">
-            Notas Tácticas // Instrucciones para la partida:
+            Notas Tácticas // Instrucciones de Partida para el Equipo:
           </label>
           <textarea
             value={draftNotes}
@@ -1629,117 +1283,98 @@ export function LiveDraftArenaTab({
           />
         </div>
 
-        {/* MODAL: HISTORIAL DE DRAFTS GUARDADOS */}
+        {/* ========================================================================= */}
+        {/* MODAL: HISTORIAL DE DRAFTS GUARDADOS                                      */}
+        {/* ========================================================================= */}
         {showHistoryModal && (
-          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-zinc-950 border border-purple-900/50 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-              <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/80">
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-950 border border-purple-900/50 rounded-2xl w-full max-w-3xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-zinc-800 flex items-center justify-between bg-zinc-900/50">
                 <div className="flex items-center gap-2">
                   <History className="h-5 w-5 text-purple-400" />
-                  <h3 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                    Historial de Drafts & Scrims Guardadas
+                  <h3 className="font-display font-black text-sm uppercase tracking-wide text-white">
+                    Historial de Drafts & Scrims Guardadas ({draftsHistory.length})
                   </h3>
-                  <span className="bg-purple-950 text-purple-300 text-xs font-mono px-2 py-0.5 rounded font-bold">
-                    {draftsHistory.length} partidas
-                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowHistoryModal(false)}
-                  className="text-zinc-400 hover:text-white p-1 rounded transition-colors"
+                  className="text-zinc-400 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition-colors"
                 >
-                  <X className="h-5 w-5" />
+                  ✕
                 </button>
               </div>
 
               <div className="p-4 overflow-y-auto space-y-3 flex-1">
-                {draftsHistory.length > 0 ? (
+                {draftsHistory.length === 0 ? (
+                  <div className="text-center py-8 text-zinc-500 text-xs font-mono">
+                    No hay ningún draft guardado aún. Pulsa en "Guardar Scrim" para registrar la sesión.
+                  </div>
+                ) : (
                   draftsHistory.map((draft) => (
                     <div
                       key={draft.id}
-                      className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3.5 hover:border-purple-500/50 transition-colors flex flex-col md:flex-row md:items-center justify-between gap-4"
+                      className="p-3 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:border-purple-500/50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <div className="space-y-1.5 min-w-0 flex-1">
-                        <div className="flex items-center gap-2.5 flex-wrap">
-                          <span className="font-display font-bold text-sm text-white">
-                            vs {draft.rival}
-                          </span>
-                          <span
-                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                              draft.resultado === "VICTORIA"
-                                ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
-                                : draft.resultado === "DERROTA"
-                                ? "bg-rose-950 text-rose-300 border border-rose-500/40"
-                                : "bg-zinc-800 text-zinc-400"
-                            }`}
-                          >
+                      <div className="space-y-1.5 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                            draft.resultado === "VICTORIA"
+                              ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
+                              : draft.resultado === "DERROTA"
+                              ? "bg-rose-950 text-rose-300 border border-rose-500/40"
+                              : "bg-zinc-800 text-zinc-400"
+                          }`}>
                             {draft.resultado}
                           </span>
-                          <span className="text-[10px] font-mono text-purple-300 bg-purple-950/80 px-2 py-0.5 rounded border border-purple-800/40">
-                            {draft.composicion_id}
+                          <span className="font-bold text-xs text-white">
+                            vs {draft.rival || "Rival Desconocido"}
                           </span>
-                          <span className="text-[10px] font-mono text-zinc-500">
-                            Lado {draft.nuestro_lado} • {new Date(draft.created_at).toLocaleDateString()}
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            • {new Date(draft.created_at).toLocaleString()}
                           </span>
                         </div>
 
-                        <div className="flex items-center gap-4 text-xs font-mono pt-1">
+                        {/* Picks del draft guardado */}
+                        <div className="flex items-center gap-3 text-xs font-mono">
                           <div className="flex items-center gap-1">
                             <span className="text-blue-400 text-[10px] font-bold">AZUL:</span>
-                            {draft.blue_picks?.filter(Boolean).map((p, i) => (
-                              <img
-                                key={i}
-                                src={getChampionAvatar(p)}
-                                alt={p}
-                                title={p}
-                                className="h-5 w-5 rounded object-cover border border-blue-500/40"
-                              />
+                            {(draft.blue_picks || []).filter(Boolean).map((p: string, i: number) => (
+                              <img key={i} src={getChampionAvatar(p)} alt={p} className="h-4 w-4 rounded-full object-cover" title={p} />
                             ))}
                           </div>
+                          <span className="text-zinc-600">vs</span>
                           <div className="flex items-center gap-1">
                             <span className="text-rose-400 text-[10px] font-bold">ROJO:</span>
-                            {draft.red_picks?.filter(Boolean).map((p, i) => (
-                              <img
-                                key={i}
-                                src={getChampionAvatar(p)}
-                                alt={p}
-                                title={p}
-                                className="h-5 w-5 rounded object-cover border border-rose-500/40"
-                              />
+                            {(draft.red_picks || []).filter(Boolean).map((p: string, i: number) => (
+                              <img key={i} src={getChampionAvatar(p)} alt={p} className="h-4 w-4 rounded-full object-cover" title={p} />
                             ))}
                           </div>
                         </div>
-
-                        {draft.notas && (
-                          <p className="text-[11px] text-zinc-400 italic line-clamp-1 pt-0.5">
-                            "{draft.notas}"
-                          </p>
-                        )}
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           type="button"
-                          onClick={() => handleLoadSavedDraft(draft)}
-                          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold transition-colors"
+                          onClick={() => {
+                            handleLoadSavedDraft(draft);
+                            setShowHistoryModal(false);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold transition-all"
                         >
-                          Cargar en Mesa
+                          Cargar Mesa
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteSavedDraft(draft.id)}
                           className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
-                          title="Eliminar registro"
+                          title="Eliminar de historial"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </div>
                   ))
-                ) : (
-                  <div className="text-center py-12 text-zinc-500 text-xs">
-                    No hay drafts guardados todavía. Realiza un draft en la mesa y pulsa "Guardar Scrim".
-                  </div>
                 )}
               </div>
             </div>
