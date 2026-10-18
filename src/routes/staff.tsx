@@ -169,6 +169,7 @@ function StaffPage() {
             lastDrafterSyncTime={staff.lastDrafterSyncTime}
             drafterLiveTime={staff.drafterLiveTime}
             fetchAndApplyDrafterLiveState={staff.fetchAndApplyDrafterLiveState}
+            playerChampions={staff.playerChampions}
           />
         )}
 

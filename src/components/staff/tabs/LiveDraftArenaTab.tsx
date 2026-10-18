@@ -22,9 +22,19 @@ import {
   Radio,
   RefreshCw,
   Zap,
+  BarChart3,
+  ShieldAlert,
+  Activity,
+  Flame,
+  TrendingUp,
+  Gauge,
+  Lightbulb,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
+import { calculateCompMetrics, getSmartBans, getRosterCountersForEnemy, CompositionMetrics } from "@/lib/draft-tactics";
 
 interface LiveDraftArenaTabProps {
   ourSide: "BLUE" | "RED";
@@ -87,6 +97,7 @@ interface LiveDraftArenaTabProps {
   lastDrafterSyncTime: Date | null;
   drafterLiveTime: number;
   fetchAndApplyDrafterLiveState: (roomId?: string) => Promise<boolean>;
+  playerChampions: PlayerChampionEntry[];
 }
 
 export function LiveDraftArenaTab({
@@ -144,8 +155,31 @@ export function LiveDraftArenaTab({
   lastDrafterSyncTime,
   drafterLiveTime,
   fetchAndApplyDrafterLiveState,
+  playerChampions,
 }: LiveDraftArenaTabProps) {
   const VERTICAL_BOARD_ROLES = verticalBoardRoles;
+  const [companionView, setCompanionView] = React.useState<"lanes" | "analysis" | "counters_bans">("lanes");
+
+  const blueMetrics = React.useMemo(() => calculateCompMetrics(bluePicks), [bluePicks]);
+  const redMetrics = React.useMemo(() => calculateCompMetrics(redPicks), [redPicks]);
+
+  const ourMetrics = ourSide === "BLUE" ? blueMetrics : redMetrics;
+  const enemyMetrics = ourSide === "BLUE" ? redMetrics : blueMetrics;
+
+  const ourPicks = ourSide === "BLUE" ? bluePicks : redPicks;
+  const enemyPicks = ourSide === "BLUE" ? redPicks : bluePicks;
+
+  const stepIndex = currentTurnStep
+    ? (currentTurnStep.side === "blue" ? bluePicks.filter(Boolean).length : redPicks.filter(Boolean).length) * 2
+    : 20;
+
+  const smartBansData = React.useMemo(() => {
+    return getSmartBans(enemyPicks, ourPicks, stepIndex);
+  }, [enemyPicks, ourPicks, stepIndex]);
+
+  const rosterCounters = React.useMemo(() => {
+    return getRosterCountersForEnemy(enemyPicks, playerChampions || []);
+  }, [enemyPicks, playerChampions]);
 
   return (
     <>
@@ -607,6 +641,82 @@ export function LiveDraftArenaTab({
                   );
                 })}
               </div>
+
+              {/* Card de Análisis Táctico Azul en Tiempo Real */}
+              <div className="mt-3 pt-3 border-t border-blue-900/30 space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-zinc-400 font-bold uppercase">Balance de Daño:</span>
+                  <span className="font-bold text-white">
+                    <span className="text-amber-400">{blueMetrics.adPercent}% AD</span> •{" "}
+                    <span className="text-sky-400">{blueMetrics.apPercent}% AP</span>
+                    {blueMetrics.truePercent > 0 && <span className="text-purple-300"> • {blueMetrics.truePercent}% True</span>}
+                  </span>
+                </div>
+
+                {/* Barra Tri-Color de Daño */}
+                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex shadow-inner">
+                  <div style={{ width: `${blueMetrics.adPercent}%` }} className="bg-amber-500 transition-all duration-500" title={`AD: ${blueMetrics.adPercent}%`} />
+                  <div style={{ width: `${blueMetrics.apPercent}%` }} className="bg-sky-500 transition-all duration-500" title={`AP: ${blueMetrics.apPercent}%`} />
+                  <div style={{ width: `${blueMetrics.truePercent}%` }} className="bg-purple-400 transition-all duration-500" title={`True: ${blueMetrics.truePercent}%`} />
+                </div>
+
+                {/* Alerta de Daño */}
+                {blueMetrics.damageWarning.severity !== "ok" && (
+                  <div className={`px-2 py-1 rounded text-[9px] font-mono font-bold flex items-center gap-1.5 ${
+                    blueMetrics.damageWarning.severity === "danger"
+                      ? "bg-rose-950/80 border border-rose-500/60 text-rose-300 animate-pulse"
+                      : "bg-amber-950/80 border border-amber-500/60 text-amber-300"
+                  }`}>
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{blueMetrics.damageWarning.text}</span>
+                  </div>
+                )}
+
+                {/* Radar Táctico Compacto */}
+                <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Iniciación:</span>
+                      <span className="font-bold text-white">{blueMetrics.engageScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${blueMetrics.engageScore}%` }} className="h-full bg-blue-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Disengage:</span>
+                      <span className="font-bold text-white">{blueMetrics.disengageScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${blueMetrics.disengageScore}%` }} className="h-full bg-emerald-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Frontline:</span>
+                      <span className="font-bold text-white">{blueMetrics.frontlineScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${blueMetrics.frontlineScore}%` }} className="h-full bg-amber-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Waveclear:</span>
+                      <span className="font-bold text-white">{blueMetrics.waveclearScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${blueMetrics.waveclearScore}%` }} className="h-full bg-purple-500 rounded" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
+                  <span>Tempo: <strong className="text-zinc-200">{blueMetrics.tempoLabel.split("(")[0]}</strong></span>
+                  <span className="text-purple-300 font-bold">{blueMetrics.winCondition}</span>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -702,24 +812,59 @@ export function LiveDraftArenaTab({
               )}
             </div>
 
-            {/* LAS 5 COLUMNAS VERTICALES EN PARALELO (TOP - JNGL - MID - ADC - SUPP) */}
-            <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-3 shadow-2xl">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800">
-                <div className="flex items-center gap-2">
-                  <Crosshair className="h-4 w-4 text-purple-400" />
-                  <span className="font-display font-black text-xs uppercase tracking-wider text-white">
-                    COMPANION: {currentComp.nombre}
-                  </span>
-                  <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/40 text-emerald-300 font-bold">
-                    1-CLICK LOCK
-                  </span>
+            {/* COMPANION TÁCTICO: 5 CARRILES • RADAR DE COMPO • COUNTERS & BANS */}
+            <div className="bg-zinc-950 border border-purple-900/40 rounded-2xl p-3 shadow-2xl space-y-3">
+              {/* Header con Switcher de Modos Tácticos */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-zinc-800">
+                <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-zinc-800">
+                  <button
+                    type="button"
+                    onClick={() => setCompanionView("lanes")}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                      companionView === "lanes"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Crosshair className="h-3.5 w-3.5" />
+                    <span>5 Carriles ({currentComp.nombre})</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCompanionView("analysis")}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                      companionView === "analysis"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <BarChart3 className="h-3.5 w-3.5" />
+                    <span>Radar & Comparativa</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setCompanionView("counters_bans")}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                      companionView === "counters_bans"
+                        ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <ShieldAlert className="h-3.5 w-3.5" />
+                    <span>Counters & Bans ({rosterCounters.length})</span>
+                  </button>
                 </div>
-                <span className="text-[10px] text-zinc-400 font-mono">
-                  Haz clic en cualquier pick para lockearlo en {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
+
+                <span className="text-[10px] text-zinc-400 font-mono hidden sm:inline">
+                  Click para lockear en {activeSlot.side.toUpperCase()} {activeSlot.type.toUpperCase()} #{activeSlot.index + 1}
                 </span>
               </div>
 
-              <div className="grid grid-cols-5 gap-1.5 sm:gap-2 items-stretch">
+              {/* VISTA 1: LAS 5 COLUMNAS VERTICALES EN PARALELO (TOP - JNGL - MID - ADC - SUPP) */}
+              {companionView === "lanes" && (
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2 items-stretch">
                 {VERTICAL_BOARD_ROLES.map((laneConfig) => {
                   const roleData = getRoleChampsForComp(currentComp.nombre, laneConfig.role, laneConfig.player);
                   const prio = currentComp.role_priorities?.[laneConfig.role] || "Media";
@@ -870,7 +1015,312 @@ export function LiveDraftArenaTab({
                     </div>
                   );
                 })}
-              </div>
+              {/* VISTA 1 END */}
+                </div>
+              )}
+
+              {/* VISTA 2: RADAR & COMPARATIVA TÁCTICA FRENTE A FRENTE */}
+              {companionView === "analysis" && (
+                <div className="space-y-3 p-1">
+                  {/* Tarjeta de Comparativa de Daño */}
+                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold">
+                      <span className="text-purple-300 flex items-center gap-1.5">
+                        <Flame className="h-4 w-4 text-amber-400" />
+                        COMPARATIVA DE BALANCE DE DAÑO
+                      </span>
+                      <span className="text-[10px] text-zinc-400">Void Lynx vs {rivalName}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      {/* Void Lynx Daño */}
+                      <div className="space-y-1 bg-black/40 p-2 rounded-lg border border-purple-900/30">
+                        <div className="flex justify-between text-[11px] font-mono">
+                          <span className="text-purple-400 font-bold">VOID LYNX</span>
+                          <span className="text-zinc-300">
+                            <span className="text-amber-400">{ourMetrics.adPercent}% AD</span> •{" "}
+                            <span className="text-sky-400">{ourMetrics.apPercent}% AP</span>
+                            {ourMetrics.truePercent > 0 && <span className="text-purple-300"> • {ourMetrics.truePercent}% True</span>}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex">
+                          <div style={{ width: `${ourMetrics.adPercent}%` }} className="bg-amber-500" />
+                          <div style={{ width: `${ourMetrics.apPercent}%` }} className="bg-sky-500" />
+                          <div style={{ width: `${ourMetrics.truePercent}%` }} className="bg-purple-400" />
+                        </div>
+                        <span className={`text-[9px] font-mono block ${ourMetrics.damageWarning.severity === "danger" ? "text-rose-400" : ourMetrics.damageWarning.severity === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
+                          {ourMetrics.damageWarning.text}
+                        </span>
+                      </div>
+
+                      {/* Rival Daño */}
+                      <div className="space-y-1 bg-black/40 p-2 rounded-lg border border-rose-900/30">
+                        <div className="flex justify-between text-[11px] font-mono">
+                          <span className="text-rose-400 font-bold">{rivalName}</span>
+                          <span className="text-zinc-300">
+                            <span className="text-amber-400">{enemyMetrics.adPercent}% AD</span> •{" "}
+                            <span className="text-sky-400">{enemyMetrics.apPercent}% AP</span>
+                            {enemyMetrics.truePercent > 0 && <span className="text-purple-300"> • {enemyMetrics.truePercent}% True</span>}
+                          </span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex">
+                          <div style={{ width: `${enemyMetrics.adPercent}%` }} className="bg-amber-500" />
+                          <div style={{ width: `${enemyMetrics.apPercent}%` }} className="bg-sky-500" />
+                          <div style={{ width: `${enemyMetrics.truePercent}%` }} className="bg-purple-400" />
+                        </div>
+                        <span className={`text-[9px] font-mono block ${enemyMetrics.damageWarning.severity === "danger" ? "text-rose-400" : enemyMetrics.damageWarning.severity === "warning" ? "text-amber-400" : "text-emerald-400"}`}>
+                          {enemyMetrics.damageWarning.text}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Comparativa de Atributos Tácticos (Radar en Barras) */}
+                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold text-zinc-300">
+                      <span className="flex items-center gap-1.5">
+                        <Activity className="h-4 w-4 text-purple-400" />
+                        ATRIBUTOS & CAPACIDADES DE PELEA
+                      </span>
+                      <span className="text-[10px] text-zinc-400">Escala 0 a 100</span>
+                    </div>
+
+                    <div className="space-y-2">
+                      {[
+                        { label: "Iniciación (Engage)", our: ourMetrics.engageScore, enemy: enemyMetrics.engageScore, ourColor: "bg-blue-500", enemyColor: "bg-rose-500" },
+                        { label: "Disengage & Peel", our: ourMetrics.disengageScore, enemy: enemyMetrics.disengageScore, ourColor: "bg-emerald-500", enemyColor: "bg-amber-500" },
+                        { label: "Frontline / Tanques", our: ourMetrics.frontlineScore, enemy: enemyMetrics.frontlineScore, ourColor: "bg-amber-500", enemyColor: "bg-rose-400" },
+                        { label: "Waveclear / Asedio", our: ourMetrics.waveclearScore, enemy: enemyMetrics.waveclearScore, ourColor: "bg-purple-500", enemyColor: "bg-sky-500" },
+                        { label: "Control de Masas (CC)", our: ourMetrics.ccScore, enemy: enemyMetrics.ccScore, ourColor: "bg-sky-500", enemyColor: "bg-rose-500" },
+                      ].map((stat) => {
+                        const diff = stat.our - stat.enemy;
+                        return (
+                          <div key={stat.label} className="bg-black/40 p-2 rounded-lg border border-zinc-800/80">
+                            <div className="flex items-center justify-between text-[10px] font-mono mb-1">
+                              <span className="font-bold text-white">{stat.label}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-purple-300 font-bold">VL: {stat.our}%</span>
+                                <span className="text-zinc-600">vs</span>
+                                <span className="text-rose-300 font-bold">RIV: {stat.enemy}%</span>
+                                <span className={`px-1 py-0.2 rounded text-[8px] font-bold ${diff > 0 ? "bg-emerald-950 text-emerald-300 border border-emerald-500/30" : diff < 0 ? "bg-rose-950 text-rose-300 border border-rose-500/30" : "text-zinc-500"}`}>
+                                  {diff > 0 ? `+${diff}% VL` : diff < 0 ? `${diff}% RIV` : "="}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                                <div style={{ width: `${stat.our}%` }} className={`h-full ${stat.ourColor} rounded-full transition-all duration-500`} />
+                              </div>
+                              <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                                <div style={{ width: `${stat.enemy}%` }} className={`h-full ${stat.enemyColor} rounded-full transition-all duration-500`} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Diagnóstico de Tempo & Condición de Victoria */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-300">
+                        <TrendingUp className="h-4 w-4 text-emerald-400" />
+                        <span>TEMPO & CURVA DE PODER</span>
+                      </div>
+                      <div className="space-y-1 text-[10px] font-mono">
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Void Lynx:</span>
+                          <span className="text-emerald-400 font-bold">{ourMetrics.tempoLabel}</span>
+                        </div>
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Rival:</span>
+                          <span className="text-rose-400 font-bold">{enemyMetrics.tempoLabel}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-1.5">
+                      <div className="flex items-center gap-1.5 text-xs font-mono font-bold text-purple-300">
+                        <Gauge className="h-4 w-4 text-sky-400" />
+                        <span>CONDICIÓN DE VICTORIA</span>
+                      </div>
+                      <div className="space-y-1 text-[10px] font-mono">
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Void Lynx:</span>
+                          <span className="text-purple-300 font-bold">{ourMetrics.winCondition}</span>
+                        </div>
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Rival:</span>
+                          <span className="text-amber-300 font-bold">{enemyMetrics.winCondition}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Fortalezas y Advertencias */}
+                  {(ourMetrics.strengths.length > 0 || ourMetrics.warnings.length > 0) && (
+                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2 text-xs font-mono">
+                      <div className="text-[10px] uppercase font-bold text-zinc-400">Dictamen del Asistente para el Staff:</div>
+                      <div className="space-y-1">
+                        {ourMetrics.strengths.map((str, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-[10px] text-emerald-300">
+                            <Check className="h-3 w-3 text-emerald-400 shrink-0" />
+                            <span>{str}</span>
+                          </div>
+                        ))}
+                        {ourMetrics.warnings.map((warn, i) => (
+                          <div key={i} className="flex items-center gap-1.5 text-[10px] text-amber-300">
+                            <AlertTriangle className="h-3 w-3 text-amber-400 shrink-0" />
+                            <span>{warn}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* VISTA 3: COUNTERS EN ROSTER & BANS INTELIGENTES */}
+              {companionView === "counters_bans" && (
+                <div className="space-y-3 p-1">
+                  {/* Sección 1: Counters Directos según Roster */}
+                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold">
+                      <span className="text-purple-300 flex items-center gap-1.5">
+                        <ShieldAlert className="h-4 w-4 text-emerald-400" />
+                        COUNTERS DEL ROSTER DE VOID LYNX
+                      </span>
+                      <span className="text-[10px] text-zinc-400">Basado en Picks Rivales</span>
+                    </div>
+
+                    {rosterCounters.length === 0 ? (
+                      <div className="p-4 text-center text-xs font-mono text-zinc-400 bg-black/40 rounded-lg border border-zinc-800/80">
+                        {enemyPicks.filter(Boolean).length === 0
+                          ? "Esperando picks del rival... En cuanto el rival lockee un campeón, aquí se mostrarán los counters que nuestros jugadores (Pantic, Koldo, Miniduke, Flakked, Mersa) dominan para destrozarles la línea."
+                          : "No se detectaron counters directos críticos de kit en el roster actual contra las selecciones rivales."}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {rosterCounters.map(({ enemyChamp, ourCounters }) => (
+                          <div key={enemyChamp} className="bg-black/50 p-2 rounded-xl border border-rose-900/40 space-y-1.5">
+                            <div className="flex items-center gap-2">
+                              <img
+                                src={getChampionAvatar(enemyChamp)}
+                                alt={enemyChamp}
+                                className="h-6 w-6 rounded border border-rose-500/60 object-cover"
+                              />
+                              <span className="text-xs font-bold font-mono text-rose-300">
+                                Rival lockeó {enemyChamp}
+                              </span>
+                              <span className="text-[9px] text-zinc-500 font-mono">
+                                — Opciones del roster de Void Lynx:
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                              {ourCounters.map(({ playerChamp, reason }) => (
+                                <div
+                                  key={playerChamp.id}
+                                  className="flex items-center justify-between p-1.5 rounded-lg bg-zinc-900/90 border border-emerald-500/40 hover:border-emerald-400 transition-all"
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <img
+                                      src={getChampionAvatar(playerChamp.campeon_id)}
+                                      alt={playerChamp.campeon_id}
+                                      className="h-7 w-7 rounded object-cover border border-emerald-500/50"
+                                    />
+                                    <div className="min-w-0 truncate">
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-xs font-bold text-white truncate">
+                                          {playerChamp.campeon_id}
+                                        </span>
+                                        <span className="text-[8px] font-mono px-1 rounded bg-purple-950 text-purple-300 border border-purple-500/30">
+                                          {playerChamp.jugador}
+                                        </span>
+                                        <span className="text-[8px] font-mono px-1 rounded bg-amber-950 text-amber-300 font-bold border border-amber-500/30">
+                                          T{playerChamp.tier}
+                                        </span>
+                                      </div>
+                                      <span className="text-[8px] text-zinc-400 font-mono truncate block">
+                                        {reason}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleLockChampion(playerChamp.campeon_id)}
+                                    className="px-2 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
+                                  >
+                                    Lockear
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Sección 2: Asistente de Bans Quirúrgicos */}
+                  <div className="bg-zinc-900/80 border border-zinc-800 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs font-mono font-bold">
+                      <span className="text-purple-300 flex items-center gap-1.5">
+                        <AlertTriangle className="h-4 w-4 text-amber-400" />
+                        BANS RECOMENDADOS SEGÚN FASE
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[9px] text-zinc-400 font-mono">Líneas rivales sin pickear:</span>
+                        {smartBansData.missingEnemyRoles.map((role) => (
+                          <span key={role} className="px-1.5 py-0.2 rounded bg-rose-950/80 text-rose-300 border border-rose-500/40 text-[8px] font-mono font-bold">
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {smartBansData.recommendedBans.map((b) => (
+                        <div
+                          key={b.champion}
+                          className="flex items-center justify-between p-2 rounded-lg bg-black/40 border border-zinc-800 hover:border-purple-500 transition-all"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <img
+                              src={getChampionAvatar(b.champion)}
+                              alt={b.champion}
+                              className="h-7 w-7 rounded object-cover border border-rose-500/50"
+                            />
+                            <div className="min-w-0 truncate">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-white truncate">
+                                  {b.champion}
+                                </span>
+                                <span className="text-[8px] font-mono px-1 rounded bg-zinc-800 text-zinc-300">
+                                  {b.role}
+                                </span>
+                              </div>
+                              <span className="text-[8px] text-zinc-400 font-mono truncate block">
+                                {b.reason}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleLockChampion(b.champion)}
+                            className="px-2 py-1 rounded bg-rose-700 hover:bg-rose-600 text-white font-mono text-[9px] font-bold shadow transition-all shrink-0 ml-1"
+                          >
+                            Banear
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* BUSCADOR RÁPIDO DE CUALQUIER CAMPEÓN PARA PICKS OFF-META */}
@@ -1082,6 +1532,82 @@ export function LiveDraftArenaTab({
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Card de Análisis Táctico Rojo en Tiempo Real */}
+              <div className="mt-3 pt-3 border-t border-rose-900/30 space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-mono">
+                  <span className="text-zinc-400 font-bold uppercase">Balance de Daño:</span>
+                  <span className="font-bold text-white">
+                    <span className="text-amber-400">{redMetrics.adPercent}% AD</span> •{" "}
+                    <span className="text-sky-400">{redMetrics.apPercent}% AP</span>
+                    {redMetrics.truePercent > 0 && <span className="text-purple-300"> • {redMetrics.truePercent}% True</span>}
+                  </span>
+                </div>
+
+                {/* Barra Tri-Color de Daño */}
+                <div className="h-2 w-full rounded-full bg-zinc-900 overflow-hidden flex shadow-inner">
+                  <div style={{ width: `${redMetrics.adPercent}%` }} className="bg-amber-500 transition-all duration-500" title={`AD: ${redMetrics.adPercent}%`} />
+                  <div style={{ width: `${redMetrics.apPercent}%` }} className="bg-sky-500 transition-all duration-500" title={`AP: ${redMetrics.apPercent}%`} />
+                  <div style={{ width: `${redMetrics.truePercent}%` }} className="bg-purple-400 transition-all duration-500" title={`True: ${redMetrics.truePercent}%`} />
+                </div>
+
+                {/* Alerta de Daño */}
+                {redMetrics.damageWarning.severity !== "ok" && (
+                  <div className={`px-2 py-1 rounded text-[9px] font-mono font-bold flex items-center gap-1.5 ${
+                    redMetrics.damageWarning.severity === "danger"
+                      ? "bg-rose-950/80 border border-rose-500/60 text-rose-300 animate-pulse"
+                      : "bg-amber-950/80 border border-amber-500/60 text-amber-300"
+                  }`}>
+                    <AlertTriangle className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{redMetrics.damageWarning.text}</span>
+                  </div>
+                )}
+
+                {/* Radar Táctico Compacto */}
+                <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Iniciación:</span>
+                      <span className="font-bold text-white">{redMetrics.engageScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${redMetrics.engageScore}%` }} className="h-full bg-rose-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Disengage:</span>
+                      <span className="font-bold text-white">{redMetrics.disengageScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${redMetrics.disengageScore}%` }} className="h-full bg-emerald-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Frontline:</span>
+                      <span className="font-bold text-white">{redMetrics.frontlineScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${redMetrics.frontlineScore}%` }} className="h-full bg-amber-500 rounded" />
+                    </div>
+                  </div>
+                  <div className="bg-zinc-900/80 p-1.5 rounded border border-zinc-800 text-[9px] font-mono">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Waveclear:</span>
+                      <span className="font-bold text-white">{redMetrics.waveclearScore}%</span>
+                    </div>
+                    <div className="h-1 bg-zinc-800 rounded mt-1 overflow-hidden">
+                      <div style={{ width: `${redMetrics.waveclearScore}%` }} className="h-full bg-purple-500 rounded" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[9px] font-mono text-zinc-400 pt-0.5">
+                  <span>Tempo: <strong className="text-zinc-200">{redMetrics.tempoLabel.split("(")[0]}</strong></span>
+                  <span className="text-purple-300 font-bold">{redMetrics.winCondition}</span>
+                </div>
               </div>
             </div>
           </div>
