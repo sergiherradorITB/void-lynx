@@ -6,8 +6,6 @@ import { renderErrorPage } from "./lib/error-page";
 import * as composicionesApi from "../functions/api/composiciones";
 import * as jugadoresApi from "../functions/api/jugadores";
 import * as draftsApi from "../functions/api/drafts";
-import * as drafterSyncApi from "../functions/api/drafter-sync";
-import * as drafterCreateApi from "../functions/api/drafter-create";
 import * as rosterApi from "../functions/api/roster";
 
 type ServerEntry = {
@@ -56,13 +54,7 @@ async function handleApiRequest(request: Request, rawEnv: any): Promise<Response
     if (method === "DELETE") return await draftsApi.onRequestDelete({ request, env });
   }
 
-  if (path === "/api/drafter-sync") {
-    if (method === "GET") return await drafterSyncApi.onRequestGet({ request });
-  }
 
-  if (path === "/api/drafter-create") {
-    if (method === "POST") return await drafterCreateApi.onRequestPost({ request });
-  }
 
   if (path === "/api/roster") {
     if (method === "GET") return await rosterApi.onRequestGet({ env });

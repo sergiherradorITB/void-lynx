@@ -176,12 +176,7 @@ export function TacticalAssistantTab({
                     <div
                       key={comp.id}
                       onClick={() => {
-                        if (!isActive) {
-                          handleToggleCompActive(comp.id);
-                          setSelectedCompId(comp.id);
-                        } else {
-                          setSelectedCompId(comp.id);
-                        }
+                        handleToggleCompActive(comp.id);
                       }}
                       className={`group p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[105px] cursor-pointer select-none ${
                         !isActive

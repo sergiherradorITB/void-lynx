@@ -142,14 +142,6 @@ function StaffPage() {
             handleToggleCompActive={staff.handleToggleCompActive}
             handleActivateAllComps={staff.handleActivateAllComps}
             handleDeactivateAllComps={staff.handleDeactivateAllComps}
-            drafterArenaMode={staff.drafterArenaMode}
-            setDrafterArenaMode={staff.setDrafterArenaMode}
-            cleanDrafterIframeUrl={staff.cleanDrafterIframeUrl}
-            handleOpenDrafterPopout={staff.handleOpenDrafterPopout}
-            drafterInputUrl={staff.drafterInputUrl}
-            setDrafterInputUrl={staff.setDrafterInputUrl}
-            drafterRoomUrl={staff.drafterRoomUrl}
-            handleSetDrafterRoomUrl={staff.handleSetDrafterRoomUrl}
             enemyCountersDetected={staff.enemyCountersDetected}
             bluePicks={staff.bluePicks}
             blueBans={staff.blueBans}
@@ -180,22 +172,6 @@ function StaffPage() {
             draftNotes={staff.draftNotes}
             setDraftNotes={staff.setDraftNotes}
             setActiveTab={staff.setActiveTab}
-            isDrafterAutoSync={staff.isDrafterAutoSync}
-            setIsDrafterAutoSync={staff.setIsDrafterAutoSync}
-            drafterSyncStatus={staff.drafterSyncStatus}
-            drafterSocketStatus={staff.drafterSocketStatus}
-            drafterActionNotification={staff.drafterActionNotification}
-            isDrafterAutoForward={staff.isDrafterAutoForward}
-            setIsDrafterAutoForward={staff.setIsDrafterAutoForward}
-            isCreatingDrafterRoom={staff.isCreatingDrafterRoom}
-            handleCreateDrafterRoom={staff.handleCreateDrafterRoom}
-            handleSendDrafterReady={staff.handleSendDrafterReady}
-            handleDisconnectDrafter={staff.handleDisconnectDrafter}
-            isImportingDrafter={staff.isImportingDrafter}
-            handleImportDraftFromDrafter={staff.handleImportDraftFromDrafter}
-            lastDrafterSyncTime={staff.lastDrafterSyncTime}
-            drafterLiveTime={staff.drafterLiveTime}
-            fetchAndApplyDrafterLiveState={staff.fetchAndApplyDrafterLiveState}
             playerChampions={staff.playerChampions}
           />
         )}

@@ -24,14 +24,11 @@ import {
   Lock,
   Crown,
   Filter,
-  ExternalLink,
   Loader2,
-  Radio,
   X,
   XCircle,
-  Download,
 } from "lucide-react";
-import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
+import { ActiveTab, DraftSlot, DraftSequenceStep, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
 import { calculateCompMetrics, getSmartBans, getRosterCountersForEnemy } from "@/lib/draft-tactics";
 
@@ -52,14 +49,6 @@ interface LiveDraftArenaTabProps {
   handleToggleCompActive?: (id: string) => void;
   handleActivateAllComps?: () => void;
   handleDeactivateAllComps?: () => void;
-  drafterArenaMode: "builtin" | "drafter_lol" | "split";
-  setDrafterArenaMode: (mode: "builtin" | "drafter_lol" | "split") => void;
-  cleanDrafterIframeUrl: string;
-  handleOpenDrafterPopout: () => void;
-  drafterInputUrl: string;
-  setDrafterInputUrl: (url: string) => void;
-  drafterRoomUrl: string;
-  handleSetDrafterRoomUrl: (url: string) => void;
   enemyCountersDetected: string[];
   bluePicks: string[];
   blueBans: string[];
@@ -96,22 +85,6 @@ interface LiveDraftArenaTabProps {
   draftNotes: string;
   setDraftNotes: (notes: string) => void;
   setActiveTab: (tab: ActiveTab) => void;
-  isDrafterAutoSync: boolean;
-  setIsDrafterAutoSync: (val: boolean) => void;
-  drafterSyncStatus: DrafterSyncStatus;
-  drafterSocketStatus?: "disconnected" | "connecting" | "connected" | "error";
-  drafterActionNotification?: string | null;
-  isDrafterAutoForward?: boolean;
-  setIsDrafterAutoForward?: (val: boolean) => void;
-  isCreatingDrafterRoom?: boolean;
-  handleCreateDrafterRoom?: () => Promise<any>;
-  handleSendDrafterReady?: () => void;
-  handleDisconnectDrafter?: () => void;
-  lastDrafterSyncTime: Date | null;
-  drafterLiveTime: number;
-  fetchAndApplyDrafterLiveState: (roomId?: string) => Promise<boolean>;
-  isImportingDrafter?: boolean;
-  handleImportDraftFromDrafter?: (url?: string) => Promise<boolean>;
   playerChampions: PlayerChampionEntry[];
 }
 
@@ -158,26 +131,6 @@ export function LiveDraftArenaTab({
   playerChampions,
   players = [],
   starterPlayers = [],
-  drafterArenaMode = "builtin",
-  setDrafterArenaMode,
-  cleanDrafterIframeUrl = "",
-  handleOpenDrafterPopout,
-  drafterInputUrl = "",
-  setDrafterInputUrl,
-  drafterRoomUrl = "",
-  handleSetDrafterRoomUrl,
-  drafterSyncStatus = "idle",
-  drafterSocketStatus = "disconnected",
-  drafterActionNotification = null,
-  isDrafterAutoForward = true,
-  setIsDrafterAutoForward,
-  isCreatingDrafterRoom = false,
-  handleCreateDrafterRoom,
-  handleSendDrafterReady,
-  handleDisconnectDrafter,
-  drafterLiveTime = 30,
-  isImportingDrafter = false,
-  handleImportDraftFromDrafter,
 }: LiveDraftArenaTabProps) {
   // Pestañas del selector inferior de campeones
   const [bottomTab, setBottomTab] = useState<"starters" | "adapted" | "catalog" | "counters">("starters");
@@ -548,236 +501,9 @@ export function LiveDraftArenaTab({
         </div>
 
         {/* ========================================================================= */}
-        {/* 1.5. BARRA DE CONTROL DRAFTER.LOL LIVE BRIDGE (ENLACE Y ENVÍO EN VIVO)   */}
+        {/* CONTENEDOR PRINCIPAL: PIZARRA TÁCTICA VOID LYNX                           */}
         {/* ========================================================================= */}
-        <div className="bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 p-3.5 rounded-2xl shadow-xl space-y-3">
-          {/* Fila superior: Estado de Conexión + Notificaciones + Toggles de Modo */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2.5 border-b border-zinc-800/80">
-            {/* Estado y Sala Actual */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Badge Estado Socket */}
-              {drafterSocketStatus === "connected" || drafterSyncStatus === "connected" ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)]">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                  <span>CONECTADO A DRAFTER.LOL</span>
-                </span>
-              ) : drafterSocketStatus === "connecting" || drafterSyncStatus === "syncing" ? (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 text-xs font-mono font-bold">
-                  <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
-                  <span>CONECTANDO A SALA...</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-400 text-xs font-mono font-semibold">
-                  <span className="h-2 w-2 rounded-full bg-zinc-600" />
-                  <span>DRAFTER DESCONECTADO</span>
-                </span>
-              )}
-
-              {/* ID de la sala y Link si está conectado */}
-              {drafterRoomUrl && (
-                <a
-                  href={cleanDrafterIframeUrl || `https://drafter.lol/draft/${drafterRoomUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title="Abrir sala en Drafter.lol en una pestaña nueva"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-750 text-zinc-300 hover:text-white text-xs font-mono transition-colors group"
-                >
-                  <span className="text-zinc-500 text-[10px]">Sala:</span>
-                  <span className="font-bold text-purple-300 group-hover:underline">
-                    {drafterRoomUrl.replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "").split("?")[0]?.slice(0, 14)}...
-                  </span>
-                  <ExternalLink className="h-3 w-3 text-zinc-400 group-hover:text-purple-400" />
-                </a>
-              )}
-
-              {/* Tiempo en Vivo reportado por Drafter si hay */}
-              {(drafterSocketStatus === "connected" || drafterSyncStatus === "connected") && drafterLiveTime > 0 && (
-                <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
-                  <span className="text-zinc-600">•</span>
-                  <span>Timer Drafter: <strong className="text-amber-300">{drafterLiveTime}s</strong></span>
-                </span>
-              )}
-
-              {/* Notificación de Acción en Vivo (ej: "🚀 Transmitido a Drafter.lol: Jinx") */}
-              {drafterActionNotification && (
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-950 border border-purple-400 text-purple-200 text-xs font-mono font-bold animate-in fade-in slide-in-from-left-2 duration-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]">
-                  <Zap className="h-3 w-3 text-amber-300 animate-pulse" />
-                  <span>{drafterActionNotification}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Controles de Vista & Modo Pantalla Dividida */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Reenvío automático toggle */}
-              <button
-                type="button"
-                onClick={() => setIsDrafterAutoForward?.(!isDrafterAutoForward)}
-                title="Al estar activo, cada pick o ban que selecciones en Void Lynx se enviará y lockeará inmediatamente a tu sala de Drafter.lol"
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
-                  isDrafterAutoForward
-                    ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
-                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                }`}
-              >
-                <span className={`h-2 w-2 rounded-full ${isDrafterAutoForward ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-zinc-600"}`} />
-                <span>Envío a Drafter: {isDrafterAutoForward ? "ACTIVO" : "PAUSADO"}</span>
-              </button>
-
-              {/* Selector de modo Pizarra vs Split Screen */}
-              <div className="flex items-center bg-black/60 p-0.5 rounded-lg border border-zinc-800 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setDrafterArenaMode?.("builtin")}
-                  className={`px-2.5 py-1 rounded font-mono font-bold transition-all cursor-pointer ${
-                    drafterArenaMode === "builtin"
-                      ? "bg-purple-600 text-white shadow"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  Pizarra
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDrafterArenaMode?.("split")}
-                  title="Ver Void Lynx y Drafter.lol lado a lado en pantalla dividida"
-                  className={`px-2.5 py-1 rounded font-mono font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                    drafterArenaMode === "split"
-                      ? "bg-purple-600 text-white shadow"
-                      : "text-zinc-400 hover:text-white"
-                  }`}
-                >
-                  <span>⚔️ Pantalla Dividida</span>
-                </button>
-              </div>
-
-              {/* Abrir Popout en Drafter.lol */}
-              <button
-                type="button"
-                onClick={handleOpenDrafterPopout}
-                title="Abrir Drafter.lol en una ventana externa independiente"
-                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-mono transition-colors cursor-pointer"
-              >
-                <ExternalLink className="h-3 w-3 text-purple-400" />
-                <span className="hidden sm:inline">Popout</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Fila inferior: Input de sala, Importar Draft en 1 click, Conectar/Desconectar, Crear Sala Automática y Ready */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
-            {/* Input de URL o ID de sala */}
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={drafterInputUrl}
-                onChange={(e) => setDrafterInputUrl?.(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && drafterInputUrl.trim()) {
-                    if (handleImportDraftFromDrafter) {
-                      handleImportDraftFromDrafter(drafterInputUrl.trim());
-                    } else {
-                      handleSetDrafterRoomUrl?.(drafterInputUrl.trim());
-                    }
-                  }
-                }}
-                placeholder="Pega enlace de Drafter.lol (ej: https://drafter.lol/draft/41df... o spectate/series)..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-3 pr-24 py-2.5 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-purple-500"
-              />
-              {drafterInputUrl.trim() && (
-                <button
-                  type="button"
-                  onClick={() => handleSetDrafterRoomUrl?.(drafterInputUrl.trim())}
-                  className="absolute right-1 top-1 bottom-1 px-2.5 rounded bg-purple-700/80 hover:bg-purple-600 text-purple-100 text-[11px] font-mono font-bold transition-colors cursor-pointer"
-                >
-                  Conectar
-                </button>
-              )}
-            </div>
-
-            {/* BOTÓN ESTRELLA: 📥 IMPORTAR DRAFT (1 CLICK) */}
-            <button
-              type="button"
-              onClick={() => handleImportDraftFromDrafter?.(drafterInputUrl.trim() || drafterRoomUrl)}
-              disabled={isImportingDrafter || (!drafterInputUrl.trim() && !drafterRoomUrl)}
-              title="Importar picks, bans y equipos desde Drafter.lol a esta pizarra para añadir notas y guardar la scrim"
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:scale-100 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
-            >
-              {isImportingDrafter ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 text-emerald-100" />
-              )}
-              <span>{isImportingDrafter ? "Importando..." : "📥 Importar Draft"}</span>
-            </button>
-
-            {/* Si ya hay sala conectada, botón Desconectar */}
-            {drafterRoomUrl && (
-              <button
-                type="button"
-                onClick={handleDisconnectDrafter}
-                className="px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-rose-500/50 text-zinc-400 hover:text-rose-400 text-xs font-mono font-semibold transition-colors shrink-0 cursor-pointer"
-              >
-                Desconectar
-              </button>
-            )}
-
-            {/* ⚡ Crear Sala en Drafter.lol (Automática) */}
-            <button
-              type="button"
-              onClick={handleCreateDrafterRoom}
-              disabled={isCreatingDrafterRoom}
-              title="Crea una sala competitiva en Drafter.lol automáticamente con Void Lynx vs Rival y conecta en 1 click"
-              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white text-xs font-mono font-bold shadow-md shadow-purple-950/40 transition-all hover:scale-[1.02] disabled:opacity-50 shrink-0 cursor-pointer"
-            >
-              {isCreatingDrafterRoom ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Zap className="h-3.5 w-3.5 text-amber-300" />
-              )}
-              <span className="hidden sm:inline">{isCreatingDrafterRoom ? "Creando en Drafter..." : "⚡ Crear Sala Drafter"}</span>
-            </button>
-
-            {/* ★ Confirmar Listo / Ready (Solo visible cuando conectado) */}
-            {(drafterSocketStatus === "connected" || drafterSyncStatus === "connected") && (
-              <button
-                type="button"
-                onClick={handleSendDrafterReady}
-                title="Enviar confirmación de Listo (Ready) a Drafter.lol"
-                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-mono font-bold shadow-md shadow-emerald-950/30 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
-              >
-                <Check className="h-3.5 w-3.5" />
-                <span>★ Listo (Ready)</span>
-              </button>
-            )}
-          </div>
-
-          {/* Banner de ayuda rápida */}
-          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-purple-950/40 border border-purple-800/30 text-[11px] font-mono text-purple-200">
-            <span className="flex items-center gap-1.5">
-              <span className="text-amber-400 font-bold">💡 Modo Scrim:</span>
-              <span>Pega el enlace de Drafter.lol y pulsa <strong>Importar Draft</strong>. Cargará todos los picks y bans para que pongas tus notas y guardes la scrim en la base de datos.</span>
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                if (drafterInputUrl.trim() || drafterRoomUrl) {
-                  handleImportDraftFromDrafter?.(drafterInputUrl.trim() || drafterRoomUrl);
-                }
-              }}
-              disabled={!drafterInputUrl.trim() && !drafterRoomUrl}
-              className="hidden md:inline-flex text-purple-300 hover:text-white underline underline-offset-2 font-bold cursor-pointer disabled:opacity-40"
-            >
-              Probar importación ahora &rarr;
-            </button>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* CONTENEDOR PRINCIPAL: PIZARRA VOID LYNX [+ PREVIEW DRAFTER EN SPLIT]      */}
-        {/* ========================================================================= */}
-        <div className={drafterArenaMode === "split" ? "grid grid-cols-1 xl:grid-cols-12 gap-4 items-start" : "space-y-4"}>
-          <div className={drafterArenaMode === "split" ? "xl:col-span-7 2xl:col-span-8 space-y-4" : "space-y-4"}>
+        <div className="space-y-4">
             {/* ========================================================================= */}
             {/* 2. ÁRBOL DE COMPOSICIONES TÁCTICAS EN VIVO (TODAS EN GRANDE)              */}
             {/* ========================================================================= */}
@@ -834,7 +560,7 @@ export function LiveDraftArenaTab({
                 </div>
               </div>
 
-              {/* Tarjetas EN GRANDE de cada composición */}
+              {/* Tarjetas EN GRANDE de cada composición con clic directo para descartar / reactivar */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
                 {compositions.map((comp) => {
                   const isActive = activeCompIds.includes(comp.id);
@@ -844,16 +570,11 @@ export function LiveDraftArenaTab({
                     <div
                       key={comp.id}
                       onClick={() => {
-                        if (!isActive) {
-                          handleToggleCompActive?.(comp.id);
-                          setSelectedCompId(comp.id);
-                        } else {
-                          setSelectedCompId(comp.id);
-                        }
+                        handleToggleCompActive?.(comp.id);
                       }}
-                      className={`group p-4 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[140px] cursor-pointer select-none ${
+                      className={`group p-4 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[145px] cursor-pointer select-none ${
                         !isActive
-                          ? "bg-zinc-950/40 border-zinc-900/90 text-zinc-500 opacity-50 hover:opacity-85 shadow-none"
+                          ? "bg-zinc-950/40 border-zinc-900/90 text-zinc-500 opacity-40 hover:opacity-75 shadow-none hover:border-zinc-700"
                           : isSelected
                           ? "bg-gradient-to-br from-purple-900/70 via-purple-950/90 to-zinc-950 border-purple-400 text-white shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-2 ring-purple-400/80 scale-[1.02]"
                           : "bg-zinc-950/80 border-purple-900/30 text-zinc-300 hover:border-purple-500/60 hover:bg-zinc-900/90 hover:scale-[1.01]"
@@ -871,7 +592,7 @@ export function LiveDraftArenaTab({
                             {comp.enfoque}
                           </span>
 
-                          {/* Botón de toggle directo Activa / Descartada */}
+                          {/* Botón / Badge de Estado: Clic para alternar */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -880,10 +601,10 @@ export function LiveDraftArenaTab({
                             }}
                             title={
                               isActive
-                                ? "Haz clic para descartar esta compo de la partida"
-                                : "Haz clic para reactivar esta compo"
+                                ? "Composición activa. Haz clic para descartarla de este draft"
+                                : "Composición descartada. Haz clic para reactivarla"
                             }
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 border transition-all cursor-pointer ${
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
                               isActive
                                 ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-300 hover:bg-rose-950 hover:border-rose-500 hover:text-rose-300"
                                 : "bg-rose-950/80 border-rose-500/40 text-rose-300 hover:bg-emerald-950 hover:border-emerald-500 hover:text-emerald-300"
@@ -891,24 +612,26 @@ export function LiveDraftArenaTab({
                           >
                             {isActive ? (
                               <>
-                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                <span>VIABLE</span>
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+                                <span>✓ VIABLE</span>
                               </>
                             ) : (
                               <>
-                                <span>✕</span>
+                                <span className="text-rose-400">✕</span>
                                 <span>DESCARTADA</span>
                               </>
                             )}
                           </button>
                         </div>
 
-                        <div
-                          className={`font-display font-black text-base uppercase tracking-wide leading-tight mb-1.5 ${
-                            !isActive ? "line-through text-zinc-500" : "text-white"
-                          }`}
-                        >
-                          {comp.nombre}
+                        <div className="flex items-baseline justify-between gap-1 mb-1">
+                          <div
+                            className={`font-display font-black text-base uppercase tracking-wide leading-tight ${
+                              !isActive ? "line-through text-zinc-500 decoration-rose-500/60 decoration-2" : "text-white"
+                            }`}
+                          >
+                            {comp.nombre}
+                          </div>
                         </div>
 
                         <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed mb-2.5">
@@ -941,13 +664,32 @@ export function LiveDraftArenaTab({
                           </div>
                         )}
 
-                        {/* Indicador de seleccionado en pizarra */}
-                        {isSelected && isActive && (
-                          <div className="mt-2 text-[9px] font-mono font-black text-purple-300 tracking-wider uppercase flex items-center gap-1">
-                            <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-ping" />
-                            <span>● ENFOQUE TÁCTICO EN PIZARRA</span>
-                          </div>
-                        )}
+                        {/* Pie de tarjeta: Indicador y botón para fijar como Objetivo */}
+                        <div className="mt-2.5 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-[10px] font-mono">
+                          <span className={`text-[9px] ${isActive ? "text-zinc-500" : "text-rose-400/80 font-bold"}`}>
+                            {isActive ? "Clic para descartar" : "Clic para reactivar"}
+                          </span>
+
+                          {isActive && (
+                            isSelected ? (
+                              <span className="text-purple-300 font-bold uppercase flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-ping" />
+                                <span>★ OBJETIVO ACTUAL</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCompId(comp.id);
+                                }}
+                                className="text-purple-400 hover:text-white px-2 py-0.5 rounded bg-purple-950/60 hover:bg-purple-800 border border-purple-700/40 transition-colors font-bold cursor-pointer"
+                              >
+                                Fijar Objetivo
+                              </button>
+                            )
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2139,65 +1881,6 @@ export function LiveDraftArenaTab({
             className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 leading-relaxed font-sans"
           />
         </div>
-      </div>
-
-          {/* ========================================================================= */}
-          {/* COLUMNA DERECHA: PREVIEW DE DRAFTER.LOL EN MODO SPLIT SCREEN              */}
-          {/* ========================================================================= */}
-          {drafterArenaMode === "split" && (
-            <div className="xl:col-span-5 2xl:col-span-4 sticky top-4 space-y-3">
-              <div className="bg-zinc-950 border-2 border-purple-500/40 rounded-2xl p-3 shadow-2xl flex flex-col h-[calc(100vh-140px)] min-h-[750px]">
-                {/* Cabecera de la ventana Drafter */}
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
-                    <span className="font-display font-black text-xs text-white uppercase tracking-wider">
-                      Drafter.lol • Transmisión en Vivo
-                    </span>
-                    {drafterRoomUrl && (
-                      <span className="text-[10px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 px-1.5 py-0.2 rounded font-bold">
-                        SALA CONECTADA
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleOpenDrafterPopout}
-                    title="Abrir Drafter.lol en ventana externa independiente"
-                    className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-white px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="h-3 w-3 text-purple-400" />
-                    <span>Ventana Externa</span>
-                  </button>
-                </div>
-
-                {/* Vista Iframe de la Sala Drafter */}
-                {cleanDrafterIframeUrl ? (
-                  <div className="flex-1 w-full rounded-xl overflow-hidden bg-black border border-zinc-900 relative">
-                    <iframe
-                      src={cleanDrafterIframeUrl}
-                      title="Drafter.lol Live Room"
-                      className="w-full h-full border-0"
-                      allow="fullscreen"
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                    />
-                  </div>
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800">
-                    <Radio className="h-8 w-8 text-zinc-600 mb-2 animate-pulse" />
-                    <p className="text-xs text-zinc-400 font-mono mb-2">No hay ninguna sala conectada a Drafter.lol</p>
-                    <button
-                      type="button"
-                      onClick={handleCreateDrafterRoom}
-                      className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold transition-all cursor-pointer"
-                    >
-                      ⚡ Crear Sala Automática
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ========================================================================= */}

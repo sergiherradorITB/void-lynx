@@ -31,14 +31,8 @@ import {
   SavedDraft,
 } from "@/lib/staff-storage";
 import { RoleType } from "@/components/RoleBadge";
-import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "./types";
+import { ActiveTab, DraftSlot, DraftSequenceStep, LaneConfig } from "./types";
 import { ROLE_LANE_METADATA } from "./constants";
-import {
-  drafterLiveBridge,
-  createDrafterRoom,
-  DrafterConnectionStatus,
-  DrafterRoomState,
-} from "@/lib/drafter-live-bridge";
 
 export function useStaffState() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("drafter");
@@ -679,275 +673,7 @@ export function useStaffState() {
   const [activeSlot, setActiveSlot] = useState<DraftSlot>({ side: "blue", type: "pick", index: 0 });
   const [draftSearchInput, setDraftSearchInput] = useState<string>("");
 
-  // Integración Drafter.lol en Vivo (Socket.io Bridge & API)
-  const [drafterRoomUrl, setDrafterRoomUrl] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("vl_drafter_room_url") || "";
-    }
-    return "";
-  });
-  const [drafterInputUrl, setDrafterInputUrl] = useState<string>("");
-  const [drafterArenaMode, setDrafterArenaMode] = useState<"builtin" | "drafter_lol" | "split">("builtin");
-  const [isDrafterAutoSync, setIsDrafterAutoSync] = useState<boolean>(true);
-  const [drafterSyncStatus, setDrafterSyncStatus] = useState<DrafterSyncStatus>("idle");
-  const [drafterSocketStatus, setDrafterSocketStatus] = useState<DrafterConnectionStatus>("disconnected");
-  const [drafterActionNotification, setDrafterActionNotification] = useState<string | null>(null);
-  const [isDrafterAutoForward, setIsDrafterAutoForward] = useState<boolean>(true);
-  const [isCreatingDrafterRoom, setIsCreatingDrafterRoom] = useState<boolean>(false);
-  const [lastDrafterSyncTime, setLastDrafterSyncTime] = useState<Date | null>(null);
-  const [drafterLiveTime, setDrafterLiveTime] = useState<number>(30);
 
-  // Conexión en tiempo real con Drafter.lol vía WebSocket
-  useEffect(() => {
-    const cleanId = drafterLiveBridge.cleanRoomId(drafterRoomUrl);
-    if (!cleanId || activeTab !== "live") {
-      if (drafterLiveBridge.isConnected()) {
-        drafterLiveBridge.disconnect();
-      }
-      setDrafterSocketStatus("disconnected");
-      return;
-    }
-
-    setDrafterSocketStatus("connecting");
-    setDrafterSyncStatus("syncing");
-
-    drafterLiveBridge.connect(cleanId, {
-      side: ourSide,
-      ourTeamName: "Void Lynx",
-      rivalTeamName: rivalName || "Rival",
-      callbacks: {
-        onStatusChange: (status, message) => {
-          setDrafterSocketStatus(status);
-          if (status === "connected") {
-            setDrafterSyncStatus("connected");
-          } else if (status === "connecting") {
-            setDrafterSyncStatus("syncing");
-          } else if (status === "error") {
-            setDrafterSyncStatus("error");
-          }
-        },
-        onStateUpdate: (state) => {
-          if (Array.isArray(state.bluePicks) && state.bluePicks.length === 5) {
-            setBluePicks(state.bluePicks);
-          }
-          if (Array.isArray(state.blueBans) && state.blueBans.length === 5) {
-            setBlueBans(state.blueBans);
-          }
-          if (Array.isArray(state.redPicks) && state.redPicks.length === 5) {
-            setRedPicks(state.redPicks);
-          }
-          if (Array.isArray(state.redBans) && state.redBans.length === 5) {
-            setRedBans(state.redBans);
-          }
-
-          if (ourSide === "BLUE" && state.redName && state.redName.trim()) {
-            setRivalName(state.redName.trim());
-          } else if (ourSide === "RED" && state.blueName && state.blueName.trim()) {
-            setRivalName(state.blueName.trim());
-          }
-
-          if (typeof state.currentTime === "number") {
-            setDrafterLiveTime(state.currentTime);
-          }
-
-          if (state.step) {
-            const stepMatch = state.step.match(/^(blue|red)(Pick|Ban)(\d)$/i);
-            if (stepMatch) {
-              const side = stepMatch[1]!.toLowerCase() as "blue" | "red";
-              const type = stepMatch[2]!.toLowerCase() as "pick" | "ban";
-              const index = Math.max(0, parseInt(stepMatch[3]!, 10) - 1);
-              setActiveSlot({ side, type, index });
-            }
-          }
-          setLastDrafterSyncTime(new Date());
-        },
-        onActionSent: (action, detail) => {
-          if (action === "lock") {
-            setDrafterActionNotification(`🚀 Transmitido y lockeado en Drafter.lol: ${detail}`);
-            setTimeout(() => setDrafterActionNotification(null), 3500);
-          } else if (action === "ready") {
-            setDrafterActionNotification(`★ Listo (Ready) confirmado en Drafter.lol`);
-            setTimeout(() => setDrafterActionNotification(null), 3000);
-          }
-        },
-      },
-    });
-  }, [drafterRoomUrl, activeTab]);
-
-  // Actualizar bando activo en el socket de Drafter.lol
-  useEffect(() => {
-    drafterLiveBridge.setOurSide(ourSide, "Void Lynx");
-  }, [ourSide]);
-
-  const [isImportingDrafter, setIsImportingDrafter] = useState<boolean>(false);
-
-  // Sincronización HTTP vía proxy serverless
-  const fetchAndApplyDrafterLiveState = async (roomIdToUse?: string) => {
-    const targetRoom = (roomIdToUse || drafterRoomUrl || drafterInputUrl).trim();
-    const cleanId = drafterLiveBridge.cleanRoomId(targetRoom);
-    if (!cleanId) return false;
-
-    try {
-      setDrafterSyncStatus("syncing");
-      const res = await fetch(`/api/drafter-sync?roomId=${cleanId}`);
-      if (!res.ok) {
-        setDrafterSyncStatus("error");
-        return false;
-      }
-      const data = await res.json();
-      if (!data.success) {
-        setDrafterSyncStatus("error");
-        return false;
-      }
-
-      if (Array.isArray(data.bluePicks)) setBluePicks(data.bluePicks);
-      if (Array.isArray(data.blueBans)) setBlueBans(data.blueBans);
-      if (Array.isArray(data.redPicks)) setRedPicks(data.redPicks);
-      if (Array.isArray(data.redBans)) setRedBans(data.redBans);
-
-      // Detectar bando automáticamente si viene el nombre de Void Lynx
-      const bName = (data.blueName || "").trim();
-      const rName = (data.redName || "").trim();
-
-      if (bName.toLowerCase().includes("void")) {
-        setOurSide("BLUE");
-        if (rName) setRivalName(rName);
-      } else if (rName.toLowerCase().includes("void")) {
-        setOurSide("RED");
-        if (bName) setRivalName(bName);
-      } else {
-        if (ourSide === "BLUE" && rName) setRivalName(rName);
-        if (ourSide === "RED" && bName) setRivalName(bName);
-      }
-
-      if (typeof data.currentTime === "number") {
-        setDrafterLiveTime(data.currentTime);
-      }
-
-      if (data.step) {
-        const stepMatch = data.step.match(/^(blue|red)(Pick|Ban)(\d)$/i);
-        if (stepMatch) {
-          const side = stepMatch[1].toLowerCase() as "blue" | "red";
-          const type = stepMatch[2].toLowerCase() as "pick" | "ban";
-          const index = Math.max(0, parseInt(stepMatch[3], 10) - 1);
-          setActiveSlot({ side, type, index });
-        }
-      }
-
-      setDrafterSyncStatus("connected");
-      setLastDrafterSyncTime(new Date());
-      return true;
-    } catch {
-      setDrafterSyncStatus("error");
-      return false;
-    }
-  };
-
-  // Importar draft de Drafter.lol en 1 solo clic
-  const handleImportDraftFromDrafter = async (urlOrId?: string) => {
-    const target = (urlOrId || drafterInputUrl || drafterRoomUrl).trim();
-    if (!target) {
-      alert("Introduce o pega la URL o ID de la sala de Drafter.lol.");
-      return false;
-    }
-
-    setIsImportingDrafter(true);
-    try {
-      const ok = await fetchAndApplyDrafterLiveState(target);
-      if (ok) {
-        handleSetDrafterRoomUrl(target);
-        setDraftSaveNotification({
-          message: "¡Draft importado con éxito desde Drafter.lol! Ahora puedes añadir notas tácticas y guardarlo.",
-          type: "success",
-        });
-        setTimeout(() => setDraftSaveNotification(null), 5000);
-        return true;
-      } else {
-        alert("No se pudo obtener el draft de Drafter.lol. Verifica que la sala exista o que el enlace sea correcto.");
-        return false;
-      }
-    } finally {
-      setIsImportingDrafter(false);
-    }
-  };
-
-  // Sincronización periódica automática cuando está activa
-  useEffect(() => {
-    if (!isDrafterAutoSync || !drafterRoomUrl.trim() || activeTab !== "live") return;
-
-    const interval = setInterval(() => {
-      fetchAndApplyDrafterLiveState(drafterRoomUrl);
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [isDrafterAutoSync, drafterRoomUrl, activeTab]);
-
-  const handleSetDrafterRoomUrl = (url: string) => {
-    setDrafterRoomUrl(url);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("vl_drafter_room_url", url);
-    }
-  };
-
-  // Crear sala automática en Drafter.lol en 1 click
-  const handleCreateDrafterRoom = async () => {
-    setIsCreatingDrafterRoom(true);
-    try {
-      const room = await createDrafterRoom({
-        team1Name: "Void Lynx",
-        team2Name: rivalName || "Rival Scrim",
-        firstSelection: ourSide === "BLUE",
-        gameAmount: 1,
-      });
-
-      if (room && room.url) {
-        handleSetDrafterRoomUrl(room.url);
-        setDraftSaveNotification({
-          message: `¡Sala creada en Drafter.lol (${room.id})! Conectado automáticamente.`,
-          type: "success",
-        });
-        setTimeout(() => setDraftSaveNotification(null), 4000);
-        return room;
-      } else {
-        alert("No se pudo crear la sala en Drafter.lol. Puedes pegar el enlace de tu sala manualmente.");
-      }
-    } catch (err: any) {
-      alert(`Error al crear sala en Drafter.lol: ${err?.message || err}`);
-    } finally {
-      setIsCreatingDrafterRoom(false);
-    }
-    return null;
-  };
-
-  // Confirmar Listo / Ready en Drafter.lol
-  const handleSendDrafterReady = () => {
-    if (drafterLiveBridge.isConnected()) {
-      drafterLiveBridge.sendReady();
-    } else {
-      alert("Conecta primero a una sala de Drafter.lol para confirmar Listo.");
-    }
-  };
-
-  // Desconectar de la sala de Drafter.lol
-  const handleDisconnectDrafter = () => {
-    drafterLiveBridge.disconnect();
-    setDrafterRoomUrl("");
-    setDrafterInputUrl("");
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("vl_drafter_room_url");
-    }
-    setDrafterSocketStatus("disconnected");
-    setDrafterSyncStatus("idle");
-  };
-
-  const cleanDrafterIframeUrl = useMemo(() => {
-    if (!drafterRoomUrl.trim()) return "";
-    let url = drafterRoomUrl.trim();
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-      url = `https://drafter.lol/draft/${url}`;
-    }
-    return url;
-  }, [drafterRoomUrl]);
 
   // Secuencia oficial de draft competitivo
   const DRAFT_SEQUENCE: DraftSequenceStep[] = useMemo(() => [
@@ -1072,10 +798,7 @@ export function useStaffState() {
       });
     }
 
-    // Reenvío automático a Drafter.lol en tiempo real
-    if (isDrafterAutoForward) {
-      drafterLiveBridge.lockChampion(champId);
-    }
+
   };
 
   const handleNextTurnStep = () => {
@@ -1102,17 +825,7 @@ export function useStaffState() {
     }
   };
 
-  const handleOpenDrafterPopout = () => {
-    if (!cleanDrafterIframeUrl) {
-      alert("Por favor introduce una URL de drafter.lol o ID de sala.");
-      return;
-    }
-    window.open(
-      cleanDrafterIframeUrl,
-      "DrafterLolRoom",
-      "width=1280,height=800,menubar=no,toolbar=no,location=yes,status=no"
-    );
-  };
+
 
   const handleCopyDraftSummary = () => {
     const bTeam = ourSide === "BLUE" ? "Void Lynx" : rivalName;
@@ -1163,6 +876,8 @@ export function useStaffState() {
     setRedBans(["", "", "", "", ""]);
     setActiveSlot({ side: "blue", type: "pick", index: 0 });
     setDraftSearchInput("");
+    setActiveCompIds(compositions.map((c) => c.id));
+    setDraftNotes("");
   };
 
   // Guardar draft en el historial & sincronizar con BBDD
@@ -1461,36 +1176,7 @@ export function useStaffState() {
     setActiveSlot,
     draftSearchInput,
     setDraftSearchInput,
-    drafterRoomUrl,
-    handleSetDrafterRoomUrl,
-    drafterInputUrl,
-    setDrafterInputUrl,
-    drafterArenaMode,
-    setDrafterArenaMode,
-    cleanDrafterIframeUrl,
-    isDrafterAutoSync,
-    setIsDrafterAutoSync,
-    drafterSyncStatus,
-    drafterSocketStatus,
-    drafterActionNotification,
-    isDrafterAutoForward,
-    setIsDrafterAutoForward,
-    isCreatingDrafterRoom,
-    handleCreateDrafterRoom,
-    handleSendDrafterReady,
-    handleDisconnectDrafter,
-    isImportingDrafter,
-    handleImportDraftFromDrafter,
-    lastDrafterSyncTime,
-    drafterLiveTime,
-    fetchAndApplyDrafterLiveState,
-    DRAFT_SEQUENCE,
-    currentTurnStep,
-    allUsedChampions,
-    handleLockChampion,
-    handleNextTurnStep,
-    handlePrevTurnStep,
-    handleOpenDrafterPopout,
+
     handleCopyDraftSummary,
     handleClearSlot,
     handleResetDraftBoard,
