@@ -33,6 +33,12 @@ import {
 import { RoleType } from "@/components/RoleBadge";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "./types";
 import { ROLE_LANE_METADATA } from "./constants";
+import {
+  drafterLiveBridge,
+  createDrafterRoom,
+  DrafterConnectionStatus,
+  DrafterRoomState,
+} from "@/lib/drafter-live-bridge";
 
 export function useStaffState() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("drafter");
@@ -673,7 +679,7 @@ export function useStaffState() {
   const [activeSlot, setActiveSlot] = useState<DraftSlot>({ side: "blue", type: "pick", index: 0 });
   const [draftSearchInput, setDraftSearchInput] = useState<string>("");
 
-  // Integración Drafter.lol
+  // Integración Drafter.lol en Vivo (Socket.io Bridge & API)
   const [drafterRoomUrl, setDrafterRoomUrl] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("vl_drafter_room_url") || "";
@@ -684,19 +690,99 @@ export function useStaffState() {
   const [drafterArenaMode, setDrafterArenaMode] = useState<"builtin" | "drafter_lol" | "split">("builtin");
   const [isDrafterAutoSync, setIsDrafterAutoSync] = useState<boolean>(true);
   const [drafterSyncStatus, setDrafterSyncStatus] = useState<DrafterSyncStatus>("idle");
+  const [drafterSocketStatus, setDrafterSocketStatus] = useState<DrafterConnectionStatus>("disconnected");
+  const [drafterActionNotification, setDrafterActionNotification] = useState<string | null>(null);
+  const [isDrafterAutoForward, setIsDrafterAutoForward] = useState<boolean>(true);
+  const [isCreatingDrafterRoom, setIsCreatingDrafterRoom] = useState<boolean>(false);
   const [lastDrafterSyncTime, setLastDrafterSyncTime] = useState<Date | null>(null);
   const [drafterLiveTime, setDrafterLiveTime] = useState<number>(30);
 
+  // Conexión en tiempo real con Drafter.lol vía WebSocket
+  useEffect(() => {
+    const cleanId = drafterLiveBridge.cleanRoomId(drafterRoomUrl);
+    if (!cleanId || activeTab !== "live") {
+      if (drafterLiveBridge.isConnected()) {
+        drafterLiveBridge.disconnect();
+      }
+      setDrafterSocketStatus("disconnected");
+      return;
+    }
+
+    setDrafterSocketStatus("connecting");
+    setDrafterSyncStatus("syncing");
+
+    drafterLiveBridge.connect(cleanId, {
+      side: ourSide,
+      ourTeamName: "Void Lynx",
+      rivalTeamName: rivalName || "Rival",
+      callbacks: {
+        onStatusChange: (status, message) => {
+          setDrafterSocketStatus(status);
+          if (status === "connected") {
+            setDrafterSyncStatus("connected");
+          } else if (status === "connecting") {
+            setDrafterSyncStatus("syncing");
+          } else if (status === "error") {
+            setDrafterSyncStatus("error");
+          }
+        },
+        onStateUpdate: (state) => {
+          if (Array.isArray(state.bluePicks) && state.bluePicks.length === 5) {
+            setBluePicks(state.bluePicks);
+          }
+          if (Array.isArray(state.blueBans) && state.blueBans.length === 5) {
+            setBlueBans(state.blueBans);
+          }
+          if (Array.isArray(state.redPicks) && state.redPicks.length === 5) {
+            setRedPicks(state.redPicks);
+          }
+          if (Array.isArray(state.redBans) && state.redBans.length === 5) {
+            setRedBans(state.redBans);
+          }
+
+          if (ourSide === "BLUE" && state.redName && state.redName.trim()) {
+            setRivalName(state.redName.trim());
+          } else if (ourSide === "RED" && state.blueName && state.blueName.trim()) {
+            setRivalName(state.blueName.trim());
+          }
+
+          if (typeof state.currentTime === "number") {
+            setDrafterLiveTime(state.currentTime);
+          }
+
+          if (state.step) {
+            const stepMatch = state.step.match(/^(blue|red)(Pick|Ban)(\d)$/i);
+            if (stepMatch) {
+              const side = stepMatch[1]!.toLowerCase() as "blue" | "red";
+              const type = stepMatch[2]!.toLowerCase() as "pick" | "ban";
+              const index = Math.max(0, parseInt(stepMatch[3]!, 10) - 1);
+              setActiveSlot({ side, type, index });
+            }
+          }
+          setLastDrafterSyncTime(new Date());
+        },
+        onActionSent: (action, detail) => {
+          if (action === "lock") {
+            setDrafterActionNotification(`🚀 Transmitido y lockeado en Drafter.lol: ${detail}`);
+            setTimeout(() => setDrafterActionNotification(null), 3500);
+          } else if (action === "ready") {
+            setDrafterActionNotification(`★ Listo (Ready) confirmado en Drafter.lol`);
+            setTimeout(() => setDrafterActionNotification(null), 3000);
+          }
+        },
+      },
+    });
+  }, [drafterRoomUrl, activeTab]);
+
+  // Actualizar bando activo en el socket de Drafter.lol
+  useEffect(() => {
+    drafterLiveBridge.setOurSide(ourSide, "Void Lynx");
+  }, [ourSide]);
+
+  // Sincronización HTTP de respaldo
   const fetchAndApplyDrafterLiveState = async (roomIdToUse?: string) => {
     const targetRoom = (roomIdToUse || drafterRoomUrl || drafterInputUrl).trim();
-    if (!targetRoom) return false;
-
-    const cleanId = (targetRoom
-      .replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "")
-      .split("?")[0] ?? "")
-      .split("/")[0]
-      ?.trim() ?? "";
-
+    const cleanId = drafterLiveBridge.cleanRoomId(targetRoom);
     if (!cleanId) return false;
 
     try {
@@ -712,25 +798,21 @@ export function useStaffState() {
         return false;
       }
 
-      // Sincronizar Picks y Bans si cambiaron
       if (Array.isArray(data.bluePicks)) setBluePicks(data.bluePicks);
       if (Array.isArray(data.blueBans)) setBlueBans(data.blueBans);
       if (Array.isArray(data.redPicks)) setRedPicks(data.redPicks);
       if (Array.isArray(data.redBans)) setRedBans(data.redBans);
 
-      // Sincronizar rivalName si viene en drafter
       if (ourSide === "BLUE" && data.redName && data.redName.trim()) {
         setRivalName(data.redName.trim());
       } else if (ourSide === "RED" && data.blueName && data.blueName.trim()) {
         setRivalName(data.blueName.trim());
       }
 
-      // Sincronizar tiempo restante
       if (typeof data.currentTime === "number") {
         setDrafterLiveTime(data.currentTime);
       }
 
-      // Sincronizar turno / slot activo
       if (data.step) {
         const stepMatch = data.step.match(/^(blue|red)(Pick|Ban)(\d)$/i);
         if (stepMatch) {
@@ -755,20 +837,58 @@ export function useStaffState() {
     if (typeof window !== "undefined") {
       localStorage.setItem("vl_drafter_room_url", url);
     }
-    fetchAndApplyDrafterLiveState(url);
   };
 
-  // Polling automático en tiempo real cuando está en pestaña 'live'
-  useEffect(() => {
-    if (!isDrafterAutoSync || !drafterRoomUrl.trim() || activeTab !== "live") return;
+  // Crear sala automática en Drafter.lol en 1 click
+  const handleCreateDrafterRoom = async () => {
+    setIsCreatingDrafterRoom(true);
+    try {
+      const room = await createDrafterRoom({
+        team1Name: "Void Lynx",
+        team2Name: rivalName || "Rival Scrim",
+        firstSelection: ourSide === "BLUE",
+        gameAmount: 1,
+      });
 
-    fetchAndApplyDrafterLiveState();
-    const interval = setInterval(() => {
-      fetchAndApplyDrafterLiveState();
-    }, 2000);
+      if (room && room.url) {
+        handleSetDrafterRoomUrl(room.url);
+        setDraftSaveNotification({
+          message: `¡Sala creada en Drafter.lol (${room.id})! Conectado automáticamente.`,
+          type: "success",
+        });
+        setTimeout(() => setDraftSaveNotification(null), 4000);
+        return room;
+      } else {
+        alert("No se pudo crear la sala en Drafter.lol. Puedes pegar el enlace de tu sala manualmente.");
+      }
+    } catch (err: any) {
+      alert(`Error al crear sala en Drafter.lol: ${err?.message || err}`);
+    } finally {
+      setIsCreatingDrafterRoom(false);
+    }
+    return null;
+  };
 
-    return () => clearInterval(interval);
-  }, [isDrafterAutoSync, drafterRoomUrl, activeTab, ourSide]);
+  // Confirmar Listo / Ready en Drafter.lol
+  const handleSendDrafterReady = () => {
+    if (drafterLiveBridge.isConnected()) {
+      drafterLiveBridge.sendReady();
+    } else {
+      alert("Conecta primero a una sala de Drafter.lol para confirmar Listo.");
+    }
+  };
+
+  // Desconectar de la sala de Drafter.lol
+  const handleDisconnectDrafter = () => {
+    drafterLiveBridge.disconnect();
+    setDrafterRoomUrl("");
+    setDrafterInputUrl("");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("vl_drafter_room_url");
+    }
+    setDrafterSocketStatus("disconnected");
+    setDrafterSyncStatus("idle");
+  };
 
   const cleanDrafterIframeUrl = useMemo(() => {
     if (!drafterRoomUrl.trim()) return "";
@@ -900,6 +1020,11 @@ export function useStaffState() {
         type: nextStep.type,
         index: nextStep.index,
       });
+    }
+
+    // Reenvío automático a Drafter.lol en tiempo real
+    if (isDrafterAutoForward) {
+      drafterLiveBridge.lockChampion(champId);
     }
   };
 
@@ -1296,6 +1421,14 @@ export function useStaffState() {
     isDrafterAutoSync,
     setIsDrafterAutoSync,
     drafterSyncStatus,
+    drafterSocketStatus,
+    drafterActionNotification,
+    isDrafterAutoForward,
+    setIsDrafterAutoForward,
+    isCreatingDrafterRoom,
+    handleCreateDrafterRoom,
+    handleSendDrafterReady,
+    handleDisconnectDrafter,
     lastDrafterSyncTime,
     drafterLiveTime,
     fetchAndApplyDrafterLiveState,

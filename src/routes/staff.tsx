@@ -179,6 +179,14 @@ function StaffPage() {
             isDrafterAutoSync={staff.isDrafterAutoSync}
             setIsDrafterAutoSync={staff.setIsDrafterAutoSync}
             drafterSyncStatus={staff.drafterSyncStatus}
+            drafterSocketStatus={staff.drafterSocketStatus}
+            drafterActionNotification={staff.drafterActionNotification}
+            isDrafterAutoForward={staff.isDrafterAutoForward}
+            setIsDrafterAutoForward={staff.setIsDrafterAutoForward}
+            isCreatingDrafterRoom={staff.isCreatingDrafterRoom}
+            handleCreateDrafterRoom={staff.handleCreateDrafterRoom}
+            handleSendDrafterReady={staff.handleSendDrafterReady}
+            handleDisconnectDrafter={staff.handleDisconnectDrafter}
             lastDrafterSyncTime={staff.lastDrafterSyncTime}
             drafterLiveTime={staff.drafterLiveTime}
             fetchAndApplyDrafterLiveState={staff.fetchAndApplyDrafterLiveState}

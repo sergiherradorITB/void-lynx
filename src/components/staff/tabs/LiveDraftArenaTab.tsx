@@ -24,6 +24,9 @@ import {
   Lock,
   Crown,
   Filter,
+  ExternalLink,
+  Loader2,
+  Radio,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
@@ -89,6 +92,14 @@ interface LiveDraftArenaTabProps {
   isDrafterAutoSync: boolean;
   setIsDrafterAutoSync: (val: boolean) => void;
   drafterSyncStatus: DrafterSyncStatus;
+  drafterSocketStatus?: "disconnected" | "connecting" | "connected" | "error";
+  drafterActionNotification?: string | null;
+  isDrafterAutoForward?: boolean;
+  setIsDrafterAutoForward?: (val: boolean) => void;
+  isCreatingDrafterRoom?: boolean;
+  handleCreateDrafterRoom?: () => Promise<any>;
+  handleSendDrafterReady?: () => void;
+  handleDisconnectDrafter?: () => void;
   lastDrafterSyncTime: Date | null;
   drafterLiveTime: number;
   fetchAndApplyDrafterLiveState: (roomId?: string) => Promise<boolean>;
@@ -134,6 +145,24 @@ export function LiveDraftArenaTab({
   playerChampions,
   players = [],
   starterPlayers = [],
+  drafterArenaMode = "builtin",
+  setDrafterArenaMode,
+  cleanDrafterIframeUrl = "",
+  handleOpenDrafterPopout,
+  drafterInputUrl = "",
+  setDrafterInputUrl,
+  drafterRoomUrl = "",
+  handleSetDrafterRoomUrl,
+  drafterSyncStatus = "idle",
+  drafterSocketStatus = "disconnected",
+  drafterActionNotification = null,
+  isDrafterAutoForward = true,
+  setIsDrafterAutoForward,
+  isCreatingDrafterRoom = false,
+  handleCreateDrafterRoom,
+  handleSendDrafterReady,
+  handleDisconnectDrafter,
+  drafterLiveTime = 30,
 }: LiveDraftArenaTabProps) {
   // Pestañas del selector inferior de campeones
   const [bottomTab, setBottomTab] = useState<"starters" | "adapted" | "catalog" | "counters">("starters");
@@ -500,9 +529,200 @@ export function LiveDraftArenaTab({
         </div>
 
         {/* ========================================================================= */}
-        {/* 2. PANEL TÁCTICO: COMPO QUE QUEREMOS JUGAR & PLAN DE FASES DE PICKS      */}
+        {/* 1.5. BARRA DE CONTROL DRAFTER.LOL LIVE BRIDGE (ENLACE Y ENVÍO EN VIVO)   */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+        <div className="bg-gradient-to-r from-zinc-950 via-purple-950/20 to-zinc-950 border border-purple-500/30 p-3.5 rounded-2xl shadow-xl space-y-3">
+          {/* Fila superior: Estado de Conexión + Notificaciones + Toggles de Modo */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 pb-2.5 border-b border-zinc-800/80">
+            {/* Estado y Sala Actual */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Badge Estado Socket */}
+              {drafterSocketStatus === "connected" || drafterSyncStatus === "connected" ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 text-xs font-mono font-bold shadow-[0_0_12px_rgba(16,185,129,0.25)]">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                  <span>CONECTADO A DRAFTER.LOL</span>
+                </span>
+              ) : drafterSocketStatus === "connecting" || drafterSyncStatus === "syncing" ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-950/80 border border-amber-500/50 text-amber-300 text-xs font-mono font-bold">
+                  <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
+                  <span>CONECTANDO A SALA...</span>
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-750 text-zinc-400 text-xs font-mono font-semibold">
+                  <span className="h-2 w-2 rounded-full bg-zinc-600" />
+                  <span>DRAFTER DESCONECTADO</span>
+                </span>
+              )}
+
+              {/* ID de la sala y Link si está conectado */}
+              {drafterRoomUrl && (
+                <a
+                  href={cleanDrafterIframeUrl || `https://drafter.lol/draft/${drafterRoomUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Abrir sala en Drafter.lol en una pestaña nueva"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-750 text-zinc-300 hover:text-white text-xs font-mono transition-colors group"
+                >
+                  <span className="text-zinc-500 text-[10px]">Sala:</span>
+                  <span className="font-bold text-purple-300 group-hover:underline">
+                    {drafterRoomUrl.replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "").split("?")[0]?.slice(0, 14)}...
+                  </span>
+                  <ExternalLink className="h-3 w-3 text-zinc-400 group-hover:text-purple-400" />
+                </a>
+              )}
+
+              {/* Tiempo en Vivo reportado por Drafter si hay */}
+              {(drafterSocketStatus === "connected" || drafterSyncStatus === "connected") && drafterLiveTime > 0 && (
+                <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
+                  <span className="text-zinc-600">•</span>
+                  <span>Timer Drafter: <strong className="text-amber-300">{drafterLiveTime}s</strong></span>
+                </span>
+              )}
+
+              {/* Notificación de Acción en Vivo (ej: "🚀 Transmitido a Drafter.lol: Jinx") */}
+              {drafterActionNotification && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-950 border border-purple-400 text-purple-200 text-xs font-mono font-bold animate-in fade-in slide-in-from-left-2 duration-200 shadow-[0_0_12px_rgba(168,85,247,0.3)]">
+                  <Zap className="h-3 w-3 text-amber-300 animate-pulse" />
+                  <span>{drafterActionNotification}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Controles de Vista & Modo Pantalla Dividida */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Reenvío automático toggle */}
+              <button
+                type="button"
+                onClick={() => setIsDrafterAutoForward?.(!isDrafterAutoForward)}
+                title="Al estar activo, cada pick o ban que selecciones en Void Lynx se enviará y lockeará inmediatamente a tu sala de Drafter.lol"
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+                  isDrafterAutoForward
+                    ? "bg-emerald-950/60 border-emerald-500/50 text-emerald-300"
+                    : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                }`}
+              >
+                <span className={`h-2 w-2 rounded-full ${isDrafterAutoForward ? "bg-emerald-400 shadow-[0_0_6px_#34d399]" : "bg-zinc-600"}`} />
+                <span>Envío a Drafter: {isDrafterAutoForward ? "ACTIVO" : "PAUSADO"}</span>
+              </button>
+
+              {/* Selector de modo Pizarra vs Split Screen */}
+              <div className="flex items-center bg-black/60 p-0.5 rounded-lg border border-zinc-800 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setDrafterArenaMode?.("builtin")}
+                  className={`px-2.5 py-1 rounded font-mono font-bold transition-all cursor-pointer ${
+                    drafterArenaMode === "builtin"
+                      ? "bg-purple-600 text-white shadow"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Pizarra
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDrafterArenaMode?.("split")}
+                  title="Ver Void Lynx y Drafter.lol lado a lado en pantalla dividida"
+                  className={`px-2.5 py-1 rounded font-mono font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                    drafterArenaMode === "split"
+                      ? "bg-purple-600 text-white shadow"
+                      : "text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  <span>⚔️ Pantalla Dividida</span>
+                </button>
+              </div>
+
+              {/* Abrir Popout en Drafter.lol */}
+              <button
+                type="button"
+                onClick={handleOpenDrafterPopout}
+                title="Abrir Drafter.lol en una ventana externa independiente"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-mono transition-colors cursor-pointer"
+              >
+                <ExternalLink className="h-3 w-3 text-purple-400" />
+                <span className="hidden sm:inline">Popout</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Fila inferior: Input de sala, Conectar/Desconectar, Crear Sala Automática y Ready */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+            {/* Input de URL o ID de sala */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={drafterInputUrl}
+                onChange={(e) => setDrafterInputUrl?.(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && drafterInputUrl.trim()) {
+                    handleSetDrafterRoomUrl?.(drafterInputUrl.trim());
+                  }
+                }}
+                placeholder="Pega URL o ID de Drafter.lol (ej: https://drafter.lol/draft/41df... o 41df...)"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-3 pr-20 py-2 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-purple-500"
+              />
+              {drafterInputUrl.trim() && (
+                <button
+                  type="button"
+                  onClick={() => handleSetDrafterRoomUrl?.(drafterInputUrl.trim())}
+                  className="absolute right-1 top-1 bottom-1 px-3 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-mono font-bold transition-colors cursor-pointer"
+                >
+                  Conectar
+                </button>
+              )}
+            </div>
+
+            {/* Si ya hay sala conectada, botón Desconectar */}
+            {drafterRoomUrl && (
+              <button
+                type="button"
+                onClick={handleDisconnectDrafter}
+                className="px-3 py-2 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-rose-500/50 text-zinc-400 hover:text-rose-400 text-xs font-mono font-semibold transition-colors shrink-0 cursor-pointer"
+              >
+                Desconectar
+              </button>
+            )}
+
+            {/* ⚡ Crear Sala en Drafter.lol (Automática) */}
+            <button
+              type="button"
+              onClick={handleCreateDrafterRoom}
+              disabled={isCreatingDrafterRoom}
+              title="Crea una sala competitiva en Drafter.lol automáticamente con Void Lynx vs Rival y conecta en 1 click"
+              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white text-xs font-mono font-bold shadow-md shadow-purple-950/40 transition-all hover:scale-[1.02] disabled:opacity-50 shrink-0 cursor-pointer"
+            >
+              {isCreatingDrafterRoom ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Zap className="h-3.5 w-3.5 text-amber-300" />
+              )}
+              <span>{isCreatingDrafterRoom ? "Creando en Drafter..." : "⚡ Crear Sala en Drafter.lol"}</span>
+            </button>
+
+            {/* ★ Confirmar Listo / Ready (Solo visible cuando conectado) */}
+            {(drafterSocketStatus === "connected" || drafterSyncStatus === "connected") && (
+              <button
+                type="button"
+                onClick={handleSendDrafterReady}
+                title="Enviar confirmación de Listo (Ready) a Drafter.lol"
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-mono font-bold shadow-md shadow-emerald-950/30 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
+              >
+                <Check className="h-3.5 w-3.5" />
+                <span>★ Estoy Listo (Ready)</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* CONTENEDOR PRINCIPAL: PIZARRA VOID LYNX [+ PREVIEW DRAFTER EN SPLIT]      */}
+        {/* ========================================================================= */}
+        <div className={drafterArenaMode === "split" ? "grid grid-cols-1 xl:grid-cols-12 gap-4 items-start" : "space-y-4"}>
+          <div className={drafterArenaMode === "split" ? "xl:col-span-7 2xl:col-span-8 space-y-4" : "space-y-4"}>
+            {/* ========================================================================= */}
+            {/* 2. PANEL TÁCTICO: COMPO QUE QUEREMOS JUGAR & PLAN DE FASES DE PICKS      */}
+            {/* ========================================================================= */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
           {/* Tarjeta Izquierda: Identidad de Composición & Counters a Vigilar (6 cols) */}
           <div className="lg:col-span-6 bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
             <div>
@@ -1667,6 +1887,66 @@ export function LiveDraftArenaTab({
             rows={2}
             className="w-full bg-zinc-900/80 border border-zinc-800 rounded-lg p-2.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 leading-relaxed font-sans"
           />
+        </div>
+      </div>
+
+          {/* ========================================================================= */}
+          {/* COLUMNA DERECHA: PREVIEW DE DRAFTER.LOL EN MODO SPLIT SCREEN              */}
+          {/* ========================================================================= */}
+          {drafterArenaMode === "split" && (
+            <div className="xl:col-span-5 2xl:col-span-4 sticky top-4 space-y-3">
+              <div className="bg-zinc-950 border-2 border-purple-500/40 rounded-2xl p-3 shadow-2xl flex flex-col h-[calc(100vh-140px)] min-h-[750px]">
+                {/* Cabecera de la ventana Drafter */}
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+                    <span className="font-display font-black text-xs text-white uppercase tracking-wider">
+                      Drafter.lol • Transmisión en Vivo
+                    </span>
+                    {drafterRoomUrl && (
+                      <span className="text-[10px] font-mono text-purple-300 bg-purple-950/70 border border-purple-500/30 px-1.5 py-0.2 rounded font-bold">
+                        SALA CONECTADA
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleOpenDrafterPopout}
+                    title="Abrir Drafter.lol en ventana externa independiente"
+                    className="flex items-center gap-1 text-[11px] font-mono text-zinc-400 hover:text-white px-2 py-0.5 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <ExternalLink className="h-3 w-3 text-purple-400" />
+                    <span>Ventana Externa</span>
+                  </button>
+                </div>
+
+                {/* Vista Iframe de la Sala Drafter */}
+                {cleanDrafterIframeUrl ? (
+                  <div className="flex-1 w-full rounded-xl overflow-hidden bg-black border border-zinc-900 relative">
+                    <iframe
+                      src={cleanDrafterIframeUrl}
+                      title="Drafter.lol Live Room"
+                      className="w-full h-full border-0"
+                      allow="fullscreen"
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center bg-zinc-900/30 rounded-xl border border-dashed border-zinc-800">
+                    <Radio className="h-8 w-8 text-zinc-600 mb-2 animate-pulse" />
+                    <p className="text-xs text-zinc-400 font-mono mb-2">No hay ninguna sala conectada a Drafter.lol</p>
+                    <button
+                      type="button"
+                      onClick={handleCreateDrafterRoom}
+                      className="px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold transition-all cursor-pointer"
+                    >
+                      ⚡ Crear Sala Automática
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ========================================================================= */}
