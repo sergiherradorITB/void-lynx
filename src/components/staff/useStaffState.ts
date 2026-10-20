@@ -24,26 +24,58 @@ import {
   deleteDraftApi,
   fetchRemoteCompositions,
   fetchRemotePlayerChampions,
+  loadPlayers,
+  savePlayersToStorage,
+  fetchRemotePlayers,
+  syncPlayersWithApi,
   SavedDraft,
 } from "@/lib/staff-storage";
 import { RoleType } from "@/components/RoleBadge";
-import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus } from "./types";
+import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "./types";
+import { ROLE_LANE_METADATA } from "./constants";
 
 export function useStaffState() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("drafter");
   const [compositions, setCompositions] = useState<CompositionData[]>(loadCompositions);
   const [playerChampions, setPlayerChampions] = useState<PlayerChampionEntry[]>(loadPlayerChampions);
+  const [players, setPlayers] = useState<PlayerProfile[]>(loadPlayers);
   const [selectedCompId, setSelectedCompId] = useState<string>("siege-4");
   const [activeCompIds, setActiveCompIds] = useState<string[]>(() =>
     loadCompositions().map((c) => c.id)
   );
   const [selectedPlayerName, setSelectedPlayerName] = useState<string>("Kaserolo");
+  const [editingPlayer, setEditingPlayer] = useState<PlayerProfile | null>(null);
+  const [showPlayerModal, setShowPlayerModal] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<"synced" | "saving" | "unsaved">("saving");
   const [playerViewMode, setPlayerViewMode] = useState<"tierlist" | "grid">("tierlist");
   const [draftsHistory, setDraftsHistory] = useState<SavedDraft[]>(loadDraftHistory);
 
   // Jugador actual seleccionado
-  const selectedPlayer: PlayerProfile = PLAYERS_LIST.find((p) => p.name === selectedPlayerName) || PLAYERS_LIST[0]!;
+  const selectedPlayer: PlayerProfile =
+    players.find((p) => p.name === selectedPlayerName) || players[0] || PLAYERS_LIST[0]!;
+
+  // Quinteto titular oficial
+  const starterPlayers: PlayerProfile[] = useMemo(() => {
+    return players.filter((p) => p.isStarter);
+  }, [players]);
+
+  // Roles dinámicos de la pizarra vertical basados en los titulares actuales
+  const verticalBoardRoles: LaneConfig[] = useMemo(() => {
+    return (["TOP", "JGL", "MID", "ADC", "SUPP"] as RoleType[]).map((role) => {
+      const starter = players.find((p) => p.role === role && p.isStarter) || players.find((p) => p.role === role);
+      const meta = ROLE_LANE_METADATA[role];
+      return {
+        role,
+        player: starter?.name || "Sin Jugador",
+        laneTitle: meta.laneTitle,
+        badgeBg: meta.badgeBg,
+        textColor: meta.textColor,
+        borderAccent: meta.borderAccent,
+        headerGradient: meta.headerGradient,
+        tagline: meta.tagline,
+      };
+    });
+  }, [players]);
 
   // Composición actual seleccionada en el drafter
   const currentComp: CompositionData = compositions.find((c) => c.id === selectedCompId) || compositions[0] || INITIAL_COMPOSITIONS[0]!;
@@ -82,8 +114,9 @@ export function useStaffState() {
       fetchRemoteCompositions(),
       fetchRemotePlayerChampions(),
       fetchRemoteDrafts(),
+      fetchRemotePlayers(),
     ])
-      .then(([remoteComps, remoteChamps, remoteDrafts]) => {
+      .then(([remoteComps, remoteChamps, remoteDrafts, remotePlayers]) => {
         if (remoteComps && remoteComps.length > 0) {
           setCompositions(remoteComps);
           setActiveCompIds((prev) => {
@@ -99,7 +132,10 @@ export function useStaffState() {
         if (remoteDrafts && remoteDrafts.length > 0) {
           setDraftsHistory(remoteDrafts);
         }
-        if (remoteComps || remoteChamps || remoteDrafts) {
+        if (remotePlayers && remotePlayers.length > 0) {
+          setPlayers(remotePlayers);
+        }
+        if (remoteComps || remoteChamps || remoteDrafts || remotePlayers) {
           setSaveStatus("synced");
         } else {
           setSaveStatus("unsaved");
@@ -291,10 +327,10 @@ export function useStaffState() {
   // Obtener campeones de un rol para una compo específica agrupados por Tiers
   const getRoleChampsForComp = (compName: string, role: RoleType, playerName?: string) => {
     const targetPlayer = playerName
-      ? PLAYERS_LIST.find((p) => p.name === playerName)
-      : PLAYERS_LIST.find((p) => p.role === role);
+      ? players.find((p) => p.name === playerName)
+      : players.find((p) => p.role === role && p.isStarter) || players.find((p) => p.role === role);
 
-    if (!targetPlayer) return { player: PLAYERS_LIST[0], S: [], A: [], B: [], C: [] };
+    if (!targetPlayer) return { player: players[0] || PLAYERS_LIST[0], S: [], A: [], B: [], C: [] };
 
     const playerChamps = playerChampions.filter(
       (pc) =>
@@ -339,7 +375,7 @@ export function useStaffState() {
   // Añadir un campeón rápido al rol y a la compo actual
   const handleQuickAddChampion = (champId: string) => {
     if (!quickAddRole || !currentComp) return;
-    const player = PLAYERS_LIST.find((p) => p.role === quickAddRole && p.isStarter) || PLAYERS_LIST.find((p) => p.role === quickAddRole);
+    const player = players.find((p) => p.role === quickAddRole && p.isStarter) || players.find((p) => p.role === quickAddRole);
     if (!player) return;
 
     const existing = playerChampions.find(
@@ -469,6 +505,98 @@ export function useStaffState() {
     handlePersist(compositions, updated);
   };
 
+  // Handlers para gestión de jugadores (Añadir, Editar, Titular / Suplente, Borrar)
+  const handleOpenAddPlayer = () => {
+    setEditingPlayer(null);
+    setShowPlayerModal(true);
+  };
+
+  const handleOpenEditPlayer = (player: PlayerProfile) => {
+    setEditingPlayer(player);
+    setShowPlayerModal(true);
+  };
+
+  const handleClosePlayerModal = () => {
+    setEditingPlayer(null);
+    setShowPlayerModal(false);
+  };
+
+  const handleAddPlayer = (newPlayer: PlayerProfile) => {
+    setPlayers((prev) => {
+      let updated = [...prev];
+      if (newPlayer.isStarter) {
+        updated = updated.map((p) => (p.role === newPlayer.role ? { ...p, isStarter: false } : p));
+      }
+      const next = [...updated, newPlayer];
+      savePlayersToStorage(next);
+      syncPlayersWithApi(next).catch(() => {});
+      return next;
+    });
+    setSelectedPlayerName(newPlayer.name);
+  };
+
+  const handleUpdatePlayer = (originalName: string, updatedData: Partial<PlayerProfile>) => {
+    setPlayers((prev) => {
+      const updated = prev.map((p) => {
+        if (p.name === originalName) {
+          return { ...p, ...updatedData };
+        }
+        if (updatedData.isStarter && p.role === (updatedData.role || p.role)) {
+          return { ...p, isStarter: false };
+        }
+        return p;
+      });
+      savePlayersToStorage(updated);
+      syncPlayersWithApi(updated).catch(() => {});
+      return updated;
+    });
+
+    if (updatedData.name && updatedData.name !== originalName) {
+      setSelectedPlayerName(updatedData.name);
+      setPlayerChampions((prevChamps) => {
+        const nextChamps = prevChamps.map((pc) =>
+          pc.jugador === originalName ? { ...pc, jugador: updatedData.name! } : pc
+        );
+        savePlayerChampionsToStorage(nextChamps);
+        syncPlayerChampionsWithApi(nextChamps).catch(() => {});
+        return nextChamps;
+      });
+    }
+  };
+
+  const handleToggleStarter = (playerName: string) => {
+    setPlayers((prev) => {
+      const target = prev.find((p) => p.name === playerName);
+      if (!target) return prev;
+      const willBeStarter = !target.isStarter;
+
+      const updated = prev.map((p) => {
+        if (p.name === playerName) {
+          return { ...p, isStarter: willBeStarter };
+        }
+        if (willBeStarter && p.role === target.role) {
+          return { ...p, isStarter: false };
+        }
+        return p;
+      });
+      savePlayersToStorage(updated);
+      syncPlayersWithApi(updated).catch(() => {});
+      return updated;
+    });
+  };
+
+  const handleDeletePlayer = (playerName: string) => {
+    setPlayers((prev) => {
+      const next = prev.filter((p) => p.name !== playerName);
+      savePlayersToStorage(next);
+      syncPlayersWithApi(next).catch(() => {});
+      if (selectedPlayerName === playerName && next.length > 0) {
+        setSelectedPlayerName(next[0]!.name);
+      }
+      return next;
+    });
+  };
+
   // Análisis de draft para la composición seleccionada
   const compDraftAnalysis = useMemo(() => {
     if (!currentComp) return null;
@@ -477,16 +605,23 @@ export function useStaffState() {
       pc.tipos_comp.includes(currentComp.nombre)
     );
 
+    const getStarterForRole = (r: RoleType) =>
+      players.find((p) => p.role === r && p.isStarter) ||
+      players.find((p) => p.role === r) ||
+      PLAYERS_LIST.find((p) => p.role === r) ||
+      players[0] ||
+      PLAYERS_LIST[0]!;
+
     const byRole: Record<string, { player: PlayerProfile; champs: PlayerChampionEntry[] }> = {
-      TOP: { player: PLAYERS_LIST.find((p) => p.role === "TOP")!, champs: [] },
-      JGL: { player: PLAYERS_LIST.find((p) => p.role === "JGL")!, champs: [] },
-      MID: { player: PLAYERS_LIST.find((p) => p.role === "MID" && p.isStarter)!, champs: [] },
-      ADC: { player: PLAYERS_LIST.find((p) => p.role === "ADC")!, champs: [] },
-      SUPP: { player: PLAYERS_LIST.find((p) => p.role === "SUPP" && p.isStarter)!, champs: [] },
+      TOP: { player: getStarterForRole("TOP"), champs: [] },
+      JGL: { player: getStarterForRole("JGL"), champs: [] },
+      MID: { player: getStarterForRole("MID"), champs: [] },
+      ADC: { player: getStarterForRole("ADC"), champs: [] },
+      SUPP: { player: getStarterForRole("SUPP"), champs: [] },
     };
 
     relevantChamps.forEach((entry) => {
-      const profile = PLAYERS_LIST.find((p) => p.name === entry.jugador);
+      const profile = players.find((p) => p.name === entry.jugador) || PLAYERS_LIST.find((p) => p.name === entry.jugador);
       if (profile && byRole[profile.role]) {
         byRole[profile.role]!.champs.push(entry);
       }
@@ -1043,7 +1178,23 @@ export function useStaffState() {
     handleReset,
     playerViewMode,
     setPlayerViewMode,
-    // Jugadores
+    // Roster & Jugadores
+    players,
+    setPlayers,
+    starterPlayers,
+    verticalBoardRoles,
+    editingPlayer,
+    setEditingPlayer,
+    showPlayerModal,
+    setShowPlayerModal,
+    handleOpenAddPlayer,
+    handleOpenEditPlayer,
+    handleClosePlayerModal,
+    handleAddPlayer,
+    handleUpdatePlayer,
+    handleToggleStarter,
+    handleDeletePlayer,
+    // Jugadores Champ Pools
     playerFilterTier,
     setPlayerFilterTier,
     playerFilterComp,

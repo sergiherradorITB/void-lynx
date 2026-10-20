@@ -3,11 +3,14 @@ import {
   INITIAL_COMPOSITIONS,
   INITIAL_PLAYER_CHAMPIONS,
   PlayerChampionEntry,
+  PlayerProfile,
+  PLAYERS_LIST,
 } from "@/data/staff-initial-data";
 
 const COMPOSITIONS_STORAGE_KEY = "void_lynx_compositions_v3";
 const PLAYERS_CHAMPS_STORAGE_KEY = "void_lynx_player_champs_v3";
 const DRAFTS_HISTORY_STORAGE_KEY = "void_lynx_drafts_history_v2";
+const PLAYERS_STORAGE_KEY = "void_lynx_players_v1";
 
 export interface SavedDraft {
   id: string;
@@ -86,6 +89,34 @@ export function savePlayerChampionsToStorage(entries: PlayerChampionEntry[]): vo
     localStorage.setItem(PLAYERS_CHAMPS_STORAGE_KEY, JSON.stringify(entries));
   } catch (e) {
     console.error("Error saving player champions to localStorage", e);
+  }
+}
+
+export function loadPlayers(): PlayerProfile[] {
+  if (typeof window === "undefined") return PLAYERS_LIST;
+  try {
+    const raw = localStorage.getItem(PLAYERS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((p: any) => ({
+          ...p,
+          isStarter: p.isStarter === true || p.isStarter === 1,
+        }));
+      }
+    }
+  } catch (e) {
+    console.error("Error reading players from localStorage", e);
+  }
+  return PLAYERS_LIST;
+}
+
+export function savePlayersToStorage(players: PlayerProfile[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PLAYERS_STORAGE_KEY, JSON.stringify(players));
+  } catch (e) {
+    console.error("Error saving players to localStorage", e);
   }
 }
 
@@ -212,6 +243,42 @@ export async function syncPlayerChampionsWithApi(entries: PlayerChampionEntry[])
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entries),
+    });
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data?.success;
+  } catch {
+    return false;
+  }
+}
+
+export async function fetchRemotePlayers(): Promise<PlayerProfile[] | null> {
+  try {
+    const res = await fetch("/api/roster");
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data) && !data[0]?.error) {
+      const formatted: PlayerProfile[] = data.map((p: any) => ({
+        ...p,
+        isStarter: p.isStarter === true || p.isStarter === 1,
+      }));
+      if (formatted.length > 0) {
+        savePlayersToStorage(formatted);
+        return formatted;
+      }
+    }
+  } catch {
+    // Fallback silencioso
+  }
+  return null;
+}
+
+export async function syncPlayersWithApi(players: PlayerProfile[]): Promise<boolean> {
+  try {
+    const res = await fetch("/api/roster", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(players),
     });
     if (!res.ok) return false;
     const data = await res.json();

@@ -7,6 +7,7 @@ import * as composicionesApi from "../functions/api/composiciones";
 import * as jugadoresApi from "../functions/api/jugadores";
 import * as draftsApi from "../functions/api/drafts";
 import * as drafterSyncApi from "../functions/api/drafter-sync";
+import * as rosterApi from "../functions/api/roster";
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -56,6 +57,12 @@ async function handleApiRequest(request: Request, rawEnv: any): Promise<Response
 
   if (path === "/api/drafter-sync") {
     if (method === "GET") return await drafterSyncApi.onRequestGet({ request });
+  }
+
+  if (path === "/api/roster") {
+    if (method === "GET") return await rosterApi.onRequestGet({ env });
+    if (method === "POST" || method === "PUT") return await rosterApi.onRequestPost({ request, env });
+    if (method === "DELETE") return await rosterApi.onRequestDelete({ request, env });
   }
 
   return null;

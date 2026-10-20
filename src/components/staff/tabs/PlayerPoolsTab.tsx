@@ -1,5 +1,5 @@
 import React from "react";
-import { CompositionData, PlayerChampionEntry, PlayerProfile, PLAYERS_LIST } from "@/data/staff-initial-data";
+import { CompositionData, PlayerChampionEntry, PlayerProfile } from "@/data/staff-initial-data";
 import { Champion, findChampion, getChampionAvatar, getChampionSplash } from "@/data/champions";
 import { RoleBadge } from "@/components/RoleBadge";
 import {
@@ -17,9 +17,12 @@ import {
   Sparkles,
   Layers,
   Shield,
+  Edit3,
+  UserPlus,
 } from "lucide-react";
 
 interface PlayerPoolsTabProps {
+  players: PlayerProfile[];
   selectedPlayerName: string;
   setSelectedPlayerName: (name: string) => void;
   selectedPlayer: PlayerProfile;
@@ -47,9 +50,14 @@ interface PlayerPoolsTabProps {
   handleToggleChampComp: (id: string, compName: string) => void;
   handleToggleFirstPick: (id: string) => void;
   handleDeleteChamp: (id: string) => void;
+  handleOpenAddPlayer: () => void;
+  handleOpenEditPlayer: (player: PlayerProfile) => void;
+  handleToggleStarter: (playerName: string) => void;
+  handleDeletePlayer: (playerName: string) => void;
 }
 
 export function PlayerPoolsTab({
+  players,
   selectedPlayerName,
   setSelectedPlayerName,
   selectedPlayer,
@@ -77,129 +85,223 @@ export function PlayerPoolsTab({
   handleToggleChampComp,
   handleToggleFirstPick,
   handleDeleteChamp,
+  handleOpenAddPlayer,
+  handleOpenEditPlayer,
+  handleToggleStarter,
+  handleDeletePlayer,
 }: PlayerPoolsTabProps) {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-            {/* VESTUARIO: SELECCIÓN DE JUGADOR CON SPLASH ARTS */}
-            <div className="bg-zinc-950/90 border border-purple-900/40 p-5 rounded-2xl shadow-2xl relative overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="bg-purple-950 text-purple-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/30">
-                      Roster Locker Room
-                    </span>
-                    <span className="text-zinc-500 text-xs font-mono">
-                      Selecciona tu perfil de jugador
-                    </span>
-                  </div>
-                  <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-white flex items-center gap-2.5">
-                    <Users className="h-6 w-6 text-purple-400" />
-                    <span>Vestuario // Pools & Tiers por Jugador</span>
-                  </h2>
-                </div>
+      {/* VESTUARIO: SELECCIÓN DE JUGADOR CON SPLASH ARTS */}
+      <div className="bg-zinc-950/90 border border-purple-900/40 p-5 rounded-2xl shadow-2xl relative overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="bg-purple-950 text-purple-300 text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider border border-purple-500/30">
+                Roster Locker Room
+              </span>
+              <span className="text-zinc-500 text-xs font-mono">
+                Gestión de quinteto titular, suplentes y champion pools
+              </span>
+            </div>
+            <h2 className="font-display font-bold text-xl sm:text-2xl uppercase tracking-wider text-white flex items-center gap-2.5">
+              <Users className="h-6 w-6 text-purple-400" />
+              <span>Vestuario // Roster & Pools por Jugador</span>
+            </h2>
+          </div>
 
-                <div className="flex items-center gap-2 self-start sm:self-auto">
-                  <span className="text-xs text-zinc-400 font-mono">Editando:</span>
-                  <span className="text-xs font-bold font-mono px-3 py-1 rounded-full bg-purple-900/50 border border-purple-400 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                    {selectedPlayer.displayName} ({selectedPlayer.role})
+          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={handleOpenAddPlayer}
+              className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg shadow-purple-900/40 flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>+ Nuevo Jugador</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Grid de Tarjetas de Jugadores (Locker Room Dinámico) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+          {players.map((player) => {
+            const isSelected = player.name === selectedPlayerName;
+            const playerChamps = playerChampions.filter((p) => p.jugador === player.name);
+            const countS = playerChamps.filter((p) => p.tier === "S").length;
+            const countA = playerChamps.filter((p) => p.tier === "A").length;
+            const splashUrl = getChampionSplash(player.signatureChamp);
+
+            return (
+              <div
+                key={player.name}
+                onClick={() => setSelectedPlayerName(player.name)}
+                className={`group relative rounded-xl overflow-hidden border p-3 text-left transition-all duration-300 flex flex-col justify-between min-h-[145px] cursor-pointer ${
+                  isSelected
+                    ? "border-purple-400 bg-purple-950/60 shadow-[0_0_30px_rgba(168,85,247,0.35)] ring-2 ring-purple-400 -translate-y-1"
+                    : "border-zinc-800/80 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-800/50 hover:-translate-y-0.5"
+                }`}
+              >
+                {/* Splash Art de fondo con fade */}
+                <div
+                  className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity duration-500 scale-105"
+                  style={{
+                    backgroundImage: `url(${splashUrl})`,
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/85 to-transparent" />
+
+                {/* Header de la tarjeta con Role, Titular Toggle y Botón Editar */}
+                <div className="relative z-10 flex items-center justify-between w-full mb-1.5">
+                  <span
+                    className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                      player.role === "TOP"
+                        ? "bg-amber-950/90 text-amber-300 border border-amber-600/40"
+                        : player.role === "JGL"
+                        ? "bg-emerald-950/90 text-emerald-300 border border-emerald-600/40"
+                        : player.role === "MID"
+                        ? "bg-cyan-950/90 text-cyan-300 border border-cyan-600/40"
+                        : player.role === "ADC"
+                        ? "bg-purple-950/90 text-purple-300 border border-purple-600/40"
+                        : "bg-rose-950/90 text-rose-300 border border-rose-600/40"
+                    }`}
+                  >
+                    {player.role}
                   </span>
-                </div>
-              </div>
 
-              {/* Grid de Tarjetas de Jugadores (Locker Room) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-                {PLAYERS_LIST.map((player) => {
-                  const isSelected = player.name === selectedPlayerName;
-                  const playerChamps = playerChampions.filter((p) => p.jugador === player.name);
-                  const countS = playerChamps.filter((p) => p.tier === "S").length;
-                  const countA = playerChamps.filter((p) => p.tier === "A").length;
-                  const splashUrl = getChampionSplash(player.signatureChamp);
-
-                  return (
+                  <div className="flex items-center gap-1">
+                    {/* Botón 1-Click Toggle Titular / Suplente */}
                     <button
-                      key={player.name}
-                      onClick={() => setSelectedPlayerName(player.name)}
-                      className={`group relative rounded-xl overflow-hidden border p-3.5 text-left transition-all duration-300 flex flex-col justify-between min-h-[140px] ${
-                        isSelected
-                          ? "border-purple-400 bg-purple-950/60 shadow-[0_0_30px_rgba(168,85,247,0.35)] ring-2 ring-purple-400 -translate-y-1"
-                          : "border-zinc-800/80 bg-zinc-900/60 hover:border-zinc-700 hover:bg-zinc-800/50 hover:-translate-y-0.5"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleStarter(player.name);
+                      }}
+                      title={
+                        player.isStarter
+                          ? "Titular asignado. Haz click para pasar a suplente"
+                          : "Suplente. Haz click para asignar como titular de esta posición"
+                      }
+                      className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 transition-all cursor-pointer ${
+                        player.isStarter
+                          ? "bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_8px_rgba(16,185,129,0.3)] hover:bg-emerald-900"
+                          : "bg-zinc-800 text-zinc-400 border border-zinc-700 hover:text-zinc-200"
                       }`}
                     >
-                      {/* Splash Art de fondo con fade */}
-                      <div
-                        className="absolute inset-0 bg-cover bg-center opacity-25 group-hover:opacity-40 transition-opacity duration-500 scale-105"
-                        style={{
-                          backgroundImage: `url(${splashUrl})`,
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/80 to-transparent" />
-
-                      {/* Header de la tarjeta */}
-                      <div className="relative z-10 flex items-center justify-between w-full mb-2">
-                        <span
-                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                            player.role === "TOP"
-                              ? "bg-amber-950/90 text-amber-300 border border-amber-600/40"
-                              : player.role === "JGL"
-                              ? "bg-emerald-950/90 text-emerald-300 border border-emerald-600/40"
-                              : player.role === "MID"
-                              ? "bg-cyan-950/90 text-cyan-300 border border-cyan-600/40"
-                              : player.role === "ADC"
-                              ? "bg-purple-950/90 text-purple-300 border border-purple-600/40"
-                              : "bg-rose-950/90 text-rose-300 border border-rose-600/40"
-                          }`}
-                        >
-                          {player.role}
-                        </span>
-
-                        <span className="text-[9px] font-mono text-zinc-400">
-                          {player.isStarter ? "Titular" : "Sub"}
-                        </span>
-                      </div>
-
-                      {/* Nombre del jugador */}
-                      <div className="relative z-10 my-auto">
-                        <span className="font-display font-bold text-sm sm:text-base text-white tracking-wide block truncate">
-                          {player.displayName}
-                        </span>
-                        <span className="text-[10px] text-zinc-400 block truncate font-mono">
-                          {player.laneTitle}
-                        </span>
-                      </div>
-
-                      {/* Desglose de Tiers rápido */}
-                      <div className="relative z-10 pt-2 border-t border-white/10 flex items-center justify-between text-[10px] font-mono w-full">
-                        <div className="flex gap-1.5">
-                          <span className="text-amber-400 font-bold" title="Tier S">S:{countS}</span>
-                          <span className="text-purple-300 font-bold" title="Tier A">A:{countA}</span>
-                        </div>
-                        <span className="text-zinc-400 font-semibold">{playerChamps.length} picks</span>
-                      </div>
+                      {player.isStarter ? (
+                        <Crown className="h-2.5 w-2.5 text-emerald-400" />
+                      ) : (
+                        <Shield className="h-2.5 w-2.5 text-zinc-400" />
+                      )}
+                      <span>{player.isStarter ? "TITULAR" : "SUB"}</span>
                     </button>
-                  );
-                })}
-              </div>
-            </div>
 
-            {/* CONTROLES Y HERRAMIENTAS DEL JUGADOR SELECCIONADO */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-950 border border-zinc-800 p-4 rounded-xl">
-              <div className="flex items-center gap-3">
-                <img
-                  src={getChampionAvatar(selectedPlayer.signatureChamp)}
-                  alt={selectedPlayer.displayName}
-                  className="h-10 w-10 rounded-lg border border-purple-500/50 object-cover shrink-0"
-                />
-                <div>
-                  <h3 className="font-display font-bold text-base uppercase tracking-wider text-white">
-                    Pool de {selectedPlayer.displayName} ({selectedPlayer.laneTitle})
-                  </h3>
-                  <p className="text-xs text-zinc-400">
-                    {filteredPlayerChamps.length} campeones mostrados • Gestiona tus tiers y a qué composiciones aplicas
-                  </p>
+                    {/* Botón Editar Jugador */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenEditPlayer(player);
+                      }}
+                      title="Editar datos del jugador"
+                      className="opacity-0 group-hover:opacity-100 p-1 rounded-md bg-black/70 hover:bg-purple-900 text-zinc-300 hover:text-white transition-opacity cursor-pointer"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nombre del jugador */}
+                <div className="relative z-10 my-auto">
+                  <span className="font-display font-bold text-sm sm:text-base text-white tracking-wide block truncate">
+                    {player.displayName}
+                  </span>
+                  <span className="text-[10px] text-zinc-400 block truncate font-mono">
+                    {player.laneTitle}
+                  </span>
+                </div>
+
+                {/* Desglose de Tiers rápido */}
+                <div className="relative z-10 pt-1.5 border-t border-white/10 flex items-center justify-between text-[10px] font-mono w-full">
+                  <div className="flex gap-1.5">
+                    <span className="text-amber-400 font-bold" title="Tier S">
+                      S:{countS}
+                    </span>
+                    <span className="text-purple-300 font-bold" title="Tier A">
+                      A:{countA}
+                    </span>
+                  </div>
+                  <span className="text-zinc-400 font-semibold">{playerChamps.length} picks</span>
                 </div>
               </div>
+            );
+          })}
 
-              {/* Selector de Modo de Vista y Filtro */}
+          {/* Tarjeta Dotted para Registrar Nuevo Jugador */}
+          <button
+            type="button"
+            onClick={handleOpenAddPlayer}
+            className="rounded-xl border-2 border-dashed border-zinc-800 hover:border-purple-500/80 bg-zinc-950/40 hover:bg-purple-950/20 p-3.5 flex flex-col items-center justify-center gap-2 text-zinc-500 hover:text-purple-300 transition-all min-h-[145px] cursor-pointer group"
+          >
+            <div className="p-2 rounded-xl bg-zinc-900 group-hover:bg-purple-900/40 border border-zinc-800 group-hover:border-purple-500/50 text-zinc-400 group-hover:text-purple-300 transition-all">
+              <Plus className="h-5 w-5" />
+            </div>
+            <span className="text-xs font-mono font-bold uppercase tracking-wider">
+              + Nuevo Jugador
+            </span>
+            <span className="text-[10px] text-zinc-500 font-mono text-center">
+              Añadir al roster
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* CONTROLES Y HERRAMIENTAS DEL JUGADOR SELECCIONADO */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-zinc-950 border border-zinc-800 p-4 rounded-xl">
+        <div className="flex items-center gap-3">
+          <img
+            src={getChampionAvatar(selectedPlayer.signatureChamp)}
+            alt={selectedPlayer.displayName}
+            className="h-10 w-10 rounded-lg border border-purple-500/50 object-cover shrink-0"
+          />
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-display font-bold text-base uppercase tracking-wider text-white">
+                Pool de {selectedPlayer.displayName} ({selectedPlayer.laneTitle})
+              </h3>
+              <button
+                type="button"
+                onClick={() => handleToggleStarter(selectedPlayer.name)}
+                title="Cambiar titularidad"
+                className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer ${
+                  selectedPlayer.isStarter
+                    ? "bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_8px_rgba(16,185,129,0.3)] hover:bg-emerald-900"
+                    : "bg-zinc-850 text-zinc-400 border border-zinc-700 hover:text-zinc-200"
+                }`}
+              >
+                {selectedPlayer.isStarter ? (
+                  <Crown className="h-3 w-3 text-emerald-400" />
+                ) : (
+                  <Shield className="h-3 w-3 text-zinc-400" />
+                )}
+                <span>{selectedPlayer.isStarter ? "TITULAR OFICIAL" : "SUPLENTE"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOpenEditPlayer(selectedPlayer)}
+                className="text-[10px] font-mono text-purple-300 hover:text-purple-200 bg-purple-950/70 border border-purple-500/40 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <Edit3 className="h-3 w-3" />
+                <span>Editar Perfil</span>
+              </button>
+            </div>
+            <p className="text-xs text-zinc-400">
+              {filteredPlayerChamps.length} campeones mostrados • Gestiona tus tiers y a qué composiciones aplicas
+            </p>
+          </div>
+        </div>
+
+        {/* Selector de Modo de Vista y Filtro */}
               <div className="flex flex-wrap items-center gap-3">
                 {/* Switcher de Vista (Tierlist vs Grid) */}
                 <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">

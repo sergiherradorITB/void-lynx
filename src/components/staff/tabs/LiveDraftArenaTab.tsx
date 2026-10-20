@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { CompositionData, PlayerChampionEntry, PriorityLevel } from "@/data/staff-initial-data";
+import { CompositionData, PlayerChampionEntry, PriorityLevel, PlayerProfile } from "@/data/staff-initial-data";
 import { Champion, CHAMPIONS_CATALOG, findChampion, getChampionAvatar } from "@/data/champions";
 import { RoleIconOnly, RoleType } from "@/components/RoleBadge";
 import {
@@ -22,12 +22,16 @@ import {
   Target,
   Sparkles,
   Lock,
+  Crown,
+  Filter,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
 import { calculateCompMetrics, getSmartBans, getRosterCountersForEnemy } from "@/lib/draft-tactics";
 
 interface LiveDraftArenaTabProps {
+  players?: PlayerProfile[];
+  starterPlayers?: PlayerProfile[];
   ourSide: "BLUE" | "RED";
   setOurSide: (side: "BLUE" | "RED") => void;
   rivalName: string;
@@ -128,9 +132,12 @@ export function LiveDraftArenaTab({
   draftNotes,
   setDraftNotes,
   playerChampions,
+  players = [],
+  starterPlayers = [],
 }: LiveDraftArenaTabProps) {
   // Pestañas del selector inferior de campeones
-  const [bottomTab, setBottomTab] = useState<"adapted" | "catalog" | "counters">("adapted");
+  const [bottomTab, setBottomTab] = useState<"starters" | "adapted" | "catalog" | "counters">("starters");
+  const [starterPrioFilter, setStarterPrioFilter] = useState<"ALL" | "FP" | "TIER_S_A" | "AVAILABLE">("ALL");
   const [roleFilter, setRoleFilter] = useState<"ALL" | "TOP" | "JGL" | "MID" | "ADC" | "SUPP">("ALL");
   const [catalogSearch, setCatalogSearch] = useState<string>("");
 
@@ -203,6 +210,127 @@ export function LiveDraftArenaTab({
 
     return list;
   }, [verticalBoardRoles, roleFilter, getRoleChampsForComp, currentComp]);
+
+  // Pools de los 5 Titulares oficiales para la fase de picks (con First Picks FP, LP y Tiers)
+  const starterPoolsData = useMemo(() => {
+    const roles: RoleType[] = ["TOP", "JGL", "MID", "ADC", "SUPP"];
+    const themes: Record<RoleType, {
+      name: string;
+      laneTitle: string;
+      badgeBg: string;
+      badgeBorder: string;
+      badgeText: string;
+      colBorder: string;
+      headerBg: string;
+      accentColor: string;
+    }> = {
+      TOP: {
+        name: "TOP LANE",
+        laneTitle: "Top Laner",
+        badgeBg: "bg-amber-950/80",
+        badgeBorder: "border-amber-500/40",
+        badgeText: "text-amber-400",
+        colBorder: "border-amber-900/30 hover:border-amber-600/50",
+        headerBg: "from-amber-950/50 via-zinc-900 to-transparent",
+        accentColor: "text-amber-400",
+      },
+      JGL: {
+        name: "JUNGLA",
+        laneTitle: "Jungler",
+        badgeBg: "bg-emerald-950/80",
+        badgeBorder: "border-emerald-500/40",
+        badgeText: "text-emerald-400",
+        colBorder: "border-emerald-900/30 hover:border-emerald-600/50",
+        headerBg: "from-emerald-950/50 via-zinc-900 to-transparent",
+        accentColor: "text-emerald-400",
+      },
+      MID: {
+        name: "MID LANE",
+        laneTitle: "Mid Laner",
+        badgeBg: "bg-cyan-950/80",
+        badgeBorder: "border-cyan-500/40",
+        badgeText: "text-cyan-400",
+        colBorder: "border-cyan-900/30 hover:border-cyan-600/50",
+        headerBg: "from-cyan-950/50 via-zinc-900 to-transparent",
+        accentColor: "text-cyan-400",
+      },
+      ADC: {
+        name: "BOT CARRY",
+        laneTitle: "ADC / Bot Laner",
+        badgeBg: "bg-purple-950/80",
+        badgeBorder: "border-purple-500/40",
+        badgeText: "text-purple-400",
+        colBorder: "border-purple-900/30 hover:border-purple-600/50",
+        headerBg: "from-purple-950/50 via-zinc-900 to-transparent",
+        accentColor: "text-purple-400",
+      },
+      SUPP: {
+        name: "SUPPORT",
+        laneTitle: "Support",
+        badgeBg: "bg-rose-950/80",
+        badgeBorder: "border-rose-500/40",
+        badgeText: "text-rose-400",
+        colBorder: "border-rose-900/30 hover:border-rose-600/50",
+        headerBg: "from-rose-950/50 via-zinc-900 to-transparent",
+        accentColor: "text-rose-400",
+      },
+    };
+
+    return roles
+      .filter((r) => roleFilter === "ALL" || roleFilter === r)
+      .map((role) => {
+        // Encontrar titular asignado para esta posición
+        const starter =
+          starterPlayers.find((p) => p.role === role) ||
+          players.find((p) => p.role === role && p.isStarter) ||
+          players.find((p) => p.role === role) ||
+          verticalBoardRoles.find((v) => v.role === role) || {
+            name: role,
+            displayName: role,
+            role,
+            laneTitle: `${role} Laner`,
+            signatureChamp: "Ornn",
+            isStarter: true,
+            color: "text-zinc-400",
+          };
+
+        const rawChamps = playerChampions.filter((pc) => pc.jugador === starter.name);
+
+        const filtered = rawChamps.filter((c) => {
+          const isFP = c.is_first_pickable === true || c.pick_tag === "FP";
+          const isUsed = allUsedChampions.has(c.campeon_id.toLowerCase());
+
+          if (starterPrioFilter === "FP" && !isFP) return false;
+          if (starterPrioFilter === "TIER_S_A" && c.tier !== "S" && c.tier !== "A") return false;
+          if (starterPrioFilter === "AVAILABLE" && isUsed) return false;
+          return true;
+        });
+
+        const tierWeights: Record<string, number> = { S: 4, A: 3, B: 2, C: 1 };
+        const sorted = [...filtered].sort((a, b) => {
+          const wA = tierWeights[a.tier] || 0;
+          const wB = tierWeights[b.tier] || 0;
+          if (wA !== wB) return wB - wA;
+
+          const fpA = a.is_first_pickable || a.pick_tag === "FP" ? 1 : 0;
+          const fpB = b.is_first_pickable || b.pick_tag === "FP" ? 1 : 0;
+          if (fpA !== fpB) return fpB - fpA;
+
+          return a.campeon_id.localeCompare(b.campeon_id);
+        });
+
+        const fpCount = rawChamps.filter((c) => c.is_first_pickable || c.pick_tag === "FP").length;
+
+        return {
+          role,
+          starter,
+          champions: sorted,
+          totalCount: rawChamps.length,
+          fpCount,
+          theme: themes[role],
+        };
+      });
+  }, [starterPlayers, players, verticalBoardRoles, playerChampions, allUsedChampions, starterPrioFilter, roleFilter]);
 
   // Catálogo completo filtrado para el buscador inferior
   const filteredCatalog = useMemo(() => {
@@ -896,11 +1024,24 @@ export function LiveDraftArenaTab({
           {/* Header con Switcher de Pestañas y Filtro de Carril */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
             {/* Pestañas Principales */}
-            <div className="flex items-center gap-1 bg-black/60 p-1 rounded-xl border border-zinc-800">
+            <div className="flex flex-wrap items-center gap-1 bg-black/60 p-1 rounded-xl border border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setBottomTab("starters")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  bottomTab === "starters"
+                    ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Crown className="h-3.5 w-3.5 text-amber-400" />
+                <span>🌟 Pools 5 Titulares (FP / LP)</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setBottomTab("adapted")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   bottomTab === "adapted"
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
                     : "text-zinc-400 hover:text-white"
@@ -913,7 +1054,7 @@ export function LiveDraftArenaTab({
               <button
                 type="button"
                 onClick={() => setBottomTab("catalog")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   bottomTab === "catalog"
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
                     : "text-zinc-400 hover:text-white"
@@ -926,7 +1067,7 @@ export function LiveDraftArenaTab({
               <button
                 type="button"
                 onClick={() => setBottomTab("counters")}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
                   bottomTab === "counters"
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-900/40"
                     : "text-zinc-400 hover:text-white"
@@ -944,7 +1085,7 @@ export function LiveDraftArenaTab({
                   key={r}
                   type="button"
                   onClick={() => setRoleFilter(r)}
-                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all border ${
+                  className={`px-2 py-1 rounded text-[10px] font-mono font-bold transition-all border cursor-pointer ${
                     roleFilter === r
                       ? "bg-purple-600 text-white border-purple-400"
                       : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
@@ -957,7 +1098,252 @@ export function LiveDraftArenaTab({
           </div>
 
           {/* ===================================================================== */}
-          {/* PESTAÑA 1: CAMPEONES ADAPTADOS A LA COMPOSICIÓN                       */}
+          {/* PESTAÑA PRINCIPAL: POOLS DE LOS 5 TITULARES (FP / LP)                 */}
+          {/* ===================================================================== */}
+          {bottomTab === "starters" && (
+            <div className="space-y-3.5">
+              {/* Banner de Fase Táctica con Asesoría de Blind/First-Pick */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl border bg-zinc-900/90 border-purple-900/40">
+                <div className="flex items-center gap-2.5">
+                  <div className={`p-2 rounded-xl shrink-0 ${
+                    isDraftPhase1
+                      ? "bg-emerald-950/80 border border-emerald-500/50 text-emerald-400"
+                      : "bg-purple-950/80 border border-purple-500/50 text-purple-400"
+                  }`}>
+                    {isDraftPhase1 ? <CheckCircle2 className="h-5 w-5" /> : <Target className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-display font-black text-xs uppercase tracking-wider text-white">
+                        {isDraftPhase1 ? "Fase 1 de Picks (B1-B3 / R1-R3)" : "Fase 2 de Picks (B4-B5 / R4-R5)"}
+                      </span>
+                      <span className={`text-[9px] font-mono font-black px-1.5 py-0.2 rounded-full ${
+                        isDraftPhase1
+                          ? "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
+                          : "bg-purple-950 text-purple-300 border border-purple-500/40"
+                      }`}>
+                        {isDraftPhase1 ? "PRIORIDAD: FIRST PICKS (FP)" : "PRIORIDAD: COUNTERS (LP)"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400 font-mono mt-0.5">
+                      {isDraftPhase1
+                        ? "Picks seguros a ciegas: no revelan tu estrategia ni tienen counters duros. Busca etiquetas ✓ FP SEGURO."
+                        : "Castiga el draft rival con respuestas directas LP COUNTER o completa la sinergia de tu composición."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Filtros Rápidos de la Pool */}
+                <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setStarterPrioFilter("ALL")}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                      starterPrioFilter === "ALL"
+                        ? "bg-zinc-200 text-black border-white shadow"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStarterPrioFilter("FP")}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border flex items-center gap-1 ${
+                      starterPrioFilter === "FP"
+                        ? "bg-emerald-500 text-black border-emerald-400 shadow-md shadow-emerald-500/30"
+                        : "bg-emerald-950/60 text-emerald-300 border-emerald-600/40 hover:bg-emerald-900/50"
+                    }`}
+                  >
+                    <span>✓</span> Solo FP Seguros
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStarterPrioFilter("TIER_S_A")}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                      starterPrioFilter === "TIER_S_A"
+                        ? "bg-amber-500 text-black border-amber-400 shadow-md shadow-amber-500/30"
+                        : "bg-amber-950/60 text-amber-300 border-amber-600/40 hover:bg-amber-900/50"
+                    }`}
+                  >
+                    Tier S & A
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStarterPrioFilter("AVAILABLE")}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                      starterPrioFilter === "AVAILABLE"
+                        ? "bg-purple-600 text-white border-purple-400 shadow-md shadow-purple-900/40"
+                        : "bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white"
+                    }`}
+                  >
+                    Solo Disponibles
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid de las 5 Columnas de Titulares */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                {starterPoolsData.map(({ role, starter, champions, totalCount, fpCount, theme }) => {
+                  return (
+                    <div
+                      key={role}
+                      className={`bg-zinc-900/70 border ${theme.colBorder} rounded-xl p-2.5 flex flex-col justify-between transition-all shadow-xl`}
+                    >
+                      {/* Cabecera del Carril y Titular */}
+                      <div className={`pb-2 mb-2 border-b border-zinc-800 bg-gradient-to-b ${theme.headerBg} -mx-2.5 -mt-2.5 p-2.5 rounded-t-xl`}>
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className={`text-[10px] font-mono font-black px-2 py-0.5 rounded-full ${theme.badgeBg} ${theme.badgeText} border ${theme.badgeBorder} flex items-center gap-1 shadow`}>
+                            <RoleIconOnly role={role} size="sm" />
+                            <span>{theme.name}</span>
+                          </span>
+
+                          <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-500/40 px-1.5 py-0.5 rounded flex items-center gap-1 shadow-[0_0_8px_rgba(16,185,129,0.2)]">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span>{fpCount} FP</span>
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={getChampionAvatar(starter.signatureChamp)}
+                            alt={starter.displayName}
+                            className="h-8 w-8 rounded-lg object-cover border border-purple-500/40 shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <Crown className="h-3 w-3 text-amber-400 shrink-0" />
+                              <span className="font-display font-black text-xs text-white truncate block">
+                                {starter.displayName}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-zinc-400 font-mono block truncate">
+                              Titular • {totalCount} picks
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Lista de Campeones del Titular */}
+                      <div className="space-y-1.5 flex-1 max-h-[380px] overflow-y-auto pr-0.5">
+                        {champions.length === 0 ? (
+                          <div className="p-4 text-center text-zinc-500 text-xs font-mono">
+                            Sin campeones con este filtro
+                          </div>
+                        ) : (
+                          champions.map((champ) => {
+                            const isUsed = allUsedChampions.has(champ.campeon_id.toLowerCase());
+                            const isFP = champ.is_first_pickable === true || champ.pick_tag === "FP";
+                            const isLP = champ.pick_tag === "LP";
+                            const isRisky = champ.pick_tag === "Risky";
+
+                            const isPickedBlue = bluePicks.includes(champ.campeon_id);
+                            const isPickedRed = redPicks.includes(champ.campeon_id);
+                            const isBanned = [...blueBans, ...redBans].includes(champ.campeon_id);
+
+                            return (
+                              <button
+                                key={champ.id}
+                                type="button"
+                                disabled={isUsed}
+                                onClick={() => handleLockChampion(champ.campeon_id)}
+                                title={
+                                  isUsed
+                                    ? `${champ.campeon_id} ya se encuentra en mesa (Pick/Ban)`
+                                    : `Lockear ${champ.campeon_id} en ${activeSlot.side.toUpperCase()} ${activeSlot.type.toUpperCase()} #${activeSlot.index + 1}`
+                                }
+                                className={`w-full p-1.5 rounded-lg border text-left flex items-center justify-between gap-1.5 transition-all cursor-pointer ${
+                                  isUsed
+                                    ? "bg-zinc-950/40 border-zinc-800/60 opacity-40 cursor-not-allowed"
+                                    : isFP
+                                    ? "bg-zinc-900/90 hover:bg-emerald-950/50 border-zinc-800 hover:border-emerald-400 hover:shadow-md hover:scale-[1.02]"
+                                    : "bg-zinc-900/70 hover:bg-zinc-800 border-zinc-800 hover:border-purple-400 hover:shadow-md hover:scale-[1.02]"
+                                }`}
+                              >
+                                {/* Avatar + Nombre + Tier */}
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <div className="relative shrink-0">
+                                    <img
+                                      src={getChampionAvatar(champ.campeon_id)}
+                                      alt={champ.campeon_id}
+                                      className={`h-7 w-7 rounded-md object-cover ${
+                                        isUsed
+                                          ? "grayscale"
+                                          : isFP
+                                          ? "border-2 border-emerald-400 ring-1 ring-emerald-500/30"
+                                          : "border border-zinc-700"
+                                      }`}
+                                    />
+                                    {isUsed && (
+                                      <div className="absolute inset-0 bg-black/60 rounded-md flex items-center justify-center">
+                                        <Lock className="h-3 w-3 text-zinc-400" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-bold text-xs text-white truncate block">
+                                        {champ.campeon_id}
+                                      </span>
+                                      <span
+                                        className={`text-[8px] font-black px-1 rounded font-mono shrink-0 ${
+                                          champ.tier === "S"
+                                            ? "bg-amber-950 text-amber-300 border border-amber-500/40"
+                                            : champ.tier === "A"
+                                            ? "bg-purple-950 text-purple-300 border border-purple-500/40"
+                                            : "bg-zinc-800 text-zinc-400"
+                                        }`}
+                                      >
+                                        {champ.tier}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Pick Tag / Estado Badge */}
+                                <div className="shrink-0 flex items-center">
+                                  {isPickedBlue ? (
+                                    <span className="text-[8px] font-mono font-bold px-1 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-500/40">
+                                      AZUL
+                                    </span>
+                                  ) : isPickedRed ? (
+                                    <span className="text-[8px] font-mono font-bold px-1 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-500/40">
+                                      ROJO
+                                    </span>
+                                  ) : isBanned ? (
+                                    <span className="text-[8px] font-mono font-bold px-1 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-800">
+                                      BAN
+                                    </span>
+                                  ) : isFP ? (
+                                    <span className="text-[8px] font-mono font-black px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/60 shadow-[0_0_8px_rgba(16,185,129,0.3)] flex items-center gap-0.5">
+                                      <span>✓</span> FP
+                                    </span>
+                                  ) : isLP ? (
+                                    <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/40">
+                                      LP
+                                    </span>
+                                  ) : isRisky ? (
+                                    <span className="text-[8px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">
+                                      RISK
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ===================================================================== */}
+          {/* PESTAÑA 2: CAMPEONES ADAPTADOS A LA COMPOSICIÓN                       */}
+          {/* ===================================================================== */}
           {/* ===================================================================== */}
           {bottomTab === "adapted" && (
             <div className="space-y-2">

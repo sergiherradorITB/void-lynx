@@ -9,7 +9,7 @@ import { LiveDraftArenaTab } from "@/components/staff/tabs/LiveDraftArenaTab";
 import { ScrimHistoryTab } from "@/components/staff/tabs/ScrimHistoryTab";
 import { EditCompositionModal } from "@/components/staff/modals/EditCompositionModal";
 import { QuickAddChampModal } from "@/components/staff/modals/QuickAddChampModal";
-import { VERTICAL_BOARD_ROLES } from "@/components/staff/constants";
+import { PlayerModal } from "@/components/staff/modals/PlayerModal";
 
 export const Route = createFileRoute("/staff")({
   head: () => ({
@@ -68,7 +68,7 @@ function StaffPage() {
             setQuickAddTag={staff.setQuickAddTag}
             getRoleChampsForComp={staff.getRoleChampsForComp}
             handleRemoveChampFromComp={staff.handleRemoveChampFromComp}
-            verticalBoardRoles={VERTICAL_BOARD_ROLES}
+            verticalBoardRoles={staff.verticalBoardRoles}
             setActiveTab={staff.setActiveTab}
           />
         )}
@@ -89,6 +89,7 @@ function StaffPage() {
 
         {staff.activeTab === "players" && (
           <PlayerPoolsTab
+            players={staff.players}
             selectedPlayerName={staff.selectedPlayerName}
             setSelectedPlayerName={staff.setSelectedPlayerName}
             selectedPlayer={staff.selectedPlayer}
@@ -116,11 +117,17 @@ function StaffPage() {
             handleToggleChampComp={staff.handleToggleChampComp}
             handleToggleFirstPick={staff.handleToggleFirstPick}
             handleDeleteChamp={staff.handleDeleteChamp}
+            handleOpenAddPlayer={staff.handleOpenAddPlayer}
+            handleOpenEditPlayer={staff.handleOpenEditPlayer}
+            handleToggleStarter={staff.handleToggleStarter}
+            handleDeletePlayer={staff.handleDeletePlayer}
           />
         )}
 
         {staff.activeTab === "live" && (
           <LiveDraftArenaTab
+            players={staff.players}
+            starterPlayers={staff.starterPlayers}
             ourSide={staff.ourSide}
             setOurSide={staff.setOurSide}
             rivalName={staff.rivalName}
@@ -161,7 +168,7 @@ function StaffPage() {
             handleDeleteSavedDraft={staff.handleDeleteSavedDraft}
             handleLockChampion={staff.handleLockChampion}
             allUsedChampions={staff.allUsedChampions}
-            verticalBoardRoles={VERTICAL_BOARD_ROLES}
+            verticalBoardRoles={staff.verticalBoardRoles}
             getRoleChampsForComp={staff.getRoleChampsForComp}
             draftSearchInput={staff.draftSearchInput}
             setDraftSearchInput={staff.setDraftSearchInput}
@@ -234,7 +241,25 @@ function StaffPage() {
             onClose={() => staff.setQuickAddRole(null)}
           />
         )}
+
+        {/* Modal Añadir / Editar Jugador */}
+        {staff.showPlayerModal && (
+          <PlayerModal
+            player={staff.editingPlayer}
+            existingPlayers={staff.players}
+            onClose={staff.handleClosePlayerModal}
+            onSave={(playerData) => {
+              if (staff.editingPlayer) {
+                staff.handleUpdatePlayer(staff.editingPlayer.name, playerData);
+              } else {
+                staff.handleAddPlayer(playerData);
+              }
+            }}
+            onDelete={staff.handleDeletePlayer}
+          />
+        )}
       </main>
     </div>
   );
 }
+
