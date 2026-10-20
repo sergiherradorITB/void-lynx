@@ -53,7 +53,13 @@ export function useStaffState() {
     savePlayerChampionsToStorage(newChamps);
     setSaveStatus("saving");
     Promise.all([syncCompositionsWithApi(newComps), syncPlayerChampionsWithApi(newChamps)])
-      .then(() => setSaveStatus("synced"))
+      .then(([compsOk, champsOk]) => {
+        if (compsOk && champsOk) {
+          setSaveStatus("synced");
+        } else {
+          setSaveStatus("unsaved");
+        }
+      })
       .catch(() => setSaveStatus("unsaved"));
   };
 

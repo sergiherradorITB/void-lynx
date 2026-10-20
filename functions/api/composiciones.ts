@@ -6,11 +6,29 @@ interface Env {
   STAFF_SECRET?: string;
 }
 
+function getCompId(row: any): string {
+  if (row.comp_id && typeof row.comp_id === "string") return row.comp_id;
+  const name = (row.nombre || "").trim().toLowerCase();
+  const known: Record<string, string> = {
+    "siege 4": "siege-4",
+    "siege 5": "siege-5",
+    "diver": "diver",
+    "teamfight": "teamfight",
+    "soul drake": "soul-drake",
+    "bloque 2": "bloque-2",
+    "bloque 3": "bloque-3",
+    "los dosh": "los-dosh",
+  };
+  if (known[name]) return known[name];
+  const slug = name.replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  return slug || String(row.id);
+}
+
 export const onRequestGet = async (context: { env: Env }) => {
   const db = context.env.DB;
   if (!db) {
     return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
-      status: 200,
+      status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -19,6 +37,7 @@ export const onRequestGet = async (context: { env: Env }) => {
     const { results } = await db.prepare("SELECT * FROM composiciones ORDER BY id ASC").all();
     const formatted = (results || []).map((row: any) => ({
       ...row,
+      id: getCompId(row),
       counters_campeones: safeJsonParse(row.counters_campeones, []),
       first_pick_safe: safeJsonParse(row.first_pick_safe, []),
       no_first_pick_reasons: safeJsonParse(row.no_first_pick_reasons, []),
@@ -47,8 +66,8 @@ export const onRequestGet = async (context: { env: Env }) => {
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const db = context.env.DB;
   if (!db) {
-    return new Response(JSON.stringify({ message: "Mock saved (DB not bound in dev)" }), {
-      status: 200,
+    return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
+      status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -56,6 +75,12 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   try {
     const body = await context.request.json();
     const items = Array.isArray(body) ? body : [body];
+    if (items.length === 0) {
+      return new Response(JSON.stringify({ success: true, count: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const stmt = db.prepare(`
       INSERT INTO composiciones (
@@ -76,7 +101,7 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         notas_staff=excluded.notas_staff
     `);
 
-    const batch = items.map((c: any) =>
+    const batch: any[] = items.map((c: any) =>
       stmt.bind(
         c.nombre,
         c.prioridad || "Situacional",
@@ -97,6 +122,15 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
         c.notas_staff || ""
       )
     );
+
+    // Si se envía el conjunto completo de composiciones, eliminar las composiciones que ya no existen
+    const presentNames = items.map((c: any) => c.nombre).filter(Boolean);
+    if (items.length > 1 && presentNames.length > 0) {
+      const placeholders = presentNames.map(() => "?").join(",");
+      batch.push(
+        db.prepare(`DELETE FROM composiciones WHERE nombre NOT IN (${placeholders})`).bind(...presentNames)
+      );
+    }
 
     await db.batch(batch);
 

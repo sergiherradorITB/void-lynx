@@ -110,9 +110,17 @@ export async function fetchRemoteCompositions(): Promise<CompositionData[] | nul
     const res = await fetch("/api/composiciones");
     if (!res.ok) return null;
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0 && !data[0]?.error) {
-      saveCompositionsToStorage(data);
-      return data;
+    if (Array.isArray(data)) {
+      if (data.length > 0 && !data[0]?.error) {
+        saveCompositionsToStorage(data);
+        return data;
+      }
+      // Si la BD está conectada pero la tabla está vacía, sembrar con los datos actuales
+      if (data.length === 0) {
+        const local = loadCompositions();
+        await syncCompositionsWithApi(local);
+        return local;
+      }
     }
   } catch {
     // Fallback silencioso en entorno local o sin D1
@@ -125,9 +133,17 @@ export async function fetchRemotePlayerChampions(): Promise<PlayerChampionEntry[
     const res = await fetch("/api/jugadores");
     if (!res.ok) return null;
     const data = await res.json();
-    if (Array.isArray(data) && data.length > 0 && !data[0]?.error) {
-      savePlayerChampionsToStorage(data);
-      return data;
+    if (Array.isArray(data)) {
+      if (data.length > 0 && !data[0]?.error) {
+        savePlayerChampionsToStorage(data);
+        return data;
+      }
+      // Si la BD está conectada pero la tabla está vacía, sembrar con los datos actuales
+      if (data.length === 0) {
+        const local = loadPlayerChampions();
+        await syncPlayerChampionsWithApi(local);
+        return local;
+      }
     }
   } catch {
     // Fallback silencioso en entorno local o sin D1
@@ -182,7 +198,9 @@ export async function syncCompositionsWithApi(comps: CompositionData[]): Promise
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(comps),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data?.success;
   } catch {
     return false;
   }
@@ -195,7 +213,9 @@ export async function syncPlayerChampionsWithApi(entries: PlayerChampionEntry[])
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(entries),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data?.success;
   } catch {
     return false;
   }
@@ -208,7 +228,9 @@ export async function syncDraftWithApi(draft: SavedDraft): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(draft),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    const data = await res.json();
+    return !!data?.success;
   } catch {
     return false;
   }

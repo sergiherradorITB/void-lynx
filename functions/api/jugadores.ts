@@ -10,7 +10,7 @@ export const onRequestGet = async (context: { env: Env }) => {
   const db = context.env.DB;
   if (!db) {
     return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
-      status: 200,
+      status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -19,6 +19,7 @@ export const onRequestGet = async (context: { env: Env }) => {
     const { results } = await db.prepare("SELECT * FROM jugador_campeones ORDER BY jugador, tier, campeon_id ASC").all();
     const formatted = (results || []).map((row: any) => ({
       ...row,
+      id: `${(row.jugador || "").toLowerCase()}-${(row.campeon_id || "").toLowerCase()}`,
       tipos_comp: safeJsonParse(row.tipos_comp, []),
       is_first_pickable: row.is_first_pickable !== 0,
       pick_tag: row.pick_tag || (row.is_first_pickable !== 0 ? "FP" : "Normal"),
@@ -39,8 +40,8 @@ export const onRequestGet = async (context: { env: Env }) => {
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
   const db = context.env.DB;
   if (!db) {
-    return new Response(JSON.stringify({ message: "Mock saved (DB not bound in dev)" }), {
-      status: 200,
+    return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
+      status: 503,
       headers: { "Content-Type": "application/json" },
     });
   }
@@ -48,6 +49,12 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
   try {
     const body = await context.request.json();
     const items = Array.isArray(body) ? body : [body];
+    if (items.length === 0) {
+      return new Response(JSON.stringify({ success: true, count: 0 }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
 
     const stmt = db.prepare(`
       INSERT INTO jugador_campeones (jugador, campeon_id, tier, tipos_comp, is_first_pickable, pick_tag, notas_staff)
@@ -72,7 +79,14 @@ export const onRequestPost = async (context: { request: Request; env: Env }) => 
       )
     );
 
-    await db.batch(batch);
+    // Si enviamos la lista completa de campeones del roster (> 10 items),
+    // limpiamos y reinsertamos atómicamente para asegurar que los borrados se reflejen
+    if (items.length > 10) {
+      const deleteStmt = db.prepare("DELETE FROM jugador_campeones");
+      await db.batch([deleteStmt, ...batch]);
+    } else {
+      await db.batch(batch);
+    }
 
     return new Response(JSON.stringify({ success: true, count: items.length }), {
       status: 200,
