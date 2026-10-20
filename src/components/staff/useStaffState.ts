@@ -34,6 +34,9 @@ export function useStaffState() {
   const [compositions, setCompositions] = useState<CompositionData[]>(loadCompositions);
   const [playerChampions, setPlayerChampions] = useState<PlayerChampionEntry[]>(loadPlayerChampions);
   const [selectedCompId, setSelectedCompId] = useState<string>("siege-4");
+  const [activeCompIds, setActiveCompIds] = useState<string[]>(() =>
+    loadCompositions().map((c) => c.id)
+  );
   const [selectedPlayerName, setSelectedPlayerName] = useState<string>("Kaserolo");
   const [saveStatus, setSaveStatus] = useState<"synced" | "saving" | "unsaved">("saving");
   const [playerViewMode, setPlayerViewMode] = useState<"tierlist" | "grid">("tierlist");
@@ -83,6 +86,12 @@ export function useStaffState() {
       .then(([remoteComps, remoteChamps, remoteDrafts]) => {
         if (remoteComps && remoteComps.length > 0) {
           setCompositions(remoteComps);
+          setActiveCompIds((prev) => {
+            const remoteIds = remoteComps.map((c) => c.id);
+            if (prev.length === 0) return remoteIds;
+            const valid = prev.filter((id) => remoteIds.includes(id));
+            return valid.length > 0 ? valid : remoteIds;
+          });
         }
         if (remoteChamps && remoteChamps.length > 0) {
           setPlayerChampions(remoteChamps);
@@ -118,9 +127,33 @@ export function useStaffState() {
   const [newBanInput, setNewBanInput] = useState<string>("");
 
   // Modo de visualización en el Asistente de Draft Táctico
-  const [drafterViewMode, setDrafterViewMode] = useState<"vertical" | "matrix" | "cards">("vertical");
+  const [drafterViewMode, setDrafterViewMode] = useState<"vertical" | "matrix" | "cards" | "counters">("vertical");
   const [matrixShowAll, setMatrixShowAll] = useState<boolean>(true);
   const [drafterPickHighlight, setDrafterPickHighlight] = useState<"ALL" | "FP" | "LP" | "RISKY">("ALL");
+  const [counterRoleFilter, setCounterRoleFilter] = useState<RoleType>("ADC");
+
+  // Handlers para activar / desactivar composiciones en el asistente
+  const handleToggleCompActive = (id: string) => {
+    setActiveCompIds((prev) => {
+      if (prev.includes(id)) {
+        const next = prev.filter((cId) => cId !== id);
+        if (selectedCompId === id && next.length > 0) {
+          setSelectedCompId(next[0]!);
+        }
+        return next;
+      } else {
+        return [...prev, id];
+      }
+    });
+  };
+
+  const handleActivateAllComps = () => {
+    setActiveCompIds(compositions.map((c) => c.id));
+  };
+
+  const handleDeactivateAllComps = () => {
+    setActiveCompIds([]);
+  };
 
   // Modal para añadir campeón rápido a un rol en la pizarra vertical
   const [quickAddRole, setQuickAddRole] = useState<RoleType | null>(null);
@@ -1032,6 +1065,13 @@ export function useStaffState() {
     handleToggleFirstPick,
     handleDeleteChamp,
     // Asistente Táctico
+    activeCompIds,
+    setActiveCompIds,
+    handleToggleCompActive,
+    handleActivateAllComps,
+    handleDeactivateAllComps,
+    counterRoleFilter,
+    setCounterRoleFilter,
     drafterViewMode,
     setDrafterViewMode,
     matrixShowAll,

@@ -43,9 +43,15 @@ function StaffPage() {
             compositions={staff.compositions}
             currentComp={staff.currentComp}
             setSelectedCompId={staff.setSelectedCompId}
+            activeCompIds={staff.activeCompIds}
+            handleToggleCompActive={staff.handleToggleCompActive}
+            handleActivateAllComps={staff.handleActivateAllComps}
+            handleDeactivateAllComps={staff.handleDeactivateAllComps}
             compDraftAnalysis={staff.compDraftAnalysis}
             drafterViewMode={staff.drafterViewMode}
             setDrafterViewMode={staff.setDrafterViewMode}
+            counterRoleFilter={staff.counterRoleFilter}
+            setCounterRoleFilter={staff.setCounterRoleFilter}
             matrixShowAll={staff.matrixShowAll}
             setMatrixShowAll={staff.setMatrixShowAll}
             drafterPickHighlight={staff.drafterPickHighlight}

@@ -23,14 +23,21 @@ import {
   XCircle,
 } from "lucide-react";
 import { ActiveTab, CompDraftAnalysis, LaneConfig } from "../types";
+import { RoleCountersSection } from "./RoleCountersSection";
 
 interface TacticalAssistantTabProps {
   compositions: CompositionData[];
   currentComp: CompositionData;
   setSelectedCompId: (id: string) => void;
+  activeCompIds: string[];
+  handleToggleCompActive: (id: string) => void;
+  handleActivateAllComps: () => void;
+  handleDeactivateAllComps: () => void;
   compDraftAnalysis: CompDraftAnalysis;
-  drafterViewMode: "vertical" | "matrix" | "cards";
-  setDrafterViewMode: (mode: "vertical" | "matrix" | "cards") => void;
+  drafterViewMode: "vertical" | "matrix" | "cards" | "counters";
+  setDrafterViewMode: (mode: "vertical" | "matrix" | "cards" | "counters") => void;
+  counterRoleFilter?: RoleType;
+  setCounterRoleFilter?: (role: RoleType) => void;
   matrixShowAll: boolean;
   setMatrixShowAll: (show: boolean) => void;
   drafterPickHighlight: "ALL" | "FP" | "LP" | "RISKY";
@@ -61,9 +68,15 @@ export function TacticalAssistantTab({
   compositions,
   currentComp,
   setSelectedCompId,
+  activeCompIds = [],
+  handleToggleCompActive,
+  handleActivateAllComps,
+  handleDeactivateAllComps,
   compDraftAnalysis,
   drafterViewMode,
   setDrafterViewMode,
+  counterRoleFilter = "ADC",
+  setCounterRoleFilter,
   matrixShowAll,
   setMatrixShowAll,
   drafterPickHighlight,
@@ -114,32 +127,120 @@ export function TacticalAssistantTab({
                 </div>
               </div>
 
-              {/* Botones de Selección Rápida de Composición — Más Grandes, Fáciles y Sin Efecto de Bola */}
+              {/* Barra de Viabilidad y Filtro de Composiciones en Draft */}
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3.5 bg-zinc-900/60 border border-purple-900/30 rounded-xl">
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-xs font-mono font-bold text-zinc-300 uppercase flex items-center gap-1.5">
+                    <Crosshair className="h-4 w-4 text-purple-400" />
+                    Composiciones Viables en Draft:
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-black bg-purple-950 border border-purple-500/50 text-purple-200">
+                    {activeCompIds.length} / {compositions.length} ACTIVAS
+                  </span>
+                  <span className="text-[11px] text-zinc-400 font-mono hidden sm:inline">
+                    (Todas activas por defecto. Haz clic para descartar o reactivar sobre la marcha)
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleActivateAllComps}
+                    title="Restablecer todas las composiciones como activas y viables"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Activar Todas</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDeactivateAllComps}
+                    title="Descartar todas las composiciones"
+                    className="text-xs px-3 py-1.5 rounded-lg bg-rose-950/50 hover:bg-rose-900/80 border border-rose-600/40 text-rose-300 font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                  >
+                    <XCircle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Descartar Todas</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid de Composiciones Tácticas con Estado Activo / Descartado */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
                 {compositions.map((comp) => {
+                  const isActive = activeCompIds.includes(comp.id);
                   const isSelected = comp.id === currentComp.id;
                   const isHigh = comp.prioridad.includes("Alta");
                   const isMed = comp.prioridad.includes("Media");
 
                   return (
-                    <button
+                    <div
                       key={comp.id}
-                      onClick={() => setSelectedCompId(comp.id)}
-                      className={`p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[96px] cursor-pointer ${
-                        isSelected
+                      onClick={() => {
+                        if (!isActive) {
+                          handleToggleCompActive(comp.id);
+                          setSelectedCompId(comp.id);
+                        } else {
+                          setSelectedCompId(comp.id);
+                        }
+                      }}
+                      className={`group p-4 sm:p-5 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[105px] cursor-pointer select-none ${
+                        !isActive
+                          ? "bg-zinc-950/40 border-zinc-900/90 text-zinc-500 opacity-50 hover:opacity-85 shadow-none"
+                          : isSelected
                           ? "bg-gradient-to-br from-purple-900/70 via-purple-950/90 to-zinc-950 border-purple-400 text-white shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-2 ring-purple-400/80 scale-[1.02]"
-                          : "bg-zinc-950/80 border-zinc-800/90 text-zinc-300 hover:border-purple-500/60 hover:bg-zinc-900/90 hover:scale-[1.01]"
+                          : "bg-zinc-950/80 border-purple-900/30 text-zinc-300 hover:border-purple-500/60 hover:bg-zinc-900/90 hover:scale-[1.01]"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-display font-black text-base sm:text-lg uppercase tracking-wide text-white leading-tight">
-                          {comp.nombre}
+                        <div>
+                          <div
+                            className={`font-display font-black text-base sm:text-lg uppercase tracking-wide leading-tight ${
+                              !isActive ? "line-through text-zinc-500" : "text-white"
+                            }`}
+                          >
+                            {comp.nombre}
+                          </div>
+                          {isSelected && isActive && (
+                            <span className="text-[9px] font-mono font-black text-purple-300 tracking-wider uppercase block mt-0.5">
+                              ● EN PIZARRA
+                            </span>
+                          )}
                         </div>
-                        {isSelected && (
-                          <span className="flex items-center gap-1 text-[10px] font-mono font-bold text-purple-300 bg-purple-950/90 border border-purple-500/50 px-2 py-0.5 rounded-full shrink-0">
-                            <Check className="h-3 w-3 text-purple-400" /> ACTIVA
-                          </span>
-                        )}
+
+                        {/* Botón de toggle directo Activa / Descartada */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleToggleCompActive(comp.id);
+                          }}
+                          title={
+                            isActive
+                              ? "Haz clic para descartar esta composición de la partida"
+                              : "Haz clic para reactivar esta composición"
+                          }
+                          className={`flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 transition-all cursor-pointer ${
+                            isActive
+                              ? "bg-emerald-950/90 text-emerald-300 border border-emerald-500/60 group-hover:border-rose-500/60 group-hover:text-rose-300 group-hover:bg-rose-950/90"
+                              : "bg-zinc-900 text-zinc-400 border border-zinc-700 hover:border-emerald-500/60 hover:text-emerald-300 hover:bg-emerald-950/90"
+                          }`}
+                        >
+                          {isActive ? (
+                            <>
+                              <Check className="h-3 w-3 text-emerald-400 group-hover:hidden" />
+                              <X className="h-3 w-3 text-rose-400 hidden group-hover:inline" />
+                              <span className="group-hover:hidden">ACTIVA</span>
+                              <span className="hidden group-hover:inline">DESCARTAR</span>
+                            </>
+                          ) : (
+                            <>
+                              <XCircle className="h-3 w-3 text-rose-400 group-hover:hidden" />
+                              <CheckCircle2 className="h-3 w-3 text-emerald-400 hidden group-hover:inline" />
+                              <span className="group-hover:hidden">DESCARTADA</span>
+                              <span className="hidden group-hover:inline">REACTIVAR</span>
+                            </>
+                          )}
+                        </button>
                       </div>
 
                       <div className="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-white/5">
@@ -148,7 +249,9 @@ export function TacticalAssistantTab({
                         </span>
                         <span
                           className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                            isHigh
+                            !isActive
+                              ? "bg-zinc-900 text-zinc-600 border border-zinc-800"
+                              : isHigh
                               ? "bg-rose-950/90 text-rose-300 border border-rose-500/50"
                               : isMed
                               ? "bg-amber-950/90 text-amber-300 border border-amber-500/50"
@@ -158,13 +261,13 @@ export function TacticalAssistantTab({
                           {comp.prioridad.replace(" Prioridad", "")}
                         </span>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
 
-              {/* Ficha Resumen de la Composición Seleccionada con Counters Destacados (Solo fuera de Pizarra Vertical) */}
-              {drafterViewMode !== "vertical" && (
+              {/* Ficha Resumen de la Composición Seleccionada con Counters Destacados (Solo fuera de Pizarra Vertical y de Counters) */}
+              {drafterViewMode !== "vertical" && drafterViewMode !== "counters" && (
                 <div className="mt-6 pt-5 border-t border-purple-900/40 space-y-4">
                   {/* Fila 1: Concepto, Enfoque y Prioridad */}
                   <div className="flex flex-col lg:flex-row gap-4 items-start justify-between bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 sm:p-5">
@@ -303,6 +406,18 @@ export function TacticalAssistantTab({
                     <LayoutGrid className="h-4 w-4" />
                     <span>Apertura & First Picks</span>
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setDrafterViewMode("counters")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+                      drafterViewMode === "counters"
+                        ? "bg-purple-600 text-white shadow-md shadow-purple-900/40"
+                        : "text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    <Crosshair className="h-4 w-4 text-purple-300" />
+                    <span>🎯 Counters por Rol</span>
+                  </button>
                 </div>
 
                 {drafterViewMode === "matrix" && (
@@ -347,6 +462,32 @@ export function TacticalAssistantTab({
             {/* ========================================================= */}
             {drafterViewMode === "vertical" && (
               <div className="space-y-6">
+                {/* Alerta si la composición actual está descartada */}
+                {!activeCompIds.includes(currentComp.id) && (
+                  <div className="bg-rose-950/60 border-2 border-rose-500/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-rose-200 shadow-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300">
+                        <AlertTriangle className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <span className="font-display font-black text-sm uppercase text-white block">
+                          Composición "{currentComp.nombre}" Descartada
+                        </span>
+                        <span className="text-rose-300/80 font-mono text-[11px]">
+                          Esta composición está marcada como descartada en la fase de draft actual.
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleCompActive(currentComp.id)}
+                      className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-mono font-bold text-xs transition-colors shrink-0 shadow-lg cursor-pointer flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      <span>Reactivar Composición</span>
+                    </button>
+                  </div>
+                )}
                 {/* ========================================================= */}
                 {/* 1. INFORMACIÓN GENERAL ARRIBA (5 BLOQUES DE LA MATRIZ)     */}
                 {/* ========================================================= */}
@@ -568,6 +709,17 @@ export function TacticalAssistantTab({
                                 <span className={`px-2 py-0.5 rounded text-xs font-mono font-black uppercase tracking-wider ${laneConfig.badgeBg}`}>
                                   {displayRoleName}
                                 </span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setCounterRoleFilter?.(laneConfig.role);
+                                    setDrafterViewMode("counters");
+                                  }}
+                                  title={`Ver counters y respuestas estratégicas para ${displayRoleName}`}
+                                  className="p-1 rounded bg-black/60 hover:bg-purple-950/80 border border-zinc-800 hover:border-purple-500/60 text-zinc-400 hover:text-purple-300 transition-colors cursor-pointer"
+                                >
+                                  <Crosshair className="h-3 w-3" />
+                                </button>
                               </div>
                               <span className="font-display font-black text-sm text-white tracking-wide truncate">
                                 {laneConfig.player}
@@ -1278,8 +1430,18 @@ export function TacticalAssistantTab({
               </div>
             )}
 
+            {/* ========================================================= */}
+            {/* 4. GUÍA TÁCTICA DE COUNTERS POR ROL & ARQUETIPOS ENEMY    */}
+            {/* ========================================================= */}
+            {drafterViewMode === "counters" && (
+              <RoleCountersSection
+                playerChampions={playerChampions}
+                initialRole={counterRoleFilter}
+              />
+            )}
+
             {/* POOL DEL EQUIPO PARA ESTA COMPOSICIÓN (POR POSICIÓN) */}
-            {drafterViewMode !== "vertical" && (
+            {drafterViewMode !== "vertical" && drafterViewMode !== "counters" && (
               <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5 shadow-xl">
                 <div className="mb-4">
                   <h3 className="font-display font-bold text-base uppercase tracking-wider text-purple-300 flex items-center gap-2">
