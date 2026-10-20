@@ -779,7 +779,9 @@ export function useStaffState() {
     drafterLiveBridge.setOurSide(ourSide, "Void Lynx");
   }, [ourSide]);
 
-  // Sincronización HTTP de respaldo
+  const [isImportingDrafter, setIsImportingDrafter] = useState<boolean>(false);
+
+  // Sincronización HTTP vía proxy serverless
   const fetchAndApplyDrafterLiveState = async (roomIdToUse?: string) => {
     const targetRoom = (roomIdToUse || drafterRoomUrl || drafterInputUrl).trim();
     const cleanId = drafterLiveBridge.cleanRoomId(targetRoom);
@@ -803,10 +805,19 @@ export function useStaffState() {
       if (Array.isArray(data.redPicks)) setRedPicks(data.redPicks);
       if (Array.isArray(data.redBans)) setRedBans(data.redBans);
 
-      if (ourSide === "BLUE" && data.redName && data.redName.trim()) {
-        setRivalName(data.redName.trim());
-      } else if (ourSide === "RED" && data.blueName && data.blueName.trim()) {
-        setRivalName(data.blueName.trim());
+      // Detectar bando automáticamente si viene el nombre de Void Lynx
+      const bName = (data.blueName || "").trim();
+      const rName = (data.redName || "").trim();
+
+      if (bName.toLowerCase().includes("void")) {
+        setOurSide("BLUE");
+        if (rName) setRivalName(rName);
+      } else if (rName.toLowerCase().includes("void")) {
+        setOurSide("RED");
+        if (bName) setRivalName(bName);
+      } else {
+        if (ourSide === "BLUE" && rName) setRivalName(rName);
+        if (ourSide === "RED" && bName) setRivalName(bName);
       }
 
       if (typeof data.currentTime === "number") {
@@ -831,6 +842,45 @@ export function useStaffState() {
       return false;
     }
   };
+
+  // Importar draft de Drafter.lol en 1 solo clic
+  const handleImportDraftFromDrafter = async (urlOrId?: string) => {
+    const target = (urlOrId || drafterInputUrl || drafterRoomUrl).trim();
+    if (!target) {
+      alert("Introduce o pega la URL o ID de la sala de Drafter.lol.");
+      return false;
+    }
+
+    setIsImportingDrafter(true);
+    try {
+      const ok = await fetchAndApplyDrafterLiveState(target);
+      if (ok) {
+        handleSetDrafterRoomUrl(target);
+        setDraftSaveNotification({
+          message: "¡Draft importado con éxito desde Drafter.lol! Ahora puedes añadir notas tácticas y guardarlo.",
+          type: "success",
+        });
+        setTimeout(() => setDraftSaveNotification(null), 5000);
+        return true;
+      } else {
+        alert("No se pudo obtener el draft de Drafter.lol. Verifica que la sala exista o que el enlace sea correcto.");
+        return false;
+      }
+    } finally {
+      setIsImportingDrafter(false);
+    }
+  };
+
+  // Sincronización periódica automática cuando está activa
+  useEffect(() => {
+    if (!isDrafterAutoSync || !drafterRoomUrl.trim() || activeTab !== "live") return;
+
+    const interval = setInterval(() => {
+      fetchAndApplyDrafterLiveState(drafterRoomUrl);
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isDrafterAutoSync, drafterRoomUrl, activeTab]);
 
   const handleSetDrafterRoomUrl = (url: string) => {
     setDrafterRoomUrl(url);
@@ -1429,6 +1479,8 @@ export function useStaffState() {
     handleCreateDrafterRoom,
     handleSendDrafterReady,
     handleDisconnectDrafter,
+    isImportingDrafter,
+    handleImportDraftFromDrafter,
     lastDrafterSyncTime,
     drafterLiveTime,
     fetchAndApplyDrafterLiveState,

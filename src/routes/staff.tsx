@@ -191,6 +191,8 @@ function StaffPage() {
             handleCreateDrafterRoom={staff.handleCreateDrafterRoom}
             handleSendDrafterReady={staff.handleSendDrafterReady}
             handleDisconnectDrafter={staff.handleDisconnectDrafter}
+            isImportingDrafter={staff.isImportingDrafter}
+            handleImportDraftFromDrafter={staff.handleImportDraftFromDrafter}
             lastDrafterSyncTime={staff.lastDrafterSyncTime}
             drafterLiveTime={staff.drafterLiveTime}
             fetchAndApplyDrafterLiveState={staff.fetchAndApplyDrafterLiveState}

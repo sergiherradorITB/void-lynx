@@ -6,7 +6,7 @@ export const onRequestGet = async (context: { request: Request }) => {
   const roomId = url.searchParams.get("roomId") || url.searchParams.get("room") || "";
 
   const cleanId = roomId
-    .replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/)?/, "")
+    .replace(/^https?:\/\/(www\.)?drafter\.lol\/(draft\/|spectate\/|series\/)?/, "")
     .split("?")[0]
     .split("/")[0]
     .trim();
@@ -64,19 +64,18 @@ export const onRequestGet = async (context: { request: Request }) => {
     });
     const pollText = await pollRes.text();
 
-    const commaIdx = pollText.indexOf(",");
-    if (commaIdx === -1) {
-      return new Response(JSON.stringify({ error: "Respuesta no válida de Drafter.lol" }), {
-        status: 502,
+    const updateIdx = pollText.indexOf('["update-state",');
+    if (updateIdx === -1) {
+      return new Response(JSON.stringify({ error: "No se encontró el estado de la sala en Drafter.lol. Verifica que el ID o enlace sea correcto." }), {
+        status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
 
-    const jsonStr = pollText.substring(commaIdx + 1);
-    const [eventName, data] = JSON.parse(jsonStr);
+    const [eventName, data] = JSON.parse(pollText.substring(updateIdx));
 
     if (eventName !== "update-state" || !data || !data.draft) {
-      return new Response(JSON.stringify({ error: "Formato inesperado de Drafter.lol" }), {
+      return new Response(JSON.stringify({ error: "Formato inesperado devuelto por Drafter.lol" }), {
         status: 502,
         headers: { "Content-Type": "application/json" },
       });

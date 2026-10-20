@@ -29,6 +29,7 @@ import {
   Radio,
   X,
   XCircle,
+  Download,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
@@ -109,6 +110,8 @@ interface LiveDraftArenaTabProps {
   lastDrafterSyncTime: Date | null;
   drafterLiveTime: number;
   fetchAndApplyDrafterLiveState: (roomId?: string) => Promise<boolean>;
+  isImportingDrafter?: boolean;
+  handleImportDraftFromDrafter?: (url?: string) => Promise<boolean>;
   playerChampions: PlayerChampionEntry[];
 }
 
@@ -173,6 +176,8 @@ export function LiveDraftArenaTab({
   handleSendDrafterReady,
   handleDisconnectDrafter,
   drafterLiveTime = 30,
+  isImportingDrafter = false,
+  handleImportDraftFromDrafter,
 }: LiveDraftArenaTabProps) {
   // Pestañas del selector inferior de campeones
   const [bottomTab, setBottomTab] = useState<"starters" | "adapted" | "catalog" | "counters">("starters");
@@ -659,8 +664,8 @@ export function LiveDraftArenaTab({
             </div>
           </div>
 
-          {/* Fila inferior: Input de sala, Conectar/Desconectar, Crear Sala Automática y Ready */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Fila inferior: Input de sala, Importar Draft en 1 click, Conectar/Desconectar, Crear Sala Automática y Ready */}
+          <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-2">
             {/* Input de URL o ID de sala */}
             <div className="relative flex-1">
               <input
@@ -669,22 +674,42 @@ export function LiveDraftArenaTab({
                 onChange={(e) => setDrafterInputUrl?.(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && drafterInputUrl.trim()) {
-                    handleSetDrafterRoomUrl?.(drafterInputUrl.trim());
+                    if (handleImportDraftFromDrafter) {
+                      handleImportDraftFromDrafter(drafterInputUrl.trim());
+                    } else {
+                      handleSetDrafterRoomUrl?.(drafterInputUrl.trim());
+                    }
                   }
                 }}
-                placeholder="Pega URL o ID de Drafter.lol (ej: https://drafter.lol/draft/41df... o 41df...)"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-3 pr-20 py-2 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-purple-500"
+                placeholder="Pega enlace de Drafter.lol (ej: https://drafter.lol/draft/41df... o spectate/series)..."
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-3 pr-24 py-2.5 text-xs text-white placeholder-zinc-500 font-mono focus:outline-none focus:border-purple-500"
               />
               {drafterInputUrl.trim() && (
                 <button
                   type="button"
                   onClick={() => handleSetDrafterRoomUrl?.(drafterInputUrl.trim())}
-                  className="absolute right-1 top-1 bottom-1 px-3 rounded bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-mono font-bold transition-colors cursor-pointer"
+                  className="absolute right-1 top-1 bottom-1 px-2.5 rounded bg-purple-700/80 hover:bg-purple-600 text-purple-100 text-[11px] font-mono font-bold transition-colors cursor-pointer"
                 >
                   Conectar
                 </button>
               )}
             </div>
+
+            {/* BOTÓN ESTRELLA: 📥 IMPORTAR DRAFT (1 CLICK) */}
+            <button
+              type="button"
+              onClick={() => handleImportDraftFromDrafter?.(drafterInputUrl.trim() || drafterRoomUrl)}
+              disabled={isImportingDrafter || (!drafterInputUrl.trim() && !drafterRoomUrl)}
+              title="Importar picks, bans y equipos desde Drafter.lol a esta pizarra para añadir notas y guardar la scrim"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:scale-100 text-white text-xs font-mono font-bold shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
+            >
+              {isImportingDrafter ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4 text-emerald-100" />
+              )}
+              <span>{isImportingDrafter ? "Importando..." : "📥 Importar Draft"}</span>
+            </button>
 
             {/* Si ya hay sala conectada, botón Desconectar */}
             {drafterRoomUrl && (
@@ -703,14 +728,14 @@ export function LiveDraftArenaTab({
               onClick={handleCreateDrafterRoom}
               disabled={isCreatingDrafterRoom}
               title="Crea una sala competitiva en Drafter.lol automáticamente con Void Lynx vs Rival y conecta en 1 click"
-              className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white text-xs font-mono font-bold shadow-md shadow-purple-950/40 transition-all hover:scale-[1.02] disabled:opacity-50 shrink-0 cursor-pointer"
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 hover:to-indigo-500 text-white text-xs font-mono font-bold shadow-md shadow-purple-950/40 transition-all hover:scale-[1.02] disabled:opacity-50 shrink-0 cursor-pointer"
             >
               {isCreatingDrafterRoom ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
                 <Zap className="h-3.5 w-3.5 text-amber-300" />
               )}
-              <span>{isCreatingDrafterRoom ? "Creando en Drafter..." : "⚡ Crear Sala en Drafter.lol"}</span>
+              <span className="hidden sm:inline">{isCreatingDrafterRoom ? "Creando en Drafter..." : "⚡ Crear Sala Drafter"}</span>
             </button>
 
             {/* ★ Confirmar Listo / Ready (Solo visible cuando conectado) */}
@@ -719,12 +744,32 @@ export function LiveDraftArenaTab({
                 type="button"
                 onClick={handleSendDrafterReady}
                 title="Enviar confirmación de Listo (Ready) a Drafter.lol"
-                className="flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-mono font-bold shadow-md shadow-emerald-950/30 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
+                className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-mono font-bold shadow-md shadow-emerald-950/30 transition-all hover:scale-[1.02] shrink-0 cursor-pointer"
               >
                 <Check className="h-3.5 w-3.5" />
-                <span>★ Estoy Listo (Ready)</span>
+                <span>★ Listo (Ready)</span>
               </button>
             )}
+          </div>
+
+          {/* Banner de ayuda rápida */}
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-purple-950/40 border border-purple-800/30 text-[11px] font-mono text-purple-200">
+            <span className="flex items-center gap-1.5">
+              <span className="text-amber-400 font-bold">💡 Modo Scrim:</span>
+              <span>Pega el enlace de Drafter.lol y pulsa <strong>Importar Draft</strong>. Cargará todos los picks y bans para que pongas tus notas y guardes la scrim en la base de datos.</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                if (drafterInputUrl.trim() || drafterRoomUrl) {
+                  handleImportDraftFromDrafter?.(drafterInputUrl.trim() || drafterRoomUrl);
+                }
+              }}
+              disabled={!drafterInputUrl.trim() && !drafterRoomUrl}
+              className="hidden md:inline-flex text-purple-300 hover:text-white underline underline-offset-2 font-bold cursor-pointer disabled:opacity-40"
+            >
+              Probar importación ahora &rarr;
+            </button>
           </div>
         </div>
 
