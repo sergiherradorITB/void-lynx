@@ -25,7 +25,7 @@ function getCompId(row: any): string {
 }
 
 export const onRequestGet = async (context: { env: Env }) => {
-  const db = context.env.DB;
+  const db = context.env?.DB;
   if (!db) {
     return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
       status: 503,
@@ -64,7 +64,7 @@ export const onRequestGet = async (context: { env: Env }) => {
 };
 
 export const onRequestPost = async (context: { request: Request; env: Env }) => {
-  const db = context.env.DB;
+  const db = context.env?.DB;
   if (!db) {
     return new Response(JSON.stringify({ error: "D1 database binding 'DB' not configured" }), {
       status: 503,

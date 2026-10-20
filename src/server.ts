@@ -24,10 +24,19 @@ async function getServerEntry(): Promise<ServerEntry> {
 }
 
 // Router directo para las APIs de base de datos D1 y Drafter en el entorno de servidor
-async function handleApiRequest(request: Request, env: any): Promise<Response | null> {
+async function handleApiRequest(request: Request, rawEnv: any): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
   const method = request.method.toUpperCase();
+
+  const env =
+    rawEnv && typeof rawEnv === "object" && "DB" in rawEnv
+      ? rawEnv
+      : (request as any).runtime?.cloudflare?.env ??
+        (request as any).env ??
+        (globalThis as any).__env__ ??
+        rawEnv ??
+        {};
 
   if (path === "/api/composiciones") {
     if (method === "GET") return await composicionesApi.onRequestGet({ env });
@@ -80,13 +89,21 @@ function isH3SwallowedErrorBody(body: string): boolean {
 
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
-    try {
-      const url = new URL(request.url);
-      if (url.pathname.startsWith("/api/")) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/")) {
+      try {
         const apiResponse = await handleApiRequest(request, env);
         if (apiResponse) return apiResponse;
+      } catch (apiError: any) {
+        console.error("API error:", apiError);
+        return new Response(JSON.stringify({ error: apiError?.message || String(apiError) }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
       }
+    }
 
+    try {
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);
