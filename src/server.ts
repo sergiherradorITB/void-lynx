@@ -3,6 +3,11 @@ import "./lib/error-capture";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 
+import * as composicionesApi from "../functions/api/composiciones";
+import * as jugadoresApi from "../functions/api/jugadores";
+import * as draftsApi from "../functions/api/drafts";
+import * as drafterSyncApi from "../functions/api/drafter-sync";
+
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
 };
@@ -16,6 +21,35 @@ async function getServerEntry(): Promise<ServerEntry> {
     );
   }
   return serverEntryPromise;
+}
+
+// Router directo para las APIs de base de datos D1 y Drafter en el entorno de servidor
+async function handleApiRequest(request: Request, env: any): Promise<Response | null> {
+  const url = new URL(request.url);
+  const path = url.pathname;
+  const method = request.method.toUpperCase();
+
+  if (path === "/api/composiciones") {
+    if (method === "GET") return await composicionesApi.onRequestGet({ env });
+    if (method === "POST" || method === "PUT") return await composicionesApi.onRequestPost({ request, env });
+  }
+
+  if (path === "/api/jugadores") {
+    if (method === "GET") return await jugadoresApi.onRequestGet({ env });
+    if (method === "POST" || method === "PUT") return await jugadoresApi.onRequestPost({ request, env });
+  }
+
+  if (path === "/api/drafts") {
+    if (method === "GET") return await draftsApi.onRequestGet({ env });
+    if (method === "POST" || method === "PUT") return await draftsApi.onRequestPost({ request, env });
+    if (method === "DELETE") return await draftsApi.onRequestDelete({ request, env });
+  }
+
+  if (path === "/api/drafter-sync") {
+    if (method === "GET") return await drafterSyncApi.onRequestGet({ request });
+  }
+
+  return null;
 }
 
 // h3 swallows in-handler throws into a normal 500 Response with body
@@ -47,6 +81,12 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const url = new URL(request.url);
+      if (url.pathname.startsWith("/api/")) {
+        const apiResponse = await handleApiRequest(request, env);
+        if (apiResponse) return apiResponse;
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       return await normalizeCatastrophicSsrResponse(response);

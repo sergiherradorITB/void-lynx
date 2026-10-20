@@ -35,7 +35,7 @@ export function useStaffState() {
   const [playerChampions, setPlayerChampions] = useState<PlayerChampionEntry[]>(loadPlayerChampions);
   const [selectedCompId, setSelectedCompId] = useState<string>("siege-4");
   const [selectedPlayerName, setSelectedPlayerName] = useState<string>("Kaserolo");
-  const [saveStatus, setSaveStatus] = useState<"synced" | "saving" | "unsaved">("synced");
+  const [saveStatus, setSaveStatus] = useState<"synced" | "saving" | "unsaved">("saving");
   const [playerViewMode, setPlayerViewMode] = useState<"tierlist" | "grid">("tierlist");
   const [draftsHistory, setDraftsHistory] = useState<SavedDraft[]>(loadDraftHistory);
 
@@ -92,10 +92,12 @@ export function useStaffState() {
         }
         if (remoteComps || remoteChamps || remoteDrafts) {
           setSaveStatus("synced");
+        } else {
+          setSaveStatus("unsaved");
         }
       })
       .catch(() => {
-        // En entorno local o sin binding de D1, seguimos en local
+        setSaveStatus("unsaved");
       });
   }, []);
 
