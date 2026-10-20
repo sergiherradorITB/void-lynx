@@ -138,6 +138,10 @@ function StaffPage() {
             setSelectedCompId={staff.setSelectedCompId}
             compositions={staff.compositions}
             currentComp={staff.currentComp}
+            activeCompIds={staff.activeCompIds}
+            handleToggleCompActive={staff.handleToggleCompActive}
+            handleActivateAllComps={staff.handleActivateAllComps}
+            handleDeactivateAllComps={staff.handleDeactivateAllComps}
             drafterArenaMode={staff.drafterArenaMode}
             setDrafterArenaMode={staff.setDrafterArenaMode}
             cleanDrafterIframeUrl={staff.cleanDrafterIframeUrl}

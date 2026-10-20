@@ -27,6 +27,8 @@ import {
   ExternalLink,
   Loader2,
   Radio,
+  X,
+  XCircle,
 } from "lucide-react";
 import { ActiveTab, DraftSlot, DraftSequenceStep, DrafterSyncStatus, LaneConfig } from "../types";
 import { SavedDraft } from "@/lib/staff-storage";
@@ -45,6 +47,10 @@ interface LiveDraftArenaTabProps {
   setSelectedCompId: (id: string) => void;
   compositions: CompositionData[];
   currentComp: CompositionData;
+  activeCompIds?: string[];
+  handleToggleCompActive?: (id: string) => void;
+  handleActivateAllComps?: () => void;
+  handleDeactivateAllComps?: () => void;
   drafterArenaMode: "builtin" | "drafter_lol" | "split";
   setDrafterArenaMode: (mode: "builtin" | "drafter_lol" | "split") => void;
   cleanDrafterIframeUrl: string;
@@ -117,6 +123,10 @@ export function LiveDraftArenaTab({
   setSelectedCompId,
   compositions,
   currentComp,
+  activeCompIds = [],
+  handleToggleCompActive,
+  handleActivateAllComps,
+  handleDeactivateAllComps,
   bluePicks,
   blueBans,
   redPicks,
@@ -459,11 +469,15 @@ export function LiveDraftArenaTab({
                   onChange={(e) => setSelectedCompId(e.target.value)}
                   className="w-full bg-transparent text-white font-display font-black text-xs outline-none cursor-pointer truncate"
                 >
-                  {compositions.map((comp) => (
-                    <option key={comp.id} value={comp.id} className="bg-zinc-900 text-white">
-                      {comp.nombre} ({comp.enfoque})
-                    </option>
-                  ))}
+                  {compositions.map((comp) => {
+                    const isCompActive = activeCompIds.includes(comp.id);
+                    return (
+                      <option key={comp.id} value={comp.id} className="bg-zinc-900 text-white">
+                        {isCompActive ? "✓ " : "✕ [DESCARTADA] "}
+                        {comp.nombre} ({comp.enfoque})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
@@ -720,12 +734,204 @@ export function LiveDraftArenaTab({
         <div className={drafterArenaMode === "split" ? "grid grid-cols-1 xl:grid-cols-12 gap-4 items-start" : "space-y-4"}>
           <div className={drafterArenaMode === "split" ? "xl:col-span-7 2xl:col-span-8 space-y-4" : "space-y-4"}>
             {/* ========================================================================= */}
-            {/* 2. PANEL TÁCTICO: COMPO QUE QUEREMOS JUGAR & PLAN DE FASES DE PICKS      */}
+            {/* 2. ÁRBOL DE COMPOSICIONES TÁCTICAS EN VIVO (TODAS EN GRANDE)              */}
+            {/* ========================================================================= */}
+            <div className="bg-zinc-950 border border-purple-900/50 p-4 rounded-2xl shadow-xl space-y-3">
+              {/* Header de Viabilidad de Composiciones */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-zinc-800">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Swords className="h-5 w-5 text-purple-400" />
+                    <h3 className="font-display font-black text-sm uppercase tracking-wider text-white">
+                      Composiciones Estratégicas // Árbol de Viabilidad en Vivo
+                    </h3>
+                  </div>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-mono font-black border transition-all ${
+                      activeCompIds.length === 0
+                        ? "bg-rose-950/80 border-rose-500/50 text-rose-300"
+                        : activeCompIds.length === compositions.length
+                        ? "bg-emerald-950/80 border-emerald-500/50 text-emerald-300"
+                        : "bg-purple-950/80 border-purple-500/50 text-purple-300"
+                    }`}
+                  >
+                    {activeCompIds.length} / {compositions.length} ACTIVAS Y VIABLES
+                  </span>
+                  <span className="text-[11px] text-zinc-400 font-mono hidden md:inline">
+                    (Todas activas por defecto. Haz clic para descartar o reactivar según avance el draft)
+                  </span>
+                </div>
+
+                {/* Botones de acción rápida: Activar Todas / Descartar Todas */}
+                <div className="flex items-center gap-2">
+                  {handleActivateAllComps && (
+                    <button
+                      type="button"
+                      onClick={handleActivateAllComps}
+                      title="Marcar todas las composiciones como activas y viables"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-600/50 text-emerald-300 font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                      <span>Activar Todas</span>
+                    </button>
+                  )}
+                  {handleDeactivateAllComps && (
+                    <button
+                      type="button"
+                      onClick={handleDeactivateAllComps}
+                      title="Descartar todas las composiciones"
+                      className="text-xs px-2.5 py-1 rounded-lg bg-rose-950/50 hover:bg-rose-900/80 border border-rose-600/40 text-rose-300 font-mono font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    >
+                      <X className="h-3.5 w-3.5 text-rose-400" />
+                      <span>Descartar Todas</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Tarjetas EN GRANDE de cada composición */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+                {compositions.map((comp) => {
+                  const isActive = activeCompIds.includes(comp.id);
+                  const isSelected = comp.id === selectedCompId;
+
+                  return (
+                    <div
+                      key={comp.id}
+                      onClick={() => {
+                        if (!isActive) {
+                          handleToggleCompActive?.(comp.id);
+                          setSelectedCompId(comp.id);
+                        } else {
+                          setSelectedCompId(comp.id);
+                        }
+                      }}
+                      className={`group p-4 rounded-2xl border-2 text-left transition-all relative flex flex-col justify-between min-h-[140px] cursor-pointer select-none ${
+                        !isActive
+                          ? "bg-zinc-950/40 border-zinc-900/90 text-zinc-500 opacity-50 hover:opacity-85 shadow-none"
+                          : isSelected
+                          ? "bg-gradient-to-br from-purple-900/70 via-purple-950/90 to-zinc-950 border-purple-400 text-white shadow-[0_0_25px_rgba(168,85,247,0.45)] ring-2 ring-purple-400/80 scale-[1.02]"
+                          : "bg-zinc-950/80 border-purple-900/30 text-zinc-300 hover:border-purple-500/60 hover:bg-zinc-900/90 hover:scale-[1.01]"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-start justify-between gap-2 mb-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wider ${
+                              !isActive
+                                ? "bg-zinc-900 text-zinc-500 border border-zinc-800"
+                                : "bg-purple-950 text-purple-300 border border-purple-500/40"
+                            }`}
+                          >
+                            {comp.enfoque}
+                          </span>
+
+                          {/* Botón de toggle directo Activa / Descartada */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleCompActive?.(comp.id);
+                            }}
+                            title={
+                              isActive
+                                ? "Haz clic para descartar esta compo de la partida"
+                                : "Haz clic para reactivar esta compo"
+                            }
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold flex items-center gap-1 border transition-all cursor-pointer ${
+                              isActive
+                                ? "bg-emerald-950/90 border-emerald-500/50 text-emerald-300 hover:bg-rose-950 hover:border-rose-500 hover:text-rose-300"
+                                : "bg-rose-950/80 border-rose-500/40 text-rose-300 hover:bg-emerald-950 hover:border-emerald-500 hover:text-emerald-300"
+                            }`}
+                          >
+                            {isActive ? (
+                              <>
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>VIABLE</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>✕</span>
+                                <span>DESCARTADA</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <div
+                          className={`font-display font-black text-base uppercase tracking-wide leading-tight mb-1.5 ${
+                            !isActive ? "line-through text-zinc-500" : "text-white"
+                          }`}
+                        >
+                          {comp.nombre}
+                        </div>
+
+                        <p className="text-[11px] text-zinc-400 line-clamp-2 leading-relaxed mb-2.5">
+                          {comp.descripcion}
+                        </p>
+                      </div>
+
+                      <div>
+                        {/* First Picks Clave */}
+                        {comp.first_pick_safe && comp.first_pick_safe.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-zinc-800/80">
+                            <span className="text-[9px] font-mono text-zinc-500 font-bold uppercase">First Picks:</span>
+                            {comp.first_pick_safe.slice(0, 4).map((c) => (
+                              <span
+                                key={c}
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono ${
+                                  !isActive
+                                    ? "bg-zinc-900 text-zinc-500 grayscale"
+                                    : "bg-black/60 border border-purple-500/30 text-purple-200"
+                                }`}
+                              >
+                                <img
+                                  src={getChampionAvatar(c)}
+                                  alt={c}
+                                  className="h-3.5 w-3.5 rounded-full object-cover"
+                                />
+                                <span>{c}</span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Indicador de seleccionado en pizarra */}
+                        {isSelected && isActive && (
+                          <div className="mt-2 text-[9px] font-mono font-black text-purple-300 tracking-wider uppercase flex items-center gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-purple-400 animate-ping" />
+                            <span>● ENFOQUE TÁCTICO EN PIZARRA</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ========================================================================= */}
+            {/* 3. PANEL TÁCTICO: DETALLES DE LA COMPO OBJETIVO & PLAN DE FASES           */}
             {/* ========================================================================= */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
           {/* Tarjeta Izquierda: Identidad de Composición & Counters a Vigilar (6 cols) */}
           <div className="lg:col-span-6 bg-zinc-950 border border-purple-900/40 rounded-2xl p-4 shadow-xl space-y-3 flex flex-col justify-between">
             <div>
+              {!activeCompIds.includes(currentComp.id) && (
+                <div className="mb-2.5 p-2 rounded-lg bg-rose-950/60 border border-rose-500/50 flex items-center justify-between text-xs text-rose-200">
+                  <div className="flex items-center gap-1.5 font-mono font-bold">
+                    <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
+                    <span>Esta composición está marcada como DESCARTADA.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleCompActive?.(currentComp.id)}
+                    className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-rose-900/80 hover:bg-emerald-900 text-rose-200 hover:text-emerald-200 transition-colors cursor-pointer"
+                  >
+                    Reactivar
+                  </button>
+                </div>
+              )}
               <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-purple-400 shadow-[0_0_8px_#a855f7]" />
